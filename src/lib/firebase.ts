@@ -1,5 +1,11 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut, onAuthStateChanged } from 'firebase/auth';
+import { initializeApp } from "firebase/app"
+import { 
+  getAuth, 
+  isSignInWithEmailLink, 
+  GoogleAuthProvider,
+  signInWithEmailLink,
+  signOut
+} from "firebase/auth"
 import { getFirestore, doc, setDoc, getDoc, collection } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
@@ -12,11 +18,10 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+}
 
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
+const app = initializeApp(firebaseConfig)
+const auth = getAuth(app)
 const db = getFirestore(app);
 const functions = getFunctions(app);
 const storage = getStorage(app);

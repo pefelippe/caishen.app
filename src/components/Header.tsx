@@ -1,39 +1,22 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { CircleDollarSign } from 'lucide-react';
+import { UserMenu } from './UserMenu';
 
 export function Header() {
-  const pathname = usePathname();
-  const { user } = useAuth();
-
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="text-2xl font-bold text-gray-900">
-            Caishen - Track your money
+    <header className="h-14 w-full border-b border-slate-200 bg-white">
+      <div className="mx-auto flex h-full max-w-[2000px] items-center justify-between px-6">
+        <div className="flex items-center gap-2">
+          <Link href="/app/dashboard" className="flex items-center gap-2">
+            <CircleDollarSign className="h-5 w-5 text-indigo-600" />
+            <span className="text-base font-medium text-gray-900">Caishen</span>
           </Link>
-
-          <nav className="flex items-center gap-4">
-            {user ? (
-              <Link
-                href="/app"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Dashboard
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Log in
-              </Link>
-            )}
-          </nav>
         </div>
+
+        <UserMenu />
       </div>
     </header>
   );

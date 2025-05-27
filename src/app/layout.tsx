@@ -6,17 +6,17 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Caishen - Track your money",
-  description: "A modern financial application built with Next.js. Track your money with Caishen.",
+  title: "Caishen - Financial Management",
+  description: "Manage your finances with ease",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

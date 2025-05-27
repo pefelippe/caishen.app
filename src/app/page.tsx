@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowRight, Wallet, MessageSquare, Brain, Coins, TrendingUp } from 'lucide-react';
+import { Link as ScrollLink } from 'react-scroll';
+import { useEffect, useState } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -14,6 +16,16 @@ import { BenefitsSection } from '@/components/landing/BenefitsSection';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const benefits = [
     {
@@ -41,9 +53,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
-      <header className="fixed w-full z-50">
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-md border-b border-gray-200/50"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
+        isScrolled ? 'bg-white/80 backdrop-blur-sm border-b border-gray-200' : 'bg-transparent'
+      }`}>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -64,15 +77,36 @@ export default function LandingPage() {
               className="flex items-center gap-6"
             >
               <nav className="hidden md:flex items-center gap-8">
-                <a href="#benefits" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">
-                  Benefits
-                </a>
-                <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">
+                <ScrollLink
+                  to="about"
+                  spy={true}
+                  smooth={true}
+                  offset={-100}
+                  duration={500}
+                  className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer"
+                >
+                  About
+                </ScrollLink>
+                <ScrollLink
+                  to="pricing"
+                  spy={true}
+                  smooth={true}
+                  offset={-100}
+                  duration={500}
+                  className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer"
+                >
                   Pricing
-                </a>
-                <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">
+                </ScrollLink>
+                <ScrollLink
+                  to="faq"
+                  spy={true}
+                  smooth={true}
+                  offset={-100}
+                  duration={500}
+                  className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer"
+                >
                   FAQ
-                </a>
+                </ScrollLink>
               </nav>
               <button
                 onClick={() => router.push('/login')}
@@ -88,14 +122,14 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <main className="pt-32">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 ">
           <HeroSection />
         </div>
         <BenefitsSection />
 
         {/* Pricing Section */}
         <div className="mt-40" id="pricing">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -114,7 +148,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3"
+              className="mt-16 grid grid-cols-1 gap-4 sm:grid-cols-2"
             >
               {/* Free Plan */}
               <div className="relative flex flex-col p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
@@ -216,7 +250,7 @@ export default function LandingPage() {
               </div>
 
               {/* Enterprise Plan */}
-              <div className="relative flex flex-col p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
+              {/* <div className="relative flex flex-col p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900">Enterprise</h3>
                   <p className="mt-4 flex items-baseline text-gray-900">
@@ -265,14 +299,14 @@ export default function LandingPage() {
                 >
                   Get Started
                 </button>
-              </div>
+              </div> */}
             </motion.div>
           </div>
         </div>
 
         {/* FAQ Section */}
         <div className="mt-40 bg-gray-50" id="faq">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -375,7 +409,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.2 }}
           className="mt-40 text-center"
         >
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -400,7 +434,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="mt-40 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Brand Section */}
             <div className="col-span-1 md:col-span-2">
@@ -426,19 +460,40 @@ export default function LandingPage() {
               <h3 className="text-sm font-semibold text-gray-900 mb-4">Quick Links</h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="#benefits" className="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
-                    Benefits
-                  </a>
+                  <ScrollLink
+                    to="about"
+                    spy={true}
+                    smooth={true}
+                    offset={-100}
+                    duration={500}
+                    className="text-sm text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer"
+                  >
+                    About
+                  </ScrollLink>
                 </li>
                 <li>
-                  <a href="#pricing" className="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
+                  <ScrollLink
+                    to="pricing"
+                    spy={true}
+                    smooth={true}
+                    offset={-100}
+                    duration={500}
+                    className="text-sm text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer"
+                  >
                     Pricing
-                  </a>
+                  </ScrollLink>
                 </li>
                 <li>
-                  <a href="#faq" className="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
+                  <ScrollLink
+                    to="faq"
+                    spy={true}
+                    smooth={true}
+                    offset={-100}
+                    duration={500}
+                    className="text-sm text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer"
+                  >
                     FAQ
-                  </a>
+                  </ScrollLink>
                 </li>
               </ul>
             </div>

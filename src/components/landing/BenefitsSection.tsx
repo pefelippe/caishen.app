@@ -26,7 +26,7 @@ export function BenefitsSection() {
   ];
 
   return (
-    <div className="mt-40 relative overflow-hidden">
+    <div className="mt-40 relative overflow-hidden" id="about">
       <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-green-50 opacity-50"></div>
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <motion.div
@@ -36,7 +36,7 @@ export function BenefitsSection() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            Why choose <span className="text-emerald-600">us?</span>
+            Why choose <span className="text-emerald-600 border-b-2 border-emerald-600">us?</span>
           </h2>
           <p className="mt-4 text-lg text-gray-500">
             Everything you need to know about Caishen - Track your money

@@ -1,16 +1,15 @@
 'use client';
 
-import { User } from 'firebase/auth';
 import { useEffect, useState } from 'react';
+import { User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
     });
@@ -18,5 +17,19 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
-  return { user, loading };
+  return {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    displayName: user?.displayName || '',
+    email: user?.email || '',
+    photoURL: user?.photoURL || '',
+    initials: user?.displayName
+      ? user.displayName
+          .split(' ')
+          .map(n => n[0])
+          .join('')
+          .toUpperCase()
+      : ''
+  };
 } 
