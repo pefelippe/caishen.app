@@ -9,6 +9,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { HeroSection } from '@/components/landing/HeroSection';
+import { BenefitsSection } from '@/components/landing/BenefitsSection';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -49,14 +51,10 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="flex items-center gap-3"
             >
-              <div className="p-2 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl">
-                <Coins className="w-7 h-7 text-emerald-600" />
-              </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
-                  Caishen App
+                <span className="text-2xl font-extrabold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
+                  Caishen
                 </span>
-                <span className="text-xs text-gray-500 -mt-1">Track your money</span>
               </div>
             </motion.div>
             <motion.div
@@ -90,151 +88,10 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <main className="pt-32">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-24">
-          <div className="text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-600 text-sm font-medium mb-8"
-            >
-              <Coins className="w-4 h-4" />
-              Your Financial Journey Starts Here
-            </motion.div>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="text-5xl tracking-tight font-extrabold text-gray-900 sm:text-6xl md:text-7xl"
-            >
-              <span className="block">Caishen App</span>
-              <span className="block mt-2 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
-                Track your money
-              </span>
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="mt-8 max-w-2xl mx-auto text-base text-gray-500 sm:text-xl md:mt-10 md:max-w-2xl leading-relaxed"
-            >
-              Take control of your expenses with AI-powered insights and WhatsApp integration.
-              Start your journey to financial freedom today with Caishen App - Track your money.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="mt-10 max-w-md mx-auto sm:flex sm:justify-center md:mt-12"
-            >
-              <div className="rounded-full shadow-lg">
-                <button
-                  onClick={() => router.push('/login')}
-                  className="w-full flex items-center justify-center px-10 py-4 border border-transparent text-lg font-medium rounded-full text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 md:py-5 md:text-xl md:px-12 transition-all duration-200 shadow-sm hover:shadow cursor-pointer"
-                >
-                  Get Started
-                  <ArrowRight className="ml-2 w-6 h-6" />
-                </button>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5 }}
-              className="mt-12 flex items-center justify-center gap-8 text-sm text-gray-500"
-            >
-              <div className="flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-emerald-600" />
-                <span>Smart Expense Control</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-emerald-600" />
-                <span>AI-Powered Insights</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-emerald-600" />
-                <span>WhatsApp Integration</span>
-              </div>
-            </motion.div>
-          </div>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-24">
+          <HeroSection />
         </div>
-
-        {/* Stats Section */}
-        {/* <div className="mt-40 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-green-50 opacity-50"></div>
-          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="grid grid-cols-1 gap-8 sm:grid-cols-3"
-            >
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2 * index }}
-                  className="text-center"
-                >
-                  <div className="text-4xl font-bold text-emerald-600 mb-2">{stat.number}</div>
-                  <div className="text-lg text-gray-600">{stat.label}</div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </div> */}
-
-        {/* Benefits Section */}
-        <div className="mt-40 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-green-50 opacity-50"></div>
-          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                Why Choose <span className="text-emerald-600">Caishen App</span>
-              </h2>
-              <p className="mt-4 text-lg text-gray-500">
-                Everything you need to know about Caishen App - Track your money
-              </p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="grid grid-cols-1 gap-8 sm:grid-cols-2"
-            >
-              {benefits.map((benefit, index) => (
-                <motion.div
-                  key={benefit.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2 * index }}
-                  className="flex items-start gap-4 p-6 bg-white rounded-xl border border-gray-200 hover:border-emerald-200 transition-colors duration-200"
-                >
-                  <div className="p-3 bg-emerald-50 rounded-lg text-emerald-600">
-                    {benefit.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{benefit.title}</h3>
-                    <p className="text-gray-500">{benefit.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
+        <BenefitsSection />
 
         {/* Pricing Section */}
         <div className="mt-40" id="pricing">
@@ -426,7 +283,7 @@ export default function LandingPage() {
                 Frequently Asked Questions
               </h2>
               <p className="mt-4 text-lg text-gray-500">
-                Everything you need to know about Caishen App - Track your money
+                Everything you need to know about Caishen - Track your money
               </p>
             </motion.div>
 
@@ -553,14 +410,14 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
-                    Caishen App
+                    Caishen
                   </span>
                   <span className="text-xs text-gray-500 -mt-1">Track your money</span>
                 </div>
               </div>
               <p className="text-gray-500 text-sm max-w-md">
                 Take control of your finances with AI-powered insights and WhatsApp integration.
-                Start your journey to financial freedom today with Caishen App - Track your money.
+                Start your journey to financial freedom today with Caishen - Track your money.
               </p>
             </div>
 
@@ -611,7 +468,7 @@ export default function LandingPage() {
           <div className="mt-12 pt-8 border-t border-gray-200">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-sm text-gray-500">
-                © 2024 Caishen App - Track your money. All rights reserved.
+                © 2024 Caishen - Track your money. All rights reserved.
               </p>
               <div className="flex items-center gap-6">
                 <a href="#" className="text-gray-400 hover:text-emerald-600 transition-colors">

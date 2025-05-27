@@ -1,4 +1,4 @@
-# 25 Cent - Financial Application
+# Caishen - Track your money
 
 A modern financial application built with Next.js, Firebase, and Twilio.
 

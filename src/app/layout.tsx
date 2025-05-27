@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "25 Cent - Financial Application",
-  description: "A modern financial application built with Next.js",
+  title: "Caishen - Track your money",
+  description: "A modern financial application built with Next.js. Track your money with Caishen.",
 };
 
 export default function RootLayout({
