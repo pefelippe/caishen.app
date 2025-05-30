@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowRight, Wallet, MessageSquare, Brain, Coins, TrendingUp } from 'lucide-react';
+import { ArrowRight, Coins} from 'lucide-react';
 import { Link as ScrollLink } from 'react-scroll';
 import { useEffect, useState } from 'react';
 import {
@@ -26,29 +26,6 @@ export default function LandingPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const benefits = [
-    {
-      icon: <Wallet className="w-6 h-6" />,
-      title: 'Smart Expense Tracking',
-      description: 'Automatically categorize your expenses and get detailed insights into your spending habits.',
-    },
-    {
-      icon: <Brain className="w-6 h-6" />,
-      title: 'AI Financial Assistant',
-      description: 'Get personalized financial advice and recommendations based on your spending patterns.',
-    },
-    {
-      icon: <MessageSquare className="w-6 h-6" />,
-      title: 'WhatsApp Notifications',
-      description: 'Receive instant updates about your expenses, savings goals, and financial insights via WhatsApp.',
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6" />,
-      title: 'Smart Analytics',
-      description: 'View detailed reports and analytics to understand your financial health better.',
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -450,8 +427,8 @@ export default function LandingPage() {
                 </div>
               </div>
               <p className="text-gray-500 text-sm max-w-md">
-                Take control of your finances with AI-powered insights and WhatsApp integration.
-                Start your journey to financial freedom today with Caishen - Track your money.
+                Track your expenses, manage your budget, and get smart insights to improve your financial health.
+                It&apos;s time to take control of your finances.
               </p>
             </div>
 
@@ -522,7 +499,7 @@ export default function LandingPage() {
           {/* Bottom Section */}
           <div className="mt-12 pt-8 border-t border-gray-200">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 © 2024 Caishen - Track your money. All rights reserved.
               </p>
               <div className="flex items-center gap-6">

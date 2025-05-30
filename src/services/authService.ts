@@ -1,4 +1,4 @@
-import { signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
+import { signInWithPopup, sendSignInLinkToEmail, AuthError } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '@/lib/firebase';
 import { 
   signInWithEmailAndPassword,
@@ -12,8 +12,9 @@ export async function signInWithGoogleService() {
   try {
     await signInWithPopup(auth, googleProvider);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Google sign-in failed.' };
+  } catch (error) {
+    const authError = error as AuthError;
+    return { success: false, error: authError.message || 'Google sign-in failed.' };
   }
 }
 
@@ -22,8 +23,9 @@ export async function sendMagicLinkService(email: string) {
     await sendSignInLinkToEmail(auth, email, actionCodeSettings);
     window.localStorage.setItem('emailForSignIn', email);
     return { success: true };
-  } catch (error: any) {
-    if (error.code === 'auth/operation-not-allowed') {
+  } catch (error) {
+    const authError = error as AuthError;
+    if (authError.code === 'auth/operation-not-allowed') {
       return { success: false, error: 'Magic link sign-in is not enabled. Please contact support.' };
     }
     return { success: false, error: 'Failed to send magic link. Please try again.' };
@@ -52,7 +54,8 @@ export async function signInWithAppleService() {
     // This is a placeholder that simulates a successful sign-in
     return { success: true };
   } catch (error) {
-    console.error('Apple sign in error:', error);
+    const authError = error as AuthError;
+    console.error('Apple sign in error:', authError);
     return {
       success: false,
       error: 'Failed to sign in with Apple. Please try again.'

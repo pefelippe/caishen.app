@@ -11,6 +11,7 @@ interface AuthContextType {
   email: string | null
   photoURL: string | null
   initials: string
+  loading: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,14 +20,17 @@ const AuthContext = createContext<AuthContextType>({
   email: null,
   photoURL: null,
   initials: "",
+  loading: true,
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user)
+      setLoading(false)
     })
 
     return () => unsubscribe()
@@ -49,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         photoURL,
         initials,
+        loading,
       }}
     >
       {children}

@@ -1,8 +1,14 @@
 import { loadStripe } from '@stripe/stripe-js';
+import Stripe from 'stripe';
 import { db } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-// Initialize Stripe
+// Initialize server-side Stripe
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-04-30.basil',
+});
+
+// Initialize client-side Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export const createCheckoutSession = async (userId: string, planId: string, price: number) => {

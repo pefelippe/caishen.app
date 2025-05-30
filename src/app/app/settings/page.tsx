@@ -89,13 +89,4 @@ export default function SettingsPage() {
       </div>
     </div>
   )
-}
-
-export function PreferencesPage() {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Preferences</h1>
-      <p className="text-gray-500">Customize your app preferences</p>
-    </div>
-  )
 } 

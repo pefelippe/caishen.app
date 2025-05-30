@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { auth } from '@/lib/firebase';
@@ -10,19 +9,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Settings, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { User, Settings, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export function UserMenu() {
   const router = useRouter();
   const { displayName, email, photoURL, initials } = useAuth();
-  const { setTheme, theme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -38,7 +34,7 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={photoURL} alt={displayName} />
+            <AvatarImage src={photoURL || ''} alt={displayName || ''} />
             <AvatarFallback className="bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
               {initials}
             </AvatarFallback>
@@ -68,7 +64,7 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-red-600">
+        <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           Log out
         </DropdownMenuItem>

@@ -1,61 +1,72 @@
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { updateUserSubscription } from '@/lib/firebase';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+import { stripe } from '@/lib/stripe';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-export async function POST(request: Request) {
-  const payload = await request.text();
-  const signature = request.headers.get('stripe-signature')!;
+export async function POST(req: Request) {
+  const body = await req.text();
+  const signature = (await headers()).get('stripe-signature')!;
+
+  let event: Stripe.Event;
 
   try {
-    const event = stripe.webhooks.constructEvent(
-      payload,
-      signature,
-      webhookSecret
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (error) {
+    const stripeError = error as Error;
+    console.error('Webhook signature verification failed:', stripeError.message);
+    return NextResponse.json(
+      { error: 'Webhook signature verification failed' },
+      { status: 400 }
     );
+  }
 
+  try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const { userId, planId } = session.metadata!;
+        const userId = session.client_reference_id;
+        const subscriptionId = session.subscription as string;
 
-        // Update user's subscription in Firestore
-        await updateUserSubscription(userId, planId as any, session.customer as string);
-        break;
-      }
-
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata.userId;
-        const planId = subscription.metadata.planId;
-
-        if (subscription.status === 'active') {
-          await updateUserSubscription(userId, planId as any, subscription.customer as string);
+        if (!userId || !subscriptionId) {
+          throw new Error('Missing userId or subscriptionId');
         }
+
+        await updateDoc(doc(db, 'users', userId), {
+          stripeSubscriptionId: subscriptionId,
+          stripeCustomerId: session.customer,
+          subscriptionStatus: 'active'
+        });
+
         break;
       }
-
+      case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = subscription.metadata.userId;
 
-        // Downgrade to free plan
-        await updateUserSubscription(userId, 'free');
+        if (!userId) {
+          throw new Error('Missing userId in subscription metadata');
+        }
+
+        await updateDoc(doc(db, 'users', userId), {
+          subscriptionStatus: subscription.status
+        });
+
         break;
       }
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    const stripeError = error as Error;
+    console.error('Error processing webhook:', stripeError.message);
     return NextResponse.json(
-      { error: 'Webhook error' },
-      { status: 400 }
+      { error: 'Error processing webhook' },
+      { status: 500 }
     );
   }
 } 
