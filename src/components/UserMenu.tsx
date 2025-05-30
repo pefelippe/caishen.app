@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, Settings, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function UserMenu() {
   const router = useRouter();
@@ -33,67 +35,43 @@ export function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex w-full items-center gap-4 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={photoURL} alt={displayName} />
-          <AvatarFallback className="bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 overflow-hidden">
-          <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{displayName}</p>
-          <p className="truncate text-xs text-gray-500 dark:text-gray-400">{email}</p>
-        </div>
-        <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[300px] bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg">
-        <div className="flex items-center gap-4 p-4 border-b border-gray-100 dark:border-gray-800">
-          <Avatar className="h-12 w-12">
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
             <AvatarImage src={photoURL} alt={displayName} />
             <AvatarFallback className="bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{displayName}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{email}</p>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <div className="flex items-center justify-start gap-2 p-2">
+          <div className="flex flex-col space-y-1 leading-none">
+            <p className="font-medium">{displayName}</p>
+            <p className="w-[200px] truncate text-sm text-muted-foreground">
+              {email}
+            </p>
           </div>
         </div>
-        <div className="p-2">
-          <DropdownMenuItem 
-            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100 cursor-pointer rounded-md"
-            onClick={() => router.push('/app/profile')}
-          >
-            <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <span>Profile</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100 cursor-pointer rounded-md"
-            onClick={() => router.push('/app/settings')}
-          >
-            <Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <span>Settings</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="my-2 bg-gray-100 dark:bg-gray-800" />
-          <DropdownMenuItem 
-            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100 cursor-pointer rounded-md"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            ) : (
-              <Moon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            )}
-            <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 dark:hover:text-red-300 cursor-pointer rounded-md"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Sign out</span>
-          </DropdownMenuItem>
-        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/app/profile" className="flex w-full cursor-pointer items-center">
+            <User className="mr-2 h-4 w-4" />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/app/settings" className="flex w-full cursor-pointer items-center">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-red-600">
+          <LogOut className="mr-2 h-4 w-4" />
+          Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

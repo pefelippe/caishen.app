@@ -1,5 +1,12 @@
 import { signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
 import { auth, googleProvider, actionCodeSettings } from '@/lib/firebase';
+import { 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  UserCredential,
+  User
+} from 'firebase/auth'
 
 export async function signInWithGoogleService() {
   try {
@@ -23,9 +30,20 @@ export async function sendMagicLinkService(email: string) {
   }
 }
 
-export async function signInWithPasswordService(email: string, password: string) {
-  // TODO: Implement real password sign-in logic
-  return { success: false, error: 'Password sign-in is not implemented in this demo.' };
+export const signIn = async (email: string, password: string): Promise<UserCredential> => {
+  return signInWithEmailAndPassword(auth, email, password)
+}
+
+export const signUp = async (email: string, password: string): Promise<UserCredential> => {
+  return createUserWithEmailAndPassword(auth, email, password)
+}
+
+export const signOut = async (): Promise<void> => {
+  return firebaseSignOut(auth)
+}
+
+export const getCurrentUser = (): User | null => {
+  return auth.currentUser
 }
 
 export async function signInWithAppleService() {

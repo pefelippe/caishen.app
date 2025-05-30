@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plan, plans, updateUserSubscription } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Check } from "lucide-react"
 
 export default function PlanSelector() {
-  const [selectedPlan, setSelectedPlan] = useState<Plan>('free');
+  const [selectedPlan] = useState("Free")
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
@@ -33,55 +36,24 @@ export default function PlanSelector() {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-      {Object.entries(plans).map(([planId, plan]) => (
-        <div
-          key={planId}
-          className={`relative flex flex-col p-8 bg-white border ${
-            selectedPlan === planId ? 'border-emerald-500' : 'border-gray-200'
-          } rounded-2xl shadow-sm`}
-        >
-          {planId === 'pro' && (
-            <div className="absolute -top-4 left-0 right-0 mx-auto w-32 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 px-3 py-1 text-center text-sm font-medium text-white">
-              Most Popular
-            </div>
-          )}
-          <div className="flex-1">
-            <h3 className="text-xl font-semibold text-gray-900">{plan.name}</h3>
-            <p className="mt-4 flex items-baseline text-gray-900">
-              <span className="text-5xl font-extrabold tracking-tight">${plan.price}</span>
-              <span className="ml-1 text-xl font-semibold">/month</span>
-            </p>
-            <p className="mt-6 text-gray-500">
-              {planId === 'free' ? 'Perfect for getting started' :
-               planId === 'pro' ? 'For serious financial management' :
-               'For power users and businesses'}
-            </p>
-            <ul className="mt-6 space-y-4">
-              {plan.features.map((feature, index) => (
-                <li key={index} className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <p className="ml-3 text-sm text-gray-500">{feature}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <button
-            onClick={() => handlePlanSelect(planId as Plan)}
-            disabled={isLoading}
-            className={`mt-8 block w-full ${
-              planId === 'pro'
-                ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700'
-                : 'bg-emerald-600 hover:bg-emerald-700'
-            } text-white rounded-lg px-6 py-3 text-center font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isLoading ? 'Processing...' : 'Get Started'}
-          </button>
-        </div>
+    <div className="grid gap-6 md:grid-cols-3">
+      {plans.map((plan) => (
+        <Card key={plan.name} className={`p-6 ${selectedPlan === plan.name ? "border-primary" : ""}`}>
+          <h3 className="text-lg font-semibold">{plan.name}</h3>
+          <p className="mt-2 text-3xl font-bold">{plan.price}</p>
+          <p className="mt-1 text-sm text-gray-500">per month</p>
+          <ul className="mt-6 space-y-4">
+            {plan.features.map((feature) => (
+              <li key={feature} className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-primary" />
+                <span className="text-sm">{feature}</span>
+              </li>
+            ))}
+          </ul>
+          <Button className="mt-6 w-full" variant={selectedPlan === plan.name ? "default" : "outline"} onClick={() => handlePlanSelect(plan.name as Plan)} disabled={isLoading}>
+            {selectedPlan === plan.name ? "Current Plan" : "Select Plan"}
+          </Button>
+        </Card>
       ))}
     </div>
   );

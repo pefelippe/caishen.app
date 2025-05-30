@@ -6,7 +6,7 @@ import {
   signInWithEmailLink,
   signOut
 } from "firebase/auth"
-import { getFirestore, doc, setDoc, getDoc, collection } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 import Cookies from 'js-cookie';

@@ -1,6 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-
 export default function HelpCenterPage() {
   return (
     <div className="space-y-4">
