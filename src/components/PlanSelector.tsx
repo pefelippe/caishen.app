@@ -20,14 +20,8 @@ export default function PlanSelector() {
 
     setIsLoading(true);
     try {
-      if (plan === 'free') {
-        // Free plan can be activated immediately
-        await updateUserSubscription(user.uid, plan);
-        router.push('/app');
-      } else {
-        // For paid plans, redirect to payment page
-        router.push(`/payment?plan=${plan}`);
-      }
+      await updateUserSubscription(user.uid, plan);
+      router.push('/app');
     } catch (error) {
       console.error('Error selecting plan:', error);
     } finally {

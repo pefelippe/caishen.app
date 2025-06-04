@@ -91,7 +91,6 @@ export interface UserSubscription {
   status: 'active' | 'inactive';
   startDate: Date;
   endDate?: Date;
-  stripeCustomerId?: string;
 }
 
 export const plans = {
@@ -151,15 +150,13 @@ export const getUserSubscription = async (userId: string): Promise<UserSubscript
 
 export const updateUserSubscription = async (
   userId: string,
-  newPlan: Plan,
-  stripeCustomerId?: string
+  newPlan: Plan
 ): Promise<boolean> => {
   try {
     const subscription: UserSubscription = {
       plan: newPlan,
       status: 'active',
-      startDate: new Date(),
-      stripeCustomerId
+      startDate: new Date()
     };
 
     await setDoc(doc(db, 'subscriptions', userId), subscription);
