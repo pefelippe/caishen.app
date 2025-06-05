@@ -63,38 +63,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="flex items-center gap-6"
             >
-              <nav className="hidden md:flex items-center gap-8">
-                <ScrollLink
-                  to="about"
-                  spy={true}
-                  smooth={true}
-                  offset={-100}
-                  duration={500}
-                  className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer"
-                >
-                  About
-                </ScrollLink>
-                <ScrollLink
-                  to="pricing"
-                  spy={true}
-                  smooth={true}
-                  offset={-100}
-                  duration={500}
-                  className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer"
-                >
-                  Pricing
-                </ScrollLink>
-                <ScrollLink
-                  to="faq"
-                  spy={true}
-                  smooth={true}
-                  offset={-100}
-                  duration={500}
-                  className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer"
-                >
-                  FAQ
-                </ScrollLink>
-              </nav>
+
               <button
                 onClick={handleGetStarted}
                 className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-full text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 shadow-sm hover:shadow cursor-pointer"
@@ -235,63 +204,10 @@ export default function LandingPage() {
                   Get Started
                 </button>
               </div>
-
-              {/* Enterprise Plan */}
-              {/* <div className="relative flex flex-col p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">Enterprise</h3>
-                  <p className="mt-4 flex items-baseline text-gray-900">
-                    <span className="text-5xl font-extrabold tracking-tight">$25</span>
-                    <span className="ml-1 text-xl font-semibold">/month</span>
-                  </p>
-                  <p className="mt-6 text-gray-500">For power users and businesses</p>
-                  <ul className="mt-6 space-y-4">
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="ml-3 text-sm text-gray-500">Everything in Pro</p>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="ml-3 text-sm text-gray-500">Multiple accounts</p>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="ml-3 text-sm text-gray-500">Advanced analytics</p>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="ml-3 text-sm text-gray-500">24/7 dedicated support</p>
-                    </li>
-                  </ul>
-                </div>
-                <button
-                  onClick={() => router.push('/signup')}
-                  className="mt-8 block w-full bg-emerald-600 text-white rounded-lg px-6 py-3 text-center font-medium hover:bg-emerald-700 transition-colors cursor-pointer"
-                >
-                  Get Started
-                </button>
-              </div> */}
             </motion.div>
           </div>
         </div>
 
-        {/* FAQ Section */}
         <div className="mt-40 relative overflow-hidden" id="faq">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-green-50 opacity-50"></div>
           <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -392,7 +308,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* CTA Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

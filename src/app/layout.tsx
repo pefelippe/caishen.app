@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Caishen - Financial Management",
-  description: "Manage your finances with ease",
+  title: "Caishen App",
+  description: "Manage your finances on your WhatsApp",
 };
 
 export default function RootLayout({

@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Bell, ChevronDown, User, CreditCard, Lock, HelpCircle, LogOut, LayoutDashboard, Receipt, FileText, DollarSign, Search } from "lucide-react"
+import { ChevronDown, User, CreditCard, Lock, HelpCircle, LogOut, LayoutDashboard, Receipt, FileText, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +44,6 @@ export function DashboardHeader() {
   const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const [notifications] = useState(3) // Mock notifications count
 
   const handleSignOut = async () => {
     const success = await handleLogout()
@@ -89,67 +86,6 @@ export function DashboardHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-4">
-          <div className="relative">
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="w-[300px]"
-            />
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative text-[#061B78] hover:text-[#061B78] hover:bg-gray-100">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-                  {notifications}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-[300px] overflow-y-auto">
-                <DropdownMenuItem className="flex items-start gap-3 p-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/avatars/01.png" alt="User" />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-[#061B78]">John Doe</p>
-                    <p className="text-xs text-gray-500">Added a new expense</p>
-                    <p className="text-xs text-gray-400">2 minutes ago</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start gap-3 p-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/avatars/02.png" alt="User" />
-                    <AvatarFallback>AS</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-[#061B78]">Alice Smith</p>
-                    <p className="text-xs text-gray-500">Updated budget settings</p>
-                    <p className="text-xs text-gray-400">1 hour ago</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start gap-3 p-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/avatars/03.png" alt="User" />
-                    <AvatarFallback>RJ</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-[#061B78]">Robert Johnson</p>
-                    <p className="text-xs text-gray-500">Shared a report with you</p>
-                    <p className="text-xs text-gray-400">3 hours ago</p>
-                  </div>
-                </DropdownMenuItem>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-sm text-[#061B78]">
-                View all notifications
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 text-[#061B78] hover:text-[#061B78] hover:bg-gray-100">
@@ -177,10 +113,6 @@ export function DashboardHeader() {
                 Password
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/app/notifications")} className="text-[#061B78]">
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push("/app/help")} className="text-[#061B78]">
                 <HelpCircle className="mr-2 h-4 w-4" />
                 Help Center
