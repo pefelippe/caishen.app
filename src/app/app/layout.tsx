@@ -1,14 +1,11 @@
 "use client"
 
-import { Inter } from "next/font/google"
 import { ExpenseModal } from "@/components/modals/ExpenseModal"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { QuickActionsModal } from "@/components/modals/QuickActionsModal"
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useState } from "react"
 import { container, item } from "@/lib/animations"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export default function AppLayout({
   children,

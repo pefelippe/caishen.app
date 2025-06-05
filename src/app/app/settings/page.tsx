@@ -3,8 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Globe, Clock, DollarSign, Moon } from "lucide-react"
+import { Globe, DollarSign, Moon } from "lucide-react"
 
 export default function SettingsPage() {
   return (

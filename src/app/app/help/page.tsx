@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -65,7 +64,7 @@ export default function HelpCenter() {
       toast.success("Message sent successfully!")
       form.reset()
     } catch (error) {
-      toast.error("Failed to send message. Please try again.")
+      toast.error(`Failed to send message: ${error instanceof Error ? error.message : 'Please try again.'}`)
     } finally {
       setIsSubmitting(false)
     }

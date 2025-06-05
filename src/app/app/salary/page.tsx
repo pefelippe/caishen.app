@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Download, TrendingUp } from "lucide-react"
+import { Search, Filter, Download } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -16,7 +16,6 @@ import {
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 
-// Mock data - replace with real data from your backend
 const mockSalaries = [
   {
     id: 1,

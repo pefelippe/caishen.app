@@ -46,7 +46,7 @@ export function DashboardHeader() {
   const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const [notifications, setNotifications] = useState(3) // Mock notifications count
+  const [notifications] = useState(3) // Mock notifications count
 
   const handleSignOut = async () => {
     const success = await handleLogout()
@@ -155,7 +155,7 @@ export function DashboardHeader() {
               <Button variant="ghost" className="flex items-center gap-2 text-[#061B78] hover:text-[#061B78] hover:bg-gray-100">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || ""} />
-                  <AvatarFallback>{user?.displayName?.[0] || "U"}</AvatarFallback>
+                  <AvatarFallback>{user?.displayName ? getInitials(user.displayName) : "U"}</AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium">{user?.displayName || "User"}</span>
                 <ChevronDown className="h-4 w-4" />

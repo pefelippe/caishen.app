@@ -2,22 +2,14 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Download, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, ChevronRight, ArrowUpRight } from "lucide-react"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { format } from "date-fns"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Search, Filter, Download, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, ArrowUpRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { format } from "date-fns"
 
-// Mock data - replace with real data from your backend
 const mockTaxes = [
   {
     id: 1,
@@ -78,19 +70,6 @@ const cardHover = {
     type: "spring",
     stiffness: 300,
     damping: 20
-  }
-}
-
-const slideIn = {
-  hidden: { x: -20, opacity: 0 },
-  visible: { 
-    x: 0, 
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 15
-    }
   }
 }
 

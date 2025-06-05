@@ -11,7 +11,7 @@ import { useEffect, useState } from "react"
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const { user, loading } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [isLocalhost, setIsLocalhost] = useState(true)
