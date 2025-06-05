@@ -47,12 +47,12 @@ export function QuickActionsModal() {
       <DropdownMenuTrigger asChild>
         <Button
           size="icon"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-[#061B78] text-white shadow-lg hover:bg-[#061B78]/90"
+          className="fixed bottom-16 right-16 h-16 w-16 rounded-full bg-[#061B78] text-white shadow-lg hover:bg-[#061B78]/90 cursor-pointer"
         >
           <Plus className="h-6 w-6" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent align="end" className="w-84">
         <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {quickActions.map((action) => (

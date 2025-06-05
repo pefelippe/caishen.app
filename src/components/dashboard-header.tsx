@@ -61,13 +61,13 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="flex h-16 items-center px-4 sm:px-6 lg:px-8">
+    <header className="border-b border-gray-200 ">
+      <div className="flex h-[5vh] py-5 items-center px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
           <span className="text-3xl font-extrabold text-[#061B78]">Caishen</span>
         </div>
 
-        <nav className="mx-6 flex items-center space-x-4 lg:space-x-6">
+        <nav className="mx-auto flex items-center space-x-4 lg:space-x-12">
           {mainNavItems.map((item) => (
             <Link
               key={item.href}
@@ -79,13 +79,13 @@ export function DashboardHeader() {
                   : "text-gray-500"
               )}
             >
-              <item.icon className="mr-2 h-4 w-4" />
+              <item.icon className="mr-2 h-5 w-5" />
               {item.title}
             </Link>
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-4">
+        <div className=" flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 text-[#061B78] hover:text-[#061B78] hover:bg-gray-100">

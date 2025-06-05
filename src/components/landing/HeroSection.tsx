@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Wallet, MessageSquare, Brain, Coins } from 'lucide-react';
+import { ArrowRight, Wallet, MessageSquare, Brain } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function HeroSection() {

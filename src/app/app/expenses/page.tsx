@@ -116,7 +116,7 @@ export default function ExpensesPage() {
 
   return (
     <motion.div 
-      className="min-h-screen bg-gray-50/50"
+      className="min-h-[95vh] bg-gray-50/50"
       initial="hidden"
       animate="show"
       variants={container}

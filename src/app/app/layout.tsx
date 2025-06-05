@@ -20,10 +20,10 @@ export default function AppLayout({
 
   if (!isMounted) {
     return (
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex flex-col bg-white">
         <DashboardHeader />
         <main className="flex-1 overflow-y-auto bg-white">
-          <div className="p-8">
+          <div className="">
             {children}
           </div>
         </main>
@@ -36,7 +36,7 @@ export default function AppLayout({
   return (
     <AnimatePresence>
       <motion.div 
-        className="flex h-screen flex-col bg-white"
+        className="flex flex-col bg-white"
         initial="hidden"
         animate="show"
         variants={container}
@@ -48,7 +48,7 @@ export default function AppLayout({
           className="flex-1 overflow-y-auto bg-white"
           variants={item}
         >
-          <div className="p-8">
+          <div className="">
             {children}
           </div>
         </motion.main>
