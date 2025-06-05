@@ -34,7 +34,7 @@ export default function LoginForm() {
     const result = await signInWithGoogleService();
     setIsLoading(false);
     if (result.success) {
-      window.location.href = '/app';
+      window.location.href = '/app/dashboard';
     } else {
       setError(result.error || 'An error occurred');
     }
@@ -46,7 +46,7 @@ export default function LoginForm() {
     const result = await signInWithAppleService();
     setIsLoading(false);
     if (result.success) {
-      window.location.href = '/app';
+      window.location.href = '/app/dashboard';
     } else {
       setError(result.error || 'An error occurred');
     }

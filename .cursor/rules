@@ -42,3 +42,135 @@
   
   Follow Next.js docs for Data Fetching, Rendering, and Routing.
   
+
+  Rule #1: Use less colors
+Colors are like beers. Things get messy after 3 or 4.
+
+Look at these 2 hero sections. Where do you want to click?
+
+
+few colors, 1 call-to-action
+
+
+many colors, many call-to-action
+
+Landing pages that convert have 1 main call-to-action (CTA), the rest is secondary.
+
+Start with a minimal color palette — 4 colors
+
+
+The color of the content must contrast well with the background.
+
+Primary + Primary Content for the main CTA, like buying your product
+
+Base + Base Content for everything else
+
+You can design the most important UI components with 4 colors.
+
+
+Avoid pure black (#000000). Instead, use dark gray, night blue, zinc, etc.
+
+Even an entire landing page.
+
+
+
+Expand your Base palette if you need more colors: Find slightly darker (or lighter) colors — no more than 3.
+
+
+Each Base must contrast well with the Base Content.
+
+Each Base should have a similar hue (all base colors below are yellowish)
+
+
+We can add a Base Content Secondary color to create a text hierarchy, like a supporting paragraph below a headline.
+
+
+Base Content Secondary should contrast well with the Base, but less than the Base Content.
+
+Now, you can create any component for a beautiful landing page that sells.
+
+
+As a general rule of thumb:
+
+Use Base Content for headlines
+
+Use Base Content Secondary for paragraphs
+
+Use Primary for CTAs
+
+Real designers know how to use multiple colors to build gorgeous UI.
+
+But if you’re a coder with unsophisticated taste for design (like me) go easy on colors and stick to the rules.
+
+You don’t want to confuse users, you want them to buy your product.
+
+Rule #2: Emphasise your headline
+People don’t read text.
+
+At least, not until you get their attention. Your headline must be remarkable if you want people to read your copy. Let’s redesign it.
+
+Make it big
+The default font size is 16px. Headlines should be bigger (of course, Marc). But how big?
+
+The sweet spot is somewhere between 36px and 60px. It depends on the typeface you use.
+
+
+Your first headline (<h1> in the hero section) is usually bigger than the secondary ones (<h2>). 
+
+Once you set a system, use the same for the entire landing page. Here’s mine:
+
+60px for <h1>
+
+48px for <h2>
+
+Make it bold
+The default font weight is 400. Headlines’ font weight should be big too.
+
+The sweet spot is between 700 (bold) and 900 (black). It depends on the typeface you use.
+
+
+Pick a font weight and keep it all across your website.
+
+Make it tight 
+Headlines should be compact to be read easily.
+
+Reduce the letter spacing by -0.4px
+
+Reduce the line height to 1
+
+
+But make it light
+Headlines must be short or your visitors will never read them. Use 70 characters max.
+
+If your headline is larger than 1000px, break the line. Find a semantic breakpoint, not a visual one.
+
+
+Avoid using more than 2 lines.
+
+Make it pop
+Use the most contrasted color towards your Base (yep, the Base Content one).
+
+Avoid dropping another color. It breaks the reading flow. And conflicts with your main Call-To-Action.
+
+If you need to highlight a word, use visual clues.
+
+
+You can use the primary color to highlight numbers though
+
+Use responsibly
+There’s nothing easier to understand than a website section with:
+
+1 headline 
+
+1 paragraph 
+
+1 image
+
+1 button
+
+Write one headline per section of your landing page. Not 0, not 2, just 1.
+
+Make it responsive
+All rules above work on mobile devices, except for the font size.
+
+Make your headlines a bit smaller than on desktop — 32px to 40px is the sweet spot.

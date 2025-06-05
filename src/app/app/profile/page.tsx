@@ -1,80 +1,54 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+"use client"
+
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function ProfilePage() {
+  const { displayName, email } = useAuth()
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Profile</h1>
-      <p className="text-gray-500">Manage your profile settings</p>
-      
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900">Profile</h1>
+        <p className="text-lg text-gray-500">Manage your account settings and preferences</p>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Card className="bg-white p-6">
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900 mb-6">Personal Information</h2>
+          <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Name</label>
-              <input
-                type="text"
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                defaultValue="John Doe"
-              />
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" defaultValue={displayName || ''} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <input
-                type="email"
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                defaultValue="john@example.com"
-              />
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" defaultValue={email || ''} disabled />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Phone</label>
-              <input
-                type="tel"
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                defaultValue="+1 (555) 000-0000"
-              />
-            </div>
-            <Button>Save Changes</Button>
-          </CardContent>
+            <Button className="w-full">Save Changes</Button>
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferences</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Card className="bg-white p-6">
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900 mb-6">Security</h2>
+          <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Currency</label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2">
-                <option>USD ($)</option>
-                <option>EUR (€)</option>
-                <option>GBP (£)</option>
-                <option>JPY (¥)</option>
-              </select>
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input id="current-password" type="password" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Language</label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2">
-                <option>English</option>
-                <option>Spanish</option>
-                <option>French</option>
-                <option>German</option>
-              </select>
+              <Label htmlFor="new-password">New Password</Label>
+              <Input id="new-password" type="password" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Time Zone</label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2">
-                <option>UTC-8 (Pacific Time)</option>
-                <option>UTC-5 (Eastern Time)</option>
-                <option>UTC+0 (GMT)</option>
-                <option>UTC+1 (Central European Time)</option>
-              </select>
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input id="confirm-password" type="password" />
             </div>
-            <Button>Save Preferences</Button>
-          </CardContent>
+            <Button className="w-full">Update Password</Button>
+          </div>
         </Card>
       </div>
     </div>

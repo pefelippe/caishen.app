@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { User, Settings, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button"
@@ -32,25 +33,26 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button
+          variant="ghost"
+          className="relative h-8 w-8 rounded-full bg-base-200 hover:bg-base-300"
+        >
           <Avatar className="h-8 w-8">
             <AvatarImage src={photoURL || ''} alt={displayName || ''} />
-            <AvatarFallback className="bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+            <AvatarFallback className="bg-primary text-base-100">
               {initials}
             </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <div className="flex items-center justify-start gap-2 p-2">
-          <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium">{displayName}</p>
-            <p className="w-[200px] truncate text-sm text-muted-foreground">
-              {email}
-            </p>
+      <DropdownMenuContent className="w-56 bg-base-100 border-base-300" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none text-content-primary">{displayName}</p>
+            <p className="text-xs leading-none text-content-secondary">{email}</p>
           </div>
-        </div>
-        <DropdownMenuSeparator />
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-base-300" />
         <DropdownMenuItem asChild>
           <Link href="/app/profile" className="flex w-full cursor-pointer items-center">
             <User className="mr-2 h-4 w-4" />
@@ -64,9 +66,9 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
+        <DropdownMenuItem className="text-content-primary hover:bg-base-200 hover:text-content-primary cursor-pointer" onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          Log out
+          <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

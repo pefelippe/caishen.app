@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/accordion";
 import { HeroSection } from '@/components/landing/HeroSection';
 import { BenefitsSection } from '@/components/landing/BenefitsSection';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LandingPage() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,6 +28,14 @@ export default function LandingPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleGetStarted = () => {
+    if (user) {
+      router.push('/app/dashboard');
+    } else {
+      router.push('/login');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -86,7 +96,7 @@ export default function LandingPage() {
                 </ScrollLink>
               </nav>
               <button
-                onClick={() => router.push('/login')}
+                onClick={handleGetStarted}
                 className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-full text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 shadow-sm hover:shadow cursor-pointer"
               >
                 Get Started
@@ -164,7 +174,7 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <button
-                  onClick={() => router.push('/signup')}
+                  onClick={handleGetStarted}
                   className="mt-8 block w-full bg-emerald-600 text-white rounded-lg px-6 py-3 text-center font-medium hover:bg-emerald-700 transition-colors cursor-pointer"
                 >
                   Get Started
@@ -219,7 +229,7 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <button
-                  onClick={() => router.push('/signup')}
+                  onClick={handleGetStarted}
                   className="mt-8 block w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg px-6 py-3 text-center font-medium hover:from-emerald-700 hover:to-green-700 transition-colors cursor-pointer"
                 >
                   Get Started
@@ -282,8 +292,9 @@ export default function LandingPage() {
         </div>
 
         {/* FAQ Section */}
-        <div className="mt-40 bg-gray-50" id="faq">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="mt-40 relative overflow-hidden" id="faq">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-green-50 opacity-50"></div>
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -398,7 +409,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-10">
               <button
-                onClick={() => router.push('/login')}
+                onClick={handleGetStarted}
                 className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-full text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 shadow-sm hover:shadow cursor-pointer"
               >
                 Get Started Now

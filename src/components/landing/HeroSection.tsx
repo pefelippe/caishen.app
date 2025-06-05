@@ -23,7 +23,7 @@ export function HeroSection() {
         transition={{ delay: 0.2 }}
         className="text-4xl sm:text-7xl font-extrabold text-gray-900 leading-tight mb-4"
       >
-        <span className="block">Take Control of Your Finances</span>
+        <span className="block leading-tighter">Take Control of Your Finances</span>
       </motion.h1>
       <motion.p
         initial={{ opacity: 0, y: 20 }}
