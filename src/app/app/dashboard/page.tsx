@@ -54,8 +54,20 @@ interface Goal {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-slate-800 mx-auto mb-4"></div>
+          <p className="text-slate-600 text-lg font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Dados de exemplo para gastos
   const expenses: Expense[] = [

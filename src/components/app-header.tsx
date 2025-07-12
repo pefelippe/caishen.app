@@ -27,9 +27,14 @@ const mainNavItems = [
 ]
 
 export function AppHeader() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+
+  // Don't render header while loading
+  if (loading) {
+    return null;
+  }
 
   const handleSignOut = async () => {
     const success = await handleLogout()
