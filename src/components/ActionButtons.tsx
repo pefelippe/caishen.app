@@ -6,7 +6,7 @@ export default function ActionButtons() {
       className="flex flex-col items-center justify-center space-y-6 delay-700 my-16 sm:flex-row sm:space-x-7 sm:space-y-0"
 
     >
-      <a className="group relative inline-flex max-h-[4.5rem] items-center justify-center rounded-2xl px-8 py-6 text-xl font-bold outline-none transition duration-300 focus:ring-2 focus:ring-rose-300/90 bg-stone-800 text-orange-75 shadow-xl shadow-orange-950/20 after:absolute after:inset-0 after:hidden after:rounded-2xl after:shadow-2xl after:shadow-orange-950/25 after:content-[''] sm:shadow-orange-950/25 sm:after:block pl-[4rem]" href="/login" aria-label="Get Started">
+      <a className="group relative inline-flex max-h-[4.5rem] items-center justify-center rounded-2xl px-8 py-6 text-xl font-bold outline-none transition duration-300 focus:ring-2 focus:ring-rose-300/90 bg-stone-800 text-white shadow-xl shadow-orange-950/20 after:absolute after:inset-0 after:hidden after:rounded-2xl after:shadow-2xl after:shadow-orange-950/25 after:content-[''] sm:shadow-orange-950/25 sm:after:block pl-[4rem]" href="/login" aria-label="Get Started">
         <div className="ease absolute left-6 translate-x-0 opacity-100 transition duration-300 group-hover:-translate-x-full group-hover:scale-x-50 group-hover:opacity-0 group-hover:blur-sm">
           <svg className="h-8 w-8 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 5l7 7-7 7"/>
