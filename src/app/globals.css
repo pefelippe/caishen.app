@@ -154,7 +154,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 255 247 237;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -222,5 +222,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-color: rgb(255, 247, 237) !important;
+  }
+  html {
+    background-color: rgb(255, 247, 237) !important;
+  }
+  
+  .cream-bg {
+    background-color: rgb(255, 247, 237) !important;
   }
 }

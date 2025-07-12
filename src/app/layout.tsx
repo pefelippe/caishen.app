@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Caishen App",
+  title: "Caishen - Discover your new financial assistant",
   description: "Manage your finances on your WhatsApp",
 };
 
@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} style={{ backgroundColor: '#1b4332' }}>
         <Providers>{children}</Providers>
       </body>
     </html>

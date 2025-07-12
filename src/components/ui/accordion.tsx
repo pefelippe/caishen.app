@@ -20,7 +20,7 @@ function AccordionItem({
     <AccordionPrimitive.Item
       data-slot="accordion-item"
       className={cn(
-        "border border-gray-200 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200",
+        "border rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200",
         className
       )}
       {...props}
@@ -38,14 +38,14 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "flex flex-1 items-center justify-between gap-4 px-6 py-4 text-left text-base font-medium text-gray-900 transition-all outline-none hover:bg-gray-50 rounded-t-lg data-[state=open]:rounded-b-none",
+          "flex flex-1 items-center justify-between gap-4 px-6 py-4 text-left text-base font-medium transition-all outline-none rounded-t-lg data-[state=open]:rounded-b-none",
           "[&[data-state=open]>svg]:rotate-180",
           className
         )}
         {...props}
       >
         {children}
-        <ChevronDownIcon className="text-gray-500 pointer-events-none size-5 shrink-0 transition-transform duration-200" />
+        <ChevronDownIcon className="pointer-events-none size-5 shrink-0 transition-transform duration-200" />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   )
@@ -60,12 +60,12 @@ function AccordionContent({
     <AccordionPrimitive.Content
       data-slot="accordion-content"
       className={cn(
-        "data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm bg-white rounded-b-lg",
+        "data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm rounded-b-lg",
         className
       )}
       {...props}
     >
-      <div className="px-6 py-4 text-gray-600">{children}</div>
+      <div className="px-6 py-4">{children}</div>
     </AccordionPrimitive.Content>
   )
 }

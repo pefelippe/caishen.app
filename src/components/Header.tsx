@@ -1,126 +1,33 @@
-"use client"
+'use client';
 
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/useAuth"
-import { handleLogout } from "@/lib/firebase"
-import { Menu, X } from "lucide-react"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import Link from 'next/link';
 
-export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
-  const { user } = useAuth()
-  const router = useRouter()
-  const pathname = usePathname()
-  const [isLocalhost, setIsLocalhost] = useState(true)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0)
-    }
-
-    setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  const handleSignOut = async () => {
-    const success = await handleLogout()
-    if (success) {
-      router.push("/login")
-    }
-  }
-
-  const isAppRoute = pathname?.startsWith("/app")
-
-  if (isAppRoute) {
-    return null
-  }
-
+export default function Header() {
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
-        isScrolled ? "bg-white shadow-md" : "bg-transparent"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <Link href="/" className="text-2xl font-bold text-[#061B78]">
-              Caishen
-            </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {user ? (
-              <Button
-                onClick={handleSignOut}
-                variant="outline"
-                className="border-gray-200 hover:bg-gray-50"
-              >
-                Sign Out
-              </Button>
-            ) : (
-              isLocalhost && (
-                <Button
-                  onClick={() => router.push("/login")}
-                  className="bg-[#061B78] text-white hover:bg-[#061B78]/90"
-                >
-                  Get Started
-                </Button>
-              )
-            )}
-          </nav>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
-          </div>
-        </div>
+    <header className="transition-shadows fixed top-0 z-40 flex w-full justify-between p-8 px-16 outline outline-1 outline-orange-400/0 backdrop-blur-xl duration-300">
+      <div className="flex items-center delay-75">
+        <Link href="/" className="group flex items-center outline-none" tabIndex={-1} aria-label="Go home">
+          <div className="text-2xl font-bold text-stone-800 leading-tighter">caishen.app</div>
+        </Link>
       </div>
-
-      {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 bg-white shadow-lg">
-            {user ? (
-              <button
-                onClick={() => {
-                  handleSignOut()
-                  setIsMenuOpen(false)
-                }}
-                className="block w-full text-left px-3 py-2 text-gray-600 hover:text-gray-900"
-              >
-                Sign Out
-              </button>
-            ) : (
-              isLocalhost && (
-                <button
-                  onClick={() => {
-                    router.push("/login")
-                    setIsMenuOpen(false)
-                  }}
-                  className="block w-full text-left px-3 py-2 text-gray-600 hover:text-gray-900"
-                >
-                  Get Started
-                </button>
-              )
-            )}
+      <div className="flex items-center space-x-7 delay-75">
+        <a 
+          href="/login" 
+          className="group relative inline-flex max-h-[3.75rem] items-center justify-center rounded-2xl px-5 py-4 text-lg font-bold outline-none transition duration-300 focus:ring-2 focus:ring-rose-300/90 bg-stone-800 text-orange-75 shadow-xl shadow-orange-950/20 after:absolute after:inset-0 after:hidden after:rounded-2xl after:shadow-2xl after:shadow-orange-950/25 after:content-[''] sm:shadow-orange-950/25 sm:after:block pl-[3.25rem]"
+        >
+          <div className="ease absolute left-5 translate-x-0 opacity-100 transition duration-300 group-hover:-translate-x-full group-hover:scale-x-50 group-hover:opacity-0 group-hover:blur-sm">
+            <svg className="h-6 w-6 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5l7 7-7 7"/>
+            </svg>
           </div>
-        </div>
-      )}
+          <div className="ease translate-x-0 transition duration-300 group-hover:-translate-x-8">Get Started</div>
+          <div className="ease absolute right-5 translate-x-full scale-x-50 opacity-0 blur-sm transition duration-300 group-hover:translate-x-0 group-hover:scale-x-100 group-hover:opacity-100 group-hover:blur-none">
+            <svg className="h-6 w-6 fill-transparent stroke-current stroke-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"></path>
+            </svg>
+          </div>
+        </a>
+      </div>
     </header>
-  )
+  );
 } 

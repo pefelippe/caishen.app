@@ -65,7 +65,7 @@ const item = {
     opacity: 1, 
     y: 0,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 100,
       damping: 15
     }
@@ -75,7 +75,7 @@ const item = {
 const cardHover = {
   scale: 1.02,
   transition: {
-    type: "spring",
+    type: "spring" as const,
     stiffness: 300,
     damping: 20
   }
