@@ -1,50 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Download, TrendingUp, AlertCircle, CheckCircle2, ArrowUpRight } from "lucide-react"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { format } from "date-fns"
-import { Badge } from "@/components/ui/badge"
-import { motion, AnimatePresence } from "framer-motion"
-import { useExpenseModal } from "@/hooks/useExpenseModal"
-
-// Mock data - replace with real data from your backend
-const mockExpenses = [
-  {
-    id: 1,
-    description: "Grocery Shopping",
-    amount: 150.50,
-    category: "Food",
-    date: new Date("2024-03-15"),
-    status: "paid",
-  },
-  {
-    id: 2,
-    description: "Netflix Subscription",
-    amount: 29.99,
-    category: "Entertainment",
-    date: new Date("2024-03-14"),
-    status: "pending",
-  },
-  {
-    id: 3,
-    description: "Gas Station",
-    amount: 45.00,
-    category: "Transportation",
-    date: new Date("2024-03-13"),
-    status: "failed",
-  },
-]
+import { BarChart3, TrendingUp, TrendingDown, DollarSign, PieChart, ChevronLeft, ChevronRight } from "lucide-react"
+import { motion } from "framer-motion"
+import { useState } from "react"
+import { useAuth } from "@/hooks/useAuth"
 
 const container = {
   hidden: { opacity: 0 },
@@ -70,233 +31,235 @@ const item = {
   }
 }
 
-const cardHover = {
-  scale: 1.02,
-  transition: {
-    type: "spring" as const,
-    stiffness: 300,
-    damping: 20
-  }
+interface Expense {
+  id: string;
+  name: string;
+  value: number;
+  category: string;
+  date: string;
+  isRecurring: boolean;
+  recurringUntil?: string;
 }
 
 export default function ExpensesPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const { onOpen } = useExpenseModal()
+  const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredExpenses = mockExpenses.filter((expense) =>
-    expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    expense.category.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Dados de exemplo para gastos
+  const expenses: Expense[] = [
+    { id: '1', name: 'Aluguel', value: 1200, category: 'Moradia', date: '2024-01-15', isRecurring: true, recurringUntil: '2024-12-31' },
+    { id: '2', name: 'Conta de Luz', value: 150, category: 'Moradia', date: '2024-01-20', isRecurring: true, recurringUntil: '2024-12-31' },
+    { id: '3', name: 'Supermercado', value: 450, category: 'Alimentação', date: '2024-01-18', isRecurring: false },
+    { id: '4', name: 'Uber', value: 25, category: 'Transporte', date: '2024-01-22', isRecurring: false },
+    { id: '5', name: 'Netflix', value: 39.90, category: 'Entretenimento', date: '2024-01-01', isRecurring: true, recurringUntil: '2024-12-31' },
+    { id: '6', name: 'Academia', value: 89.90, category: 'Saúde', date: '2024-01-05', isRecurring: true, recurringUntil: '2024-12-31' },
+    { id: '7', name: 'Restaurante', value: 120, category: 'Alimentação', date: '2024-01-25', isRecurring: false },
+    { id: '8', name: 'Combustível', value: 200, category: 'Transporte', date: '2024-01-10', isRecurring: false },
+    { id: '9', name: 'Internet', value: 99.90, category: 'Moradia', date: '2024-01-01', isRecurring: true, recurringUntil: '2024-12-31' },
+    { id: '10', name: 'Cinema', value: 60, category: 'Entretenimento', date: '2024-01-28', isRecurring: false },
+    { id: '11', name: 'Farmácia', value: 85, category: 'Saúde', date: '2024-01-12', isRecurring: false },
+    { id: '12', name: 'Shopping', value: 300, category: 'Vestuário', date: '2024-01-30', isRecurring: false },
+    { id: '13', name: 'Spotify', value: 19.90, category: 'Entretenimento', date: '2024-01-01', isRecurring: true, recurringUntil: '2024-12-31' },
+    { id: '14', name: 'Delivery', value: 45, category: 'Alimentação', date: '2024-01-26', isRecurring: false },
+    { id: '15', name: 'Estacionamento', value: 15, category: 'Transporte', date: '2024-01-23', isRecurring: false },
+    { id: '16', name: 'Seguro Carro', value: 350, category: 'Transporte', date: '2024-01-05', isRecurring: true, recurringUntil: '2024-12-31' },
+    { id: '17', name: 'Livros', value: 120, category: 'Educação', date: '2024-01-15', isRecurring: false },
+    { id: '18', name: 'Corte de Cabelo', value: 50, category: 'Cuidados Pessoais', date: '2024-01-20', isRecurring: false },
+    { id: '19', name: 'Presente', value: 200, category: 'Outros', date: '2024-01-27', isRecurring: false },
+    { id: '20', name: 'Manutenção Carro', value: 500, category: 'Transporte', date: '2024-01-08', isRecurring: false },
+    { id: '21', name: 'Viagem', value: 1500, category: 'Lazer', date: '2024-01-30', isRecurring: false },
+    { id: '22', name: 'Assinatura Revista', value: 29.90, category: 'Educação', date: '2024-01-01', isRecurring: true, recurringUntil: '2024-12-31' },
+  ];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "paid":
-        return <Badge variant="default" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Paid</Badge>
-      case "pending":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">Pending</Badge>
-      case "failed":
-        return <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100">Failed</Badge>
-      default:
-        return null
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "paid":
-        return <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-      case "pending":
-        return <TrendingUp className="h-4 w-4 text-blue-500" />
-      case "failed":
-        return <AlertCircle className="h-4 w-4 text-red-500" />
-      default:
-        return null
-    }
-  }
+  const itemsPerPage = 8;
+  const totalPages = Math.ceil(expenses.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentExpenses = expenses.slice(startIndex, endIndex);
 
   return (
-    <motion.div 
-      className="min-h-[95vh] bg-gray-50/50"
-      initial="hidden"
-      animate="show"
-      variants={container}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div variants={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <motion.h1 
-              className="text-4xl font-bold tracking-tight text-gray-900 mb-2"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              Expenses
-            </motion.h1>
-            <motion.p 
-              className="text-gray-500"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              Track and manage your expenses
-            </motion.p>
-          </div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex gap-4"
-          >
-            <Button variant="outline" className="border-gray-200 hover:bg-gray-50 transition-all duration-200">
-              <Download className="mr-2 h-4 w-4" />
-              Export Expenses
-            </Button>
-            <Button onClick={onOpen} className="bg-[#061B78] hover:bg-[#061B78]/90">
-              Add Expense
-            </Button>
-          </motion.div>
-        </motion.div>
-
-        <motion.div 
-          variants={item} 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-        >
-          <motion.div 
-            whileHover={cardHover}
-            className="col-span-1"
-          >
-            <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Expenses</CardTitle>
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 mb-1">$225.49</div>
-                <p className="text-xs text-gray-500">This month</p>
-              </CardContent>
-            </Card>
+    <>
+      <motion.div 
+        className="min-h-screen bg-transparent pt-8"
+        initial="hidden"
+        animate="show"
+        variants={container}
+      >
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          {/* Header Section */}
+          <motion.div variants={item} className="mb-12">
+            <h1 className="text-6xl font-bold text-slate-700 mb-4">Gastos</h1>
+            <p className="text-xl text-slate-600">Gerencie seus gastos e acompanhe suas despesas</p>
           </motion.div>
 
-          <motion.div 
-            whileHover={cardHover}
-            className="col-span-1"
-          >
-            <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Pending Expenses</CardTitle>
-                <TrendingUp className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 mb-1">$29.99</div>
-                <p className="text-xs text-gray-500">To be paid</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div 
-            whileHover={cardHover}
-            className="col-span-1"
-          >
-            <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Average Monthly</CardTitle>
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 mb-1">$195.49</div>
-                <p className="text-xs text-gray-500">Last 3 months</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div 
-            whileHover={cardHover}
-            className="col-span-1"
-          >
-            <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Categories</CardTitle>
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 mb-1">3</div>
-                <p className="text-xs text-gray-500">Active categories</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card className="border-gray-200 shadow-sm">
-            <CardHeader className="border-b border-gray-100 pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle className="text-xl font-semibold text-gray-900">Expense Records</CardTitle>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="relative w-full sm:w-[300px]">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      placeholder="Search expenses..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 border-gray-200 focus:border-gray-300 focus:ring-gray-300 w-full"
-                    />
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Tabela de Gastos - 2/3 da largura */}
+            <motion.div variants={item} className="xl:col-span-2">
+              <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-xl h-fit">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-slate-700">Gastos do Mês</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Nome</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Valor</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Categoria</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Data</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-600">Recorrente</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentExpenses.map((expense) => (
+                          <tr key={expense.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-sm text-slate-700">{expense.name}</td>
+                            <td className="py-3 px-4 text-sm font-medium text-slate-700">R$ {expense.value.toLocaleString()}</td>
+                            <td className="py-3 px-4 text-sm text-slate-600">{expense.category}</td>
+                            <td className="py-3 px-4 text-sm text-slate-600">{new Date(expense.date).toLocaleDateString('pt-BR')}</td>
+                            <td className="py-3 px-4 text-sm">
+                              {expense.isRecurring ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600">✓</span>
+                                  <span className="text-xs text-slate-500">Até {new Date(expense.recurringUntil!).toLocaleDateString('pt-BR')}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <Button variant="outline" className="border-gray-200 hover:bg-gray-50 w-full sm:w-auto">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="rounded-md border border-gray-200 overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="text-gray-600 font-medium">Description</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Category</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Amount</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Date</TableHead>
-                      <TableHead className="text-gray-600 font-medium">Status</TableHead>
-                      <TableHead className="text-gray-600 font-medium w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <AnimatePresence>
-                      {filteredExpenses.map((expense) => (
-                        <motion.tr
-                          key={expense.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.2 }}
-                          className="hover:bg-gray-50"
+                  
+                  {/* Paginação */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6">
+                      <div className="text-sm text-slate-600">
+                        Mostrando {startIndex + 1}-{Math.min(endIndex, expenses.length)} de {expenses.length} gastos
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          disabled={currentPage === 1}
+                          className="border-slate-200 text-slate-600"
                         >
-                          <TableCell className="font-medium text-gray-900">{expense.description}</TableCell>
-                          <TableCell className="text-gray-600">{expense.category}</TableCell>
-                          <TableCell className="text-gray-900">${expense.amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-gray-600">{format(expense.date, "MMM dd, yyyy")}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(expense.status)}
-                              {getStatusBadge(expense.status)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <ArrowUpRight className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </motion.tr>
-                      ))}
-                    </AnimatePresence>
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    </motion.div>
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm text-slate-600 px-3">
+                          {currentPage} de {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          disabled={currentPage === totalPages}
+                          className="border-slate-200 text-slate-600"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Sidebar - 1/3 da largura */}
+            <motion.div variants={item} className="space-y-6">
+              {/* Distribuição de Gastos */}
+              <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-slate-700 flex items-center">
+                    <PieChart className="mr-2 h-5 w-5 text-slate-600" />
+                    Distribuição de Gastos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Moradia</span>
+                      <span className="text-sm font-medium">40% - R$ 1,280</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: '40%' }}></div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Alimentação</span>
+                      <span className="text-sm font-medium">25% - R$ 800</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className="bg-green-600 h-2 rounded-full" style={{ width: '25%' }}></div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Transporte</span>
+                      <span className="text-sm font-medium">20% - R$ 640</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className="bg-amber-600 h-2 rounded-full" style={{ width: '20%' }}></div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Lazer</span>
+                      <span className="text-sm font-medium">15% - R$ 480</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className="bg-purple-600 h-2 rounded-full" style={{ width: '15%' }}></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Insights da IA */}
+              <Card className="border-slate-200 shadow-sm bg-white/80 backdrop-blur-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-slate-700 flex items-center">
+                    <BarChart3 className="mr-2 h-5 w-5 text-slate-600" />
+                    Insights da IA
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                      <h4 className="font-medium text-slate-800 mb-2">✅ Pontos Positivos</h4>
+                      <ul className="text-slate-600 text-sm space-y-1">
+                        <li>• Sua poupança está acima da média (62% vs 20% recomendado)</li>
+                        <li>• Redução de 8% nos gastos este mês</li>
+                        <li>• Boa distribuição seguindo a regra 50/30/20</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                      <h4 className="font-medium text-slate-800 mb-2">⚠️ Oportunidades</h4>
+                      <ul className="text-slate-600 text-sm space-y-1">
+                        <li>• Considere investir parte da poupança em renda fixa</li>
+                        <li>• Gastos com lazer podem ser otimizados</li>
+                        <li>• Automatize transferências para metas</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                      <h4 className="font-medium text-slate-800 mb-2">🎯 Próximos Passos</h4>
+                      <ul className="text-slate-600 text-sm space-y-1">
+                        <li>• Criar reserva de emergência de 6 meses</li>
+                        <li>• Diversificar investimentos</li>
+                        <li>• Revisar gastos com transporte</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+    </>
   )
 } 

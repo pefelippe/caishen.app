@@ -12,12 +12,13 @@ import { getStorage } from 'firebase/storage';
 import Cookies from 'js-cookie';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyAy_FIS-E1c1XP6V7xbk56AKUDULrDxsOs",
+  authDomain: "cent-1bcb9.firebaseapp.com",
+  projectId: "cent-1bcb9",
+  storageBucket: "cent-1bcb9.firebasestorage.app",
+  messagingSenderId: "591912339550",
+  appId: "1:591912339550:web:c7e889552abc4fea720ccf",
+  measurementId: "G-VMRY2PB26K"
 }
 
 const app = initializeApp(firebaseConfig)

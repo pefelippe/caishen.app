@@ -21,7 +21,7 @@ export default function PlanSelector() {
     setIsLoading(true);
     try {
       await updateUserSubscription(user.uid, plan);
-      router.push('/app');
+      router.push('/app/dashboard');
     } catch (error) {
       console.error('Error selecting plan:', error);
     } finally {

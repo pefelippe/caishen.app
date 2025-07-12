@@ -15,7 +15,7 @@ import {
 const mainNavItems = [
   {
     title: "Dashboard",
-    href: "/app",
+    href: "/app/dashboard",
     icon: LayoutDashboard,
   },
   {
