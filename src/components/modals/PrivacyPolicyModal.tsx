@@ -14,16 +14,16 @@ interface PrivacyPolicyModalProps {
 export function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white/80 backdrop-blur-xl border-stone-200/50">
         <DialogHeader>
-          <DialogTitle>Privacy Policy</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-stone-800">Privacy Policy</DialogTitle>
+          <DialogDescription className="text-stone-600">
             Last updated: {new Date().toLocaleDateString()}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 text-sm text-gray-600">
+        <div className="space-y-4 text-sm text-stone-600">
           <section>
-            <h3 className="font-semibold text-gray-900 mb-2">1. Information We Collect</h3>
+            <h3 className="font-semibold text-stone-800 mb-2">1. Information We Collect</h3>
             <p>
               We collect information that you provide directly to us, including:
             </p>
@@ -36,7 +36,7 @@ export function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyModalProps)
           </section>
 
           <section>
-            <h3 className="font-semibold text-gray-900 mb-2">2. How We Use Your Information</h3>
+            <h3 className="font-semibold text-stone-800 mb-2">2. How We Use Your Information</h3>
             <p>
               We use the collected information to:
             </p>
@@ -50,14 +50,14 @@ export function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyModalProps)
           </section>
 
           <section>
-            <h3 className="font-semibold text-gray-900 mb-2">3. Data Security</h3>
+            <h3 className="font-semibold text-stone-800 mb-2">3. Data Security</h3>
             <p>
               We implement appropriate security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
             </p>
           </section>
 
           <section>
-            <h3 className="font-semibold text-gray-900 mb-2">4. Data Sharing</h3>
+            <h3 className="font-semibold text-stone-800 mb-2">4. Data Sharing</h3>
             <p>
               We do not sell your personal information. We may share your information with:
             </p>
@@ -69,7 +69,7 @@ export function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyModalProps)
           </section>
 
           <section>
-            <h3 className="font-semibold text-gray-900 mb-2">5. Your Rights</h3>
+            <h3 className="font-semibold text-stone-800 mb-2">5. Your Rights</h3>
             <p>
               You have the right to:
             </p>

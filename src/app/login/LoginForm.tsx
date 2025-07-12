@@ -17,15 +17,8 @@ export default function LoginForm() {
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    const result = await sendMagicLinkService(email);
-    setIsLoading(false);
-    if (result.success) {
-      setMagicLinkSent(true);
-    } else {
-      setError(result.error || 'An error occurred');
-    }
+    // Magic link functionality is disabled
+    return;
   };
 
   const handleGoogleSignIn = async () => {
@@ -54,10 +47,10 @@ export default function LoginForm() {
 
   return (
     <>
-      <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+      <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-stone-200/50">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-stone-800">Welcome back</h1>
+          <p className="mt-2 text-sm text-stone-600">
             Sign in to continue managing your finances
           </p>
         </div>
@@ -75,7 +68,7 @@ export default function LoginForm() {
         ) : (
           <form onSubmit={handleMagicLink} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
                 Email address
               </label>
               <input
@@ -85,25 +78,25 @@ export default function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-4 py-3 border border-stone-200 rounded-lg text-stone-700 bg-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
               />
             </div>
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-transparent rounded-lg text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer"
+              disabled={true}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-transparent rounded-lg text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-not-allowed"
             >
-              {isLoading ? 'Sending...' : 'Send Magic Link'}
+              Send Magic Link (Disabled)
             </button>
           </form>
         )}
 
         <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
+            <div className="w-full border-t border-stone-200"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">OR</span>
+            <span className="px-2 bg-white/80 text-stone-500">OR</span>
           </div>
         </div>
 
@@ -111,7 +104,7 @@ export default function LoginForm() {
           <button
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-stone-200 rounded-lg text-stone-700 bg-white hover:bg-stone-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer"
           >
             <FcGoogle className="w-5 h-5" />
             <span className="font-medium">Continue with Google</span>
@@ -120,15 +113,15 @@ export default function LoginForm() {
           <button
             onClick={handleAppleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-stone-200 rounded-lg text-stone-700 bg-white hover:bg-stone-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer"
           >
             <FaApple className="w-5 h-5" />
             <span className="font-medium">Continue with Apple</span>
           </button>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-gray-100">
-          <p className="text-center text-sm text-gray-500">
+        <div className="mt-8 pt-6 border-t border-stone-200">
+          <p className="text-center text-sm text-stone-500">
             By continuing, you agree to our{' '}
             <button
               onClick={() => setIsTermsOpen(true)}

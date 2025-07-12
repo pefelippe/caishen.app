@@ -2,32 +2,29 @@
 
 import { motion } from 'framer-motion';
 import LoginForm from './LoginForm';
-import { useRouter } from 'next/navigation';
+import Header from '@/components/Header';
 
 export default function LoginPage() {
-  const router = useRouter();
-
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4">
-      <div className="absolute top-0 left-0 right-0 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div 
-          onClick={() => router.push('/')}
-          className="flex items-center gap-3 h-20 cursor-pointer"
-        >
-          <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
-            Caishen
-          </span>
-        </div>
-      </div>
-
+    <div className="min-h-screen font-sans flex flex-col" style={{ backgroundColor: 'rgb(255, 247, 237)' }}>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
       >
-        <LoginForm />
+        <Header showGetStarted={false} />
       </motion.div>
+
+      <main className="flex justify-center px-8 pt-[10%] w-full flex-1">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <LoginForm />
+        </motion.div>
+      </main>
     </div>
   );
 } 
