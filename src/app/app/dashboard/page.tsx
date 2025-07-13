@@ -2,9 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { TrendingUp, TrendingDown, DollarSign, Target, Plus, Target as TargetIcon, DollarSign as DollarSignIcon, BarChart3, PieChart, ChevronLeft, ChevronRight } from "lucide-react"
+import { TrendingUp, TrendingDown, DollarSign, Target, BarChart3, PieChart, ChevronLeft, ChevronRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
@@ -503,7 +501,7 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {displayExpenses.map((expense, index) => (
+                          {displayExpenses.map((expense) => (
                             <tr key={expense.id} className={`border-b border-slate-100 transition-colors duration-150 ${
                               expense.name ? 'hover:bg-slate-50' : 'bg-slate-50/30'
                             }`}>

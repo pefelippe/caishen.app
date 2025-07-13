@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
-import { signInWithGoogleService, signInWithAppleService, sendMagicLinkService } from '@/services/authService';
+import { signInWithGoogleService, signInWithAppleService } from '@/services/authService';
 import { TermsOfServiceModal } from '@/components/modals/TermsOfServiceModal';
 import { PrivacyPolicyModal } from '@/components/modals/PrivacyPolicyModal';
 
@@ -13,7 +13,7 @@ export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
+
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();

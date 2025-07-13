@@ -27,7 +27,7 @@ const mainNavItems = [
 ]
 
 export function AppHeader() {
-  const { user, loading } = useAuth()
+  const { loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -41,14 +41,6 @@ export function AppHeader() {
     if (success) {
       router.push("/login")
     }
-  }
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
   }
 
   return (

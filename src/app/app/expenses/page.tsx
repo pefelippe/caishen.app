@@ -2,10 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BarChart3, TrendingUp, TrendingDown, DollarSign, PieChart, ChevronLeft, ChevronRight } from "lucide-react"
+import { BarChart3, PieChart, ChevronLeft, ChevronRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState } from "react"
-import { useAuth } from "@/hooks/useAuth"
 
 const container = {
   hidden: { opacity: 0 },
@@ -42,7 +41,6 @@ interface Expense {
 }
 
 export default function ExpensesPage() {
-  const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
 
   // Dados de exemplo para gastos
