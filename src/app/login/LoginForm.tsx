@@ -61,7 +61,7 @@ export default function LoginForm() {
           </div>
         )}
 
-        {magicLinkSent ? (
+        {false ? (
           <div className="mb-4 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100">
             Check your email for the magic link to sign in.
           </div>
