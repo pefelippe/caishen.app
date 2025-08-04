@@ -4,7 +4,8 @@ import {
   isSignInWithEmailLink, 
   GoogleAuthProvider,
   signInWithEmailLink,
-  signOut
+  signOut,
+  sendSignInLinkToEmail
 } from "firebase/auth"
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
@@ -81,6 +82,22 @@ const handleLogout = async () => {
     return true;
   } catch (error) {
     console.error('Error signing out:', error);
+    return false;
+  }
+};
+
+// Send magic link
+const sendMagicLink = async (email: string) => {
+  try {
+    const actionCodeSettings = {
+      url: `${window.location.origin}/login/verify`,
+      handleCodeInApp: true,
+    };
+
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    return true;
+  } catch (error) {
+    console.error('Error sending magic link:', error);
     return false;
   }
 };
@@ -222,4 +239,5 @@ export {
   isMagicLink,
   handleMagicLinkSignIn,
   handleLogout,
+  sendMagicLink,
 }; 
