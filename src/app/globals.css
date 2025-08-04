@@ -222,13 +222,13 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-color: rgb(255, 247, 237) !important;
+    background-color: #FFFBF7 !important;
   }
   html {
-    background-color: rgb(255, 247, 237) !important;
+    background-color: #FFFBF7 !important;
   }
   
   .cream-bg {
-    background-color: rgb(255, 247, 237) !important;
+    background-color: #FFFBF7 !important;
   }
 }

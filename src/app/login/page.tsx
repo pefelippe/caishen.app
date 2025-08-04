@@ -1,12 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import LoginForm from './LoginForm';
-import Header from '@/components/Header';
+import LoginForm from '../../../login/LoginForm';
+import Header from '@/app/landing-components/Header';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen font-sans flex flex-col" style={{ backgroundColor: 'rgb(255, 247, 237)' }}>
+    <div className="min-h-screen font-sans flex flex-col">
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

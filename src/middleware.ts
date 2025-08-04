@@ -4,21 +4,28 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('auth');
   const isAuthPage = request.nextUrl.pathname === '/login';
-  const isAppPage = request.nextUrl.pathname.startsWith('/app');
+  const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard') || 
+                          request.nextUrl.pathname.startsWith('/expenses') ||
+                          request.nextUrl.pathname.startsWith('/bills') ||
+                          request.nextUrl.pathname.startsWith('/analytics') ||
+                          request.nextUrl.pathname.startsWith('/goals') ||
+                          request.nextUrl.pathname.startsWith('/income') ||
+                          request.nextUrl.pathname.startsWith('/salary') ||
+                          request.nextUrl.pathname.startsWith('/profile') ||
+                          request.nextUrl.pathname.startsWith('/settings') ||
+                          request.nextUrl.pathname.startsWith('/billing');
 
-  // If user is not authenticated and tries to access app pages
-  if (isAppPage && !authCookie) {
+  if (isDashboardPage && !authCookie) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // If user is authenticated and tries to access login page
   if (isAuthPage && authCookie) {
-    return NextResponse.redirect(new URL('/app', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/expenses/:path*', '/bills/:path*', '/analytics/:path*', '/goals/:path*', '/income/:path*', '/salary/:path*', '/profile/:path*', '/settings/:path*', '/billing/:path*', '/login'],
 }; 
