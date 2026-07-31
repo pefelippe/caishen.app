@@ -1,0 +1,28 @@
+{
+  "name": "@caishen/theme",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css",
+    "./tailwind-preset": "./src/tailwind-preset.js"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next-themes": "^0.4.6",
+    "tailwindcss": "^4",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5.7.3"
+  }
+}

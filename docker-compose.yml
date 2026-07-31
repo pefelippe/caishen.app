@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: caishen
+      POSTGRES_PASSWORD: caishen
+      POSTGRES_DB: caishen
+    ports:
+      - "5432:5432"
+    volumes:
+      - caishen-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caishen"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:4000
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      WEB_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgres://caishen:caishen@postgres:5432/caishen
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-me}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Caishen <onboarding@resend.dev>}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  caishen-pgdata:

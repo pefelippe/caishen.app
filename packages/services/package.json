@@ -1,0 +1,29 @@
+{
+  "name": "@caishen/services",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@caishen/types": "workspace:*",
+    "@tanstack/react-query": "^5.77.2",
+    "better-auth": "^1.6.25",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "next": "^15.3.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "typescript": "^5.7.3"
+  }
+}
