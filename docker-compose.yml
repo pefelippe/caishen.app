@@ -1,0 +1,61 @@
+# Day to day: `pnpm infra:up` (Postgres only) + `pnpm dev` on the host.
+# Whole stack in containers: `docker compose up --build`.
+name: mny
+
+x-app: &app
+  build: .
+  image: mny-app:dev
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: postgres://mny:mny@postgres:5432/mny
+    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-me-please}
+    CLIENT_ORIGIN: http://localhost:5173
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17.5
+    environment:
+      POSTGRES_DB: mny
+      POSTGRES_PASSWORD: mny
+      POSTGRES_USER: mny
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mny -d mny']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  server:
+    <<: *app
+    command: sh -c "pnpm db:migrate && pnpm --filter @mny/server start"
+    ports:
+      - '4000:4000'
+
+  collab:
+    <<: *app
+    command: pnpm --filter @mny/collab start
+    ports:
+      - '4001:4001'
+
+  client:
+    <<: *app
+    command: sh -c "pnpm --filter @mny/client build && pnpm --filter @mny/client preview"
+    environment:
+      SERVER_URL: http://server:4000
+      COLLAB_URL: ws://collab:4001
+    depends_on:
+      - server
+      - collab
+    ports:
+      - '5173:5173'
+
+volumes:
+  postgres:

@@ -1,0 +1,21 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'configs/*'
+
+# Flat `node_modules` at repo root, same layout as the Aline monorepo.
+nodeLinker: hoisted
+
+# Use exact versions when installing new dependencies.
+savePrefix: ""
+
+autoInstallPeers: true
+strictPeerDependencies: false
+
+# Wait 12h after a version is published before allowing install (supply-chain delay).
+minimumReleaseAge: 720
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@apollo/protobufjs': true
+  esbuild: true

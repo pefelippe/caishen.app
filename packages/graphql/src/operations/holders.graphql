@@ -1,0 +1,147 @@
+query Viewer {
+  viewer {
+    userId
+    organizationId
+    role
+  }
+}
+
+query Holders {
+  holders {
+    id
+    name
+    document
+    monthlyIncomeCents
+    assessments {
+      id
+      score
+      band
+      createdAt
+    }
+  }
+}
+
+fragment AssessmentFields on Assessment {
+  id
+  score
+  band
+  modelVersion
+  breakdown {
+    punctuality
+    capacity
+    utilization
+  }
+  createdAt
+  indicators {
+    incomeCommitment
+    debtToIncome
+    creditUtilization
+    monthlyIncomeCents
+    dueNext30DaysCents
+    outstandingDebtCents
+    paymentCapacityCents
+    suggestedLimitCents
+    overdueCents
+    worstStage
+    lateLast12Months
+  }
+}
+
+query Holder($id: ID!) {
+  holder(id: $id) {
+    id
+    name
+    document
+    birthDate
+    monthlyIncomeCents
+    incomeSources {
+      id
+      description
+      monthlyNetCents
+      startsOn
+      endsOn
+    }
+    creditOperations {
+      id
+      name
+      lender
+      modalityLabel
+      principalCents
+      monthlyRate
+      termMonths
+      installmentCents
+      outstandingBalanceCents
+      paidInstallments
+      stage
+      overdueCents
+    }
+    creditCards {
+      id
+      name
+      issuer
+      limitCents
+      closingDay
+      dueDay
+      statements {
+        id
+        referenceMonth
+        amountCents
+        dueDate
+      }
+    }
+    assessments {
+      ...AssessmentFields
+    }
+    reportedScores {
+      id
+      bureau
+      score
+      band
+      consultedOn
+    }
+    consents {
+      id
+      source
+      grantedAt
+      revokedAt
+    }
+  }
+}
+
+mutation CreateHolder($input: CreateHolderInput!) {
+  createHolder(input: $input) {
+    id
+  }
+}
+
+mutation AddIncomeSource($input: AddIncomeSourceInput!) {
+  addIncomeSource(input: $input) {
+    id
+  }
+}
+
+mutation GenerateAssessment($holderId: ID!) {
+  generateAssessment(holderId: $holderId) {
+    ...AssessmentFields
+  }
+}
+
+mutation GrantConsent($holderId: ID!, $source: DataSource!) {
+  grantConsent(holderId: $holderId, source: $source) {
+    id
+  }
+}
+
+query MarketIndicators {
+  marketIndicators {
+    selic
+    cdi
+    ipca
+  }
+}
+
+mutation AddReportedScore($input: AddReportedScoreInput!) {
+  addReportedScore(input: $input) {
+    id
+  }
+}

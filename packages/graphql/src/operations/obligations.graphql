@@ -1,0 +1,80 @@
+query CreditOperation($id: ID!) {
+  creditOperation(id: $id) {
+    id
+    name
+    lender
+    modality
+    modalityLabel
+    system
+    principalCents
+    monthlyRate
+    annualRate
+    rateSource
+    termMonths
+    firstDueDate
+    installmentCents
+    outstandingBalanceCents
+    paidInstallments
+    stage
+    overdueCents
+    collateralDescription
+    collateralValueCents
+    holder {
+      id
+      name
+    }
+    marketRate {
+      monthlyRate
+      period
+      institutions
+    }
+    schedule {
+      number
+      dueDate
+      installmentCents
+      interestCents
+      amortizationCents
+      extraAmortizationCents
+      balanceCents
+      status
+      paidOn
+      daysLate
+    }
+  }
+}
+
+mutation CreateCreditOperation($input: CreateCreditOperationInput!) {
+  createCreditOperation(input: $input) {
+    id
+  }
+}
+
+mutation DeleteCreditOperation($id: ID!) {
+  deleteCreditOperation(id: $id)
+}
+
+mutation CreateCreditCard($input: CreateCreditCardInput!) {
+  createCreditCard(input: $input) {
+    id
+  }
+}
+
+mutation UpsertStatement($input: UpsertStatementInput!) {
+  upsertStatement(input: $input) {
+    id
+  }
+}
+
+mutation RecordLatePayment($creditOperationId: ID!, $installmentNumber: Int!, $paidOn: Date) {
+  recordLatePayment(
+    creditOperationId: $creditOperationId
+    installmentNumber: $installmentNumber
+    paidOn: $paidOn
+  ) {
+    id
+  }
+}
+
+mutation ClearLatePayment($creditOperationId: ID!, $installmentNumber: Int!) {
+  clearLatePayment(creditOperationId: $creditOperationId, installmentNumber: $installmentNumber)
+}

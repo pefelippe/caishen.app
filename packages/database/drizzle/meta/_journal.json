@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790444058023,
+      "tag": "0000_awesome_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790445559946,
+      "tag": "0001_late_payments_and_reported_scores",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790445574182,
+      "tag": "0002_assessment_score_band",
+      "breakpoints": true
+    }
+  ]
+}

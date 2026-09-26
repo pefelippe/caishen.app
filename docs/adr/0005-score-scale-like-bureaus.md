@@ -1,0 +1,5 @@
+# Avaliação nas escalas do SPC e do Bacen, com modelo próprio
+
+A Avaliação usa as mesmas escalas do mercado: um Score de 0 a 1000 com as Faixas do SPC (alto risco até 300, médio até 700, baixo acima disso) e, por Operação de Crédito, o Estágio da Resolução CMN 4.966 (1, 2 ou 3 pelos dias de Atraso). A fórmula, porém, é nossa e pública em `@mny/finance`. Não é possível copiar o critério: o score dos birôs é proprietário e diferente em cada um, e o Bacen não publica nota por pessoa (a escala AA–H da Resolução 2.682 foi revogada em 2025, e na 4.966 cada banco tem seu próprio modelo). Os Scores Declarados pelos birôs aparecem ao lado para mostrar quando os dois divergem.
+
+Substitui a escala AAA–C- da primeira versão. Os pesos refletem o que os birôs dizem priorizar: pontualidade 500 pontos, capacidade (comprometimento e endividamento) 300, utilização de limite 200. Uma Operação em Estágio 3 limita o Score a 300, e um comprometimento acima de 100% da renda limita a 700 (nunca baixo risco).

@@ -1,0 +1,323 @@
+"ISO calendar date, `YYYY-MM-DD`."
+scalar Date
+"ISO 8601 timestamp."
+scalar DateTime
+"Integer amount of cents (docs/adr/0004)."
+scalar Cents
+
+enum HolderKind {
+  PF
+  PJ
+}
+
+enum Modality {
+  CARD_INSTALLMENT
+  GOODS_FINANCING
+  OTHER
+  OVERDRAFT
+  PAYROLL_LOAN_INSS
+  PAYROLL_LOAN_PRIVATE
+  PAYROLL_LOAN_PUBLIC
+  PERSONAL_LOAN
+  REAL_ESTATE_FINANCING
+  VEHICLE_FINANCING
+}
+
+enum AmortizationSystem {
+  PRICE
+  SAC
+}
+
+enum RateSource {
+  INFORMED
+  IMPLIED
+}
+
+"Risk of default a Score indicates, with SPC cut-offs (docs/adr/0005)."
+enum RiskBand {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum Bureau {
+  SPC
+  SERASA
+  BOA_VISTA
+  QUOD
+}
+
+enum InstallmentStatus {
+  UPCOMING
+  PAID
+  PAID_LATE
+  OPEN_LATE
+}
+
+enum DataSource {
+  BACEN_REGISTRATO
+  BUREAU
+  OPEN_FINANCE
+}
+
+type Query {
+  viewer: Viewer
+  holders: [Holder!]!
+  holder(id: ID!): Holder
+  creditOperation(id: ID!): CreditOperation
+  notes: [Note!]!
+  note(id: ID!): Note
+  marketIndicators: MarketIndicators!
+}
+
+type Mutation {
+  createHolder(input: CreateHolderInput!): Holder!
+  addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
+  createCreditOperation(input: CreateCreditOperationInput!): CreditOperation!
+  deleteCreditOperation(id: ID!): Boolean!
+  createCreditCard(input: CreateCreditCardInput!): CreditCard!
+  upsertStatement(input: UpsertStatementInput!): Statement!
+  createNote(input: CreateNoteInput!): Note!
+  renameNote(id: ID!, title: String!): Note!
+  deleteNote(id: ID!): Boolean!
+  generateAssessment(holderId: ID!): Assessment!
+  "Records that an installment was late; a null `paidOn` keeps it open."
+  recordLatePayment(creditOperationId: ID!, installmentNumber: Int!, paidOn: Date): LatePayment!
+  "Marks the installment as paid on time again."
+  clearLatePayment(creditOperationId: ID!, installmentNumber: Int!): Boolean!
+  addReportedScore(input: AddReportedScoreInput!): ReportedScore!
+  grantConsent(holderId: ID!, source: DataSource!): Consent!
+  revokeConsent(id: ID!): Consent!
+}
+
+"The signed-in User inside their active Organization."
+type Viewer {
+  userId: ID!
+  organizationId: ID!
+  role: String!
+}
+
+type Holder {
+  id: ID!
+  kind: HolderKind!
+  name: String!
+  document: String
+  birthDate: Date
+  "Sum of Income Sources in force today."
+  monthlyIncomeCents: Cents!
+  incomeSources: [IncomeSource!]!
+  creditOperations: [CreditOperation!]!
+  creditCards: [CreditCard!]!
+  assessments: [Assessment!]!
+  reportedScores: [ReportedScore!]!
+  consents: [Consent!]!
+}
+
+type IncomeSource {
+  id: ID!
+  description: String!
+  monthlyNetCents: Cents!
+  startsOn: Date!
+  endsOn: Date
+}
+
+type CreditOperation {
+  id: ID!
+  holder: Holder!
+  name: String!
+  lender: String
+  modality: Modality!
+  modalityLabel: String!
+  system: AmortizationSystem!
+  principalCents: Cents!
+  "Monthly effective rate as a fraction (0.0189 = 1,89% a.m.)."
+  monthlyRate: Float!
+  annualRate: Float!
+  rateSource: RateSource!
+  termMonths: Int!
+  firstDueDate: Date!
+  "First installment (constant in Price)."
+  installmentCents: Cents!
+  outstandingBalanceCents: Cents!
+  paidInstallments: Int!
+  "Resolução CMN 4.966 stage: 1, 2 or 3 by days of the oldest open Late Payment."
+  stage: Int!
+  overdueCents: Cents!
+  latePayments: [LatePayment!]!
+  collateralDescription: String
+  collateralValueCents: Cents
+  schedule: [Installment!]!
+  marketRate: MarketRate
+}
+
+type Installment {
+  number: Int!
+  dueDate: Date!
+  installmentCents: Cents!
+  interestCents: Cents!
+  amortizationCents: Cents!
+  extraAmortizationCents: Cents!
+  balanceCents: Cents!
+  status: InstallmentStatus!
+  paidOn: Date
+  daysLate: Int!
+}
+
+"Median rate across institutions published by Bacen for a Modality."
+type MarketRate {
+  monthlyRate: Float!
+  period: String!
+  institutions: Int!
+}
+
+type CreditCard {
+  id: ID!
+  name: String!
+  issuer: String
+  limitCents: Cents!
+  closingDay: Int!
+  dueDay: Int!
+  statements: [Statement!]!
+}
+
+type Statement {
+  id: ID!
+  referenceMonth: String!
+  amountCents: Cents!
+  dueDate: Date!
+}
+
+type Note {
+  id: ID!
+  title: String!
+  holder: Holder
+  creditOperation: CreditOperation
+  creditCard: CreditCard
+  updatedAt: DateTime!
+}
+
+type Assessment {
+  id: ID!
+  "0 to 1000, same scale as the bureaus."
+  score: Int!
+  band: RiskBand!
+  breakdown: ScoreBreakdown!
+  modelVersion: String!
+  indicators: AssessmentIndicators!
+  createdAt: DateTime!
+}
+
+type ScoreBreakdown {
+  "Up to 500."
+  punctuality: Int!
+  "Up to 300."
+  capacity: Int!
+  "Up to 200."
+  utilization: Int!
+}
+
+type LatePayment {
+  id: ID!
+  installmentNumber: Int!
+  dueDate: Date!
+  paidOn: Date
+  daysLate: Int!
+}
+
+type ReportedScore {
+  id: ID!
+  bureau: Bureau!
+  score: Int!
+  band: RiskBand!
+  consultedOn: Date!
+}
+
+type AssessmentIndicators {
+  incomeCommitment: Float!
+  debtToIncome: Float!
+  creditUtilization: Float
+  monthlyIncomeCents: Cents!
+  dueNext30DaysCents: Cents!
+  outstandingDebtCents: Cents!
+  paymentCapacityCents: Cents!
+  suggestedLimitCents: Cents!
+  overdueCents: Cents!
+  worstStage: Int!
+  lateLast12Months: Int!
+}
+
+type Consent {
+  id: ID!
+  source: DataSource!
+  grantedAt: DateTime!
+  revokedAt: DateTime
+}
+
+type MarketIndicators {
+  "Selic target, % a.a."
+  selic: Float
+  "CDI, % a.a."
+  cdi: Float
+  "IPCA of the last published month, %."
+  ipca: Float
+}
+
+input CreateHolderInput {
+  name: String!
+  document: String
+  birthDate: Date
+}
+
+input AddIncomeSourceInput {
+  holderId: ID!
+  description: String!
+  monthlyNetCents: Cents!
+  startsOn: Date!
+  endsOn: Date
+}
+
+"Provide `monthlyRate` or `installmentCents`; the other is derived."
+input CreateCreditOperationInput {
+  holderId: ID!
+  name: String!
+  lender: String
+  modality: Modality!
+  system: AmortizationSystem!
+  principalCents: Cents!
+  termMonths: Int!
+  firstDueDate: Date!
+  monthlyRate: Float
+  installmentCents: Cents
+  collateralDescription: String
+  collateralValueCents: Cents
+}
+
+input CreateCreditCardInput {
+  holderId: ID!
+  name: String!
+  issuer: String
+  limitCents: Cents!
+  closingDay: Int!
+  dueDay: Int!
+}
+
+input UpsertStatementInput {
+  creditCardId: ID!
+  "`YYYY-MM` of the month the Statement is due."
+  referenceMonth: String!
+  amountCents: Cents!
+}
+
+input CreateNoteInput {
+  title: String
+  holderId: ID
+  creditOperationId: ID
+  creditCardId: ID
+}
+
+input AddReportedScoreInput {
+  holderId: ID!
+  bureau: Bureau!
+  score: Int!
+  consultedOn: Date!
+}

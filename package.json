@@ -1,0 +1,31 @@
+{
+  "name": "mny",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Organizador financeiro: obrigações de crédito, anotações colaborativas e avaliação de crédito.",
+  "scripts": {
+    "build": "turbo run build",
+    "clean": "rm -rf node_modules {apps,packages}/*/node_modules {apps,packages}/*/dist .turbo {apps,packages}/*/.turbo",
+    "codegen": "turbo run codegen",
+    "db:generate": "pnpm --filter @mny/database db:generate",
+    "db:migrate": "pnpm --filter @mny/database db:migrate",
+    "dev": "turbo run dev",
+    "infra:down": "docker compose down",
+    "infra:up": "docker compose up -d postgres",
+    "lint": "oxlint --deny-warnings && oxfmt --check",
+    "lint:fix": "oxlint --fix && oxfmt",
+    "lint:tsc": "turbo run lint:tsc",
+    "test:unit": "turbo run test:unit"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.0",
+    "oxfmt": "0.58.0",
+    "oxlint": "1.73.0",
+    "turbo": "2.9.18",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": "24.13.0"
+  },
+  "packageManager": "pnpm@11.5.1"
+}

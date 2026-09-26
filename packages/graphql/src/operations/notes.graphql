@@ -1,0 +1,44 @@
+query Notes {
+  notes {
+    id
+    title
+    updatedAt
+    holder {
+      id
+      name
+    }
+    creditOperation {
+      id
+      name
+    }
+    creditCard {
+      id
+      name
+    }
+  }
+}
+
+query Note($id: ID!) {
+  note(id: $id) {
+    id
+    title
+    updatedAt
+  }
+}
+
+mutation CreateNote($input: CreateNoteInput!) {
+  createNote(input: $input) {
+    id
+  }
+}
+
+mutation RenameNote($id: ID!, $title: String!) {
+  renameNote(id: $id, title: $title) {
+    id
+    title
+  }
+}
+
+mutation DeleteNote($id: ID!) {
+  deleteNote(id: $id)
+}

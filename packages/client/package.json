@@ -1,0 +1,39 @@
+{
+  "name": "@mny/client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Web client.",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "lint:tsc": "tsc",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@apollo/client": "4.0.9",
+    "@hocuspocus/provider": "3.4.3",
+    "@mny/finance": "workspace:*",
+    "@mny/graphql": "workspace:*",
+    "@tiptap/extension-collaboration": "3.31.3",
+    "@tiptap/extension-collaboration-caret": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "@tiptap/y-tiptap": "3.0.9",
+    "better-auth": "1.7.6",
+    "graphql": "16.12.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router-dom": "6.30.1",
+    "rxjs": "7.8.2",
+    "yjs": "13.6.28"
+  },
+  "devDependencies": {
+    "@mny/typescript-config": "workspace:*",
+    "@types/react": "19.2.3",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.1",
+    "vite": "8.2.1"
+  }
+}

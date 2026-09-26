@@ -1,0 +1,25 @@
+{
+  "name": "@mny/database",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Drizzle schema, migrations and Postgres client.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/migrate.ts",
+    "lint:tsc": "tsc"
+  },
+  "dependencies": {
+    "@mny/finance": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "pg": "8.16.0"
+  },
+  "devDependencies": {
+    "@mny/typescript-config": "workspace:*",
+    "@types/pg": "8.20.0",
+    "drizzle-kit": "0.31.11",
+    "tsx": "4.21.0"
+  }
+}

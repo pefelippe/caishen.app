@@ -1,0 +1,21 @@
+{
+  "name": "@mny/finance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure financial math: amortization schedules, implied rates and credit assessments.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint:tsc": "tsc",
+    "test:unit": "vitest --run",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "decimal.js": "10.6.0"
+  },
+  "devDependencies": {
+    "@mny/typescript-config": "workspace:*",
+    "vitest": "4.1.10"
+  }
+}

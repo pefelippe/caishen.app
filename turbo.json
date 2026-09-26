@@ -1,0 +1,27 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "codegen"],
+      "outputs": ["dist/**"]
+    },
+    "codegen": {
+      "outputs": ["src/generated/**"]
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^codegen"],
+      "persistent": true
+    },
+    "lint:tsc": {
+      "dependsOn": ["^codegen", "codegen"],
+      "outputs": []
+    },
+    "test:unit": {
+      "outputs": []
+    }
+  },
+  "envMode": "loose",
+  "noUpdateNotifier": true,
+  "globalDependencies": [".env", "tsconfig.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+}

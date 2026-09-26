@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "node": true
+  },
+  "rules": {
+    "no-console": "off",
+    "typescript/no-explicit-any": "warn",
+    "react/react-in-jsx-scope": "off"
+  },
+  "ignorePatterns": ["**/generated/**", "**/drizzle/**", "**/dist/**"]
+}

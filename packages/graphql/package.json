@@ -1,0 +1,31 @@
+{
+  "name": "@mny/graphql",
+  "version": "0.0.0",
+  "private": true,
+  "description": "GraphQL schema, client operations and generated types.",
+  "type": "module",
+  "exports": {
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "codegen": "graphql-codegen --config codegen.ts",
+    "dev": "graphql-codegen --config codegen.ts --watch",
+    "lint:tsc": "tsc"
+  },
+  "dependencies": {
+    "@graphql-typed-document-node/core": "3.2.0",
+    "@mny/auth": "workspace:*",
+    "@mny/database": "workspace:*",
+    "graphql": "16.12.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "7.4.3",
+    "@graphql-codegen/typed-document-node": "7.1.0",
+    "@graphql-codegen/typescript": "6.1.0",
+    "@graphql-codegen/typescript-operations": "6.1.7",
+    "@graphql-codegen/typescript-resolvers": "6.1.0",
+    "@mny/typescript-config": "workspace:*",
+    "@parcel/watcher": "2.6.0"
+  }
+}
