@@ -36,6 +36,17 @@ export function dateInMonth(yearMonth: string, day: number): IsoDate {
   return format(year, month, Math.min(day, daysInMonth(year, month)));
 }
 
+/** Where "today" is decided: due dates and weeks follow the calendar of Brazil, not UTC. */
+export const TIME_ZONE = 'America/Sao_Paulo';
+
+// The `en-CA` locale writes dates as `YYYY-MM-DD`.
+const calendarDay = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE });
+
+/** The calendar date of `instant` in `TIME_ZONE`. */
+export function dateOf(instant: Date): IsoDate {
+  return calendarDay.format(instant);
+}
+
 export function today(): IsoDate {
-  return new Date().toISOString().slice(0, 10);
+  return dateOf(new Date());
 }

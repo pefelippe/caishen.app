@@ -13,6 +13,7 @@ import { AREAS, localToday } from '../lib/areas';
 import { formatCents, formatDate } from '../lib/format';
 import { WeekMeter } from './FitnessPage';
 
+const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' });
 const longDate = new Intl.DateTimeFormat('pt-BR', {
   day: 'numeric',
   month: 'long',
@@ -163,7 +164,7 @@ export function TodayPage({ user }: { user: { name: string } }) {
                     {note.title}
                   </Link>
                   <span className="shrink-0 text-muted-foreground tabular-nums">
-                    {formatDate(note.updatedAt).slice(0, 5)}
+                    {shortDate.format(new Date(note.updatedAt))}
                   </span>
                 </li>
               ))}

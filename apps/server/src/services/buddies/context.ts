@@ -1,6 +1,6 @@
 import type { Viewer } from '@mny/auth';
 import { db, schema, type AttachmentRow } from '@mny/database';
-import { MODALITIES, outstandingBalance, today } from '@mny/finance';
+import { dateOf, MODALITIES, outstandingBalance, today } from '@mny/finance';
 import { desc, eq, sql } from 'drizzle-orm';
 
 import { attachmentText, driveConnected } from '../drive';
@@ -58,7 +58,7 @@ async function finance(viewer: Viewer): Promise<string> {
     '## Finanças',
     `Renda mensal líquida: ${money(await monthlyIncome(holder.id, asOf))}`,
     assessment
-      ? `Última Avaliação: Score ${assessment.score} de 1000 (${BAND[assessment.band]}), em ${day(assessment.createdAt.toISOString().slice(0, 10))}`
+      ? `Última Avaliação: Score ${assessment.score} de 1000 (${BAND[assessment.band]}), em ${day(dateOf(assessment.createdAt))}`
       : 'Ainda não há Avaliação gerada.',
     'Operações de Crédito:',
     list(operationLines, 'Nenhuma cadastrada.'),
