@@ -1,6 +1,6 @@
 import type { BuddyArea } from '@mny/graphql/client';
 import { LogOutIcon, PlugIcon, SunIcon, UsersRoundIcon } from 'lucide-react';
-import type { FormEvent, ReactNode } from 'react';
+import { Suspense, type FormEvent, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
 import { AREA_ORDER, AREAS } from '../lib/areas';
 import { authClient } from '../lib/auth';
 import { BuddyGlyph } from './BuddyGlyph';
+import { PageSkeleton } from './PageSkeleton';
 
 interface Props {
   user: { email: string; name: string };
@@ -134,7 +135,9 @@ export function Layout({ user }: Props) {
           <span className="font-serif text-xl italic">mny</span>
         </div>
         <main className="w-full max-w-[1320px] px-5 pt-8 pb-16 md:px-12 md:pt-10">
-          <Outlet />
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </main>
       </SidebarInset>
     </SidebarProvider>

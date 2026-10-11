@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils';
 
 import { BuddyGlyph } from '../components/BuddyGlyph';
 import { PageSkeleton } from '../components/PageSkeleton';
+import { WeekMeter } from '../components/WeekMeter';
 import { AREAS, localToday } from '../lib/areas';
 import { formatCents, formatDate } from '../lib/format';
-import { WeekMeter } from './FitnessPage';
 
 const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' });
 const longDate = new Intl.DateTimeFormat('pt-BR', {

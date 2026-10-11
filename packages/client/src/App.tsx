@@ -1,21 +1,34 @@
+import { lazy, type ComponentType } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { Layout } from './components/Layout';
 import { authClient } from './lib/auth';
-import { BuddiesPage } from './pages/BuddiesPage';
-import { ChatPage } from './pages/ChatPage';
-import { ConnectionsPage } from './pages/ConnectionsPage';
-import { CreditOperationPage } from './pages/CreditOperationPage';
-import { FinancePage } from './pages/FinancePage';
-import { FitnessPage } from './pages/FitnessPage';
 import { LoginPage } from './pages/LoginPage';
-import { NotePage } from './pages/NotePage';
-import { NotesPage } from './pages/NotesPage';
-import { SearchPage } from './pages/SearchPage';
 import { TodayPage } from './pages/TodayPage';
-import { WorkPage } from './pages/WorkPage';
+
+/** A page loaded on first visit, so the editor and the finance screens stay out of the first load. */
+function page<Name extends string, Props>(
+  load: () => Promise<Record<Name, ComponentType<Props>>>,
+  name: Name
+) {
+  return lazy(async () => ({ default: (await load())[name] }));
+}
+
+const BuddiesPage = page(() => import('./pages/BuddiesPage'), 'BuddiesPage');
+const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
+const ConnectionsPage = page(() => import('./pages/ConnectionsPage'), 'ConnectionsPage');
+const CreditOperationPage = page(
+  () => import('./pages/CreditOperationPage'),
+  'CreditOperationPage'
+);
+const FinancePage = page(() => import('./pages/FinancePage'), 'FinancePage');
+const FitnessPage = page(() => import('./pages/FitnessPage'), 'FitnessPage');
+const NotePage = page(() => import('./pages/NotePage'), 'NotePage');
+const NotesPage = page(() => import('./pages/NotesPage'), 'NotesPage');
+const SearchPage = page(() => import('./pages/SearchPage'), 'SearchPage');
+const WorkPage = page(() => import('./pages/WorkPage'), 'WorkPage');
 
 export function App() {
   const { data: session, isPending } = authClient.useSession();
