@@ -138,6 +138,48 @@ export async function declaredObligations(holderId: string, asOf = today()) {
   };
 }
 
+/** Installments and Statements due from `asOf` through the next 30 days, soonest first. */
+export async function upcomingDues(holderId: string, asOf = today()) {
+  const until = addDays(asOf, 30);
+  const inWindow = (dueDate: string) => dueDate >= asOf && dueDate <= until;
+  const dues: { amountCents: number; dueDate: string; label: string }[] = [];
+
+  const operations = await db
+    .select()
+    .from(schema.creditOperation)
+    .where(eq(schema.creditOperation.holderId, holderId));
+  for (const operation of operations) {
+    for (const installment of await scheduleFor(operation)) {
+      if (inWindow(installment.dueDate)) {
+        dues.push({
+          amountCents: installment.installmentCents,
+          dueDate: installment.dueDate,
+          label: `${operation.name} · Parcela ${installment.number}/${operation.termMonths}`,
+        });
+      }
+    }
+  }
+
+  const cards = await db
+    .select()
+    .from(schema.creditCard)
+    .where(eq(schema.creditCard.holderId, holderId));
+  for (const card of cards) {
+    const statements = await db
+      .select()
+      .from(schema.statement)
+      .where(eq(schema.statement.creditCardId, card.id));
+    for (const item of statements) {
+      const dueDate = statementDueDate(card, item.referenceMonth);
+      if (inWindow(dueDate)) {
+        dues.push({ amountCents: item.amountCents, dueDate, label: `${card.name} · Fatura` });
+      }
+    }
+  }
+
+  return dues.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
 /** Scores declared Obligations together with the latest SCR Snapshot, which prevails. */
 export async function computeAssessment(holderId: string) {
   const asOf = today();

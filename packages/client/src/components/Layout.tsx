@@ -1,102 +1,130 @@
-import { useApolloClient, useQuery } from '@apollo/client/react';
-import { MarketIndicatorsDocument } from '@mny/graphql/client';
-import { ChevronDownIcon, LogOutIcon } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import type { BuddyArea } from '@mny/graphql/client';
+import { LogOutIcon, PlugIcon, SunIcon, UsersRoundIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
 
+import { AREA_ORDER, AREAS } from '../lib/areas';
 import { authClient } from '../lib/auth';
+import { BuddyGlyph } from './BuddyGlyph';
 
 interface Props {
   user: { email: string; name: string };
 }
 
-const navClass = ({ isActive }: { isActive: boolean }) =>
-  cn(buttonVariants({ size: 'sm', variant: isActive ? 'secondary' : 'ghost' }));
+interface ItemProps {
+  children: ReactNode;
+  end?: boolean;
+  icon: ReactNode;
+  to: string;
+}
+
+function Item({ children, end, icon, to }: ItemProps) {
+  const { pathname } = useLocation();
+  const active = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={active}>
+        <NavLink end={end} to={to}>
+          {icon}
+          <span>{children}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+const glyph = (area: BuddyArea) => <BuddyGlyph area={area} className="!size-5" size={20} />;
 
 export function Layout({ user }: Props) {
-  const apollo = useApolloClient();
-  const { data: organizations } = authClient.useListOrganizations();
-  const { data: active } = authClient.useActiveOrganization();
-  const { data: market } = useQuery(MarketIndicatorsDocument);
-
-  const switchOrganization = async (organizationId: string) => {
-    await authClient.organization.setActive({ organizationId });
-    await apollo.resetStore();
-  };
-
-  const indicators = market?.marketIndicators;
-
   return (
-    <div className="min-h-svh">
-      <header className="flex flex-wrap items-center gap-4 border-b bg-card px-6 py-2.5">
-        <strong className="text-lg">mny</strong>
-        <nav className="flex gap-1">
-          <NavLink className={navClass} end to="/">
-            Titulares
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader className="px-4 pt-5 pb-2">
+          <NavLink className="font-serif text-3xl leading-none tracking-tight italic" to="/">
+            mny
           </NavLink>
-          <NavLink className={navClass} to="/anotacoes">
-            Anotações
-          </NavLink>
-        </nav>
-        <div className="flex-1" />
-        {indicators && (
-          <span className="text-xs text-muted-foreground" title="Fonte: Bacen (SGS)">
-            Selic {indicators.selic ?? '—'}% · CDI {indicators.cdi ?? '—'}% · IPCA{' '}
-            {indicators.ipca ?? '—'}%
-          </span>
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="ghost">
-              <span className="flex flex-col items-end leading-tight">
-                <span>{user.name}</span>
-                {active && <span className="text-xs text-muted-foreground">{active.name}</span>}
-              </span>
-              <ChevronDownIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
-              <div className="font-medium">{user.name}</div>
-              <div className="text-xs text-muted-foreground">{user.email}</div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Organização
-            </DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              onValueChange={organizationId => void switchOrganization(organizationId)}
-              value={active?.id ?? ''}
-            >
-              {organizations?.map(organization => (
-                <DropdownMenuRadioItem key={organization.id} value={organization.id}>
-                  {organization.name}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => void authClient.signOut()}>
-              <LogOutIcon />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </header>
-      <main className="mx-auto max-w-[1080px] px-4 pt-6 pb-16">
-        <Outlet />
-      </main>
-    </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Item end icon={<SunIcon />} to="/">
+                  Hoje
+                </Item>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Áreas</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {AREA_ORDER.map(area => (
+                  <Item icon={glyph(area)} key={area} to={AREAS[area].path}>
+                    {AREAS[area].label}
+                  </Item>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>IA</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Item icon={glyph('GENERAL')} to="/chat">
+                  Chat
+                </Item>
+                <Item icon={<UsersRoundIcon />} to="/buddies">
+                  Buddies
+                </Item>
+                <Item icon={<PlugIcon />} to="/conexoes">
+                  Conexões
+                </Item>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter className="gap-2 border-t p-4">
+          <div className="min-w-0 leading-tight">
+            <div className="truncate font-medium">{user.name}</div>
+            <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+          </div>
+          <Button
+            className="justify-start px-0 text-muted-foreground hover:bg-transparent"
+            onClick={() => void authClient.signOut()}
+            size="sm"
+            variant="ghost"
+          >
+            <LogOutIcon />
+            Sair
+          </Button>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <div className="flex items-center gap-2 border-b px-4 py-2 md:hidden">
+          <SidebarTrigger />
+          <span className="font-serif text-xl italic">mny</span>
+        </div>
+        <main className="w-full max-w-[1320px] px-5 pt-8 pb-16 md:px-12 md:pt-10">
+          <Outlet />
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

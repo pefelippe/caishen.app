@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
+import { BuddyGlyph } from '../components/BuddyGlyph';
 import { FormError } from '../components/FormError';
 import { authClient } from '../lib/auth';
+
+const BUDDIES = ['GENERAL', 'FINANCE', 'NOTES', 'WORK', 'FITNESS'] as const;
 
 /**
  * Google is the only way in; the first sign-in creates the User. When the server runs with
@@ -47,35 +50,44 @@ export function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-svh place-items-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">mny</CardTitle>
-          <CardDescription>Organizador financeiro</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <Button disabled={pending} onClick={() => void signIn()} size="lg" variant="outline">
-            <GoogleIcon />
-            {pending ? 'Redirecionando…' : 'Entrar com Google'}
-          </Button>
-          {demoEnabled && (
-            <>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Separator className="flex-1" />
-                ou
-                <Separator className="flex-1" />
-              </div>
-              <Button disabled={pending} onClick={() => void signInAsDemo()} size="lg">
-                Entrar na demo
-              </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                Usuário de demonstração compartilhado, sem login com Google.
-              </p>
-            </>
-          )}
-          {error && <FormError message={error} />}
-        </CardContent>
-      </Card>
+    <div className="grid min-h-svh place-items-center p-6">
+      <div className="flex w-full max-w-sm flex-col gap-8">
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-1.5">
+            {BUDDIES.map(area => (
+              <BuddyGlyph area={area} key={area} size={34} />
+            ))}
+          </div>
+          <span className="font-serif text-6xl leading-none tracking-tight italic">mny</span>
+          <p className="text-base text-muted-foreground">
+            Finanças, anotações, trabalho e treinos num lugar só, cada um com seu Buddy.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col gap-3">
+            <Button disabled={pending} onClick={() => void signIn()} size="lg" variant="outline">
+              <GoogleIcon />
+              {pending ? 'Redirecionando…' : 'Entrar com Google'}
+            </Button>
+            {demoEnabled && (
+              <>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Separator className="flex-1" />
+                  ou
+                  <Separator className="flex-1" />
+                </div>
+                <Button disabled={pending} onClick={() => void signInAsDemo()} size="lg">
+                  Entrar na demo
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Usuário de demonstração compartilhado, sem login com Google.
+                </p>
+              </>
+            )}
+            {error && <FormError message={error} />}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

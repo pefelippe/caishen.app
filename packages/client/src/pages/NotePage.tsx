@@ -5,6 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+import { AreaPage } from '../components/AreaPage';
+import { Attachments } from '../components/Attachments';
 import { BackLink } from '../components/BackLink';
 import { NoteEditor } from '../components/NoteEditor';
 import { PageSkeleton } from '../components/PageSkeleton';
@@ -13,6 +15,8 @@ interface Props {
   user: { id: string; name: string };
 }
 
+const SUGGESTIONS = ['Resuma esta Anotação', 'O que mais eu anotei sobre este assunto?'];
+
 export function NotePage({ user }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -20,7 +24,7 @@ export function NotePage({ user }: Props) {
   const [rename] = useMutation(RenameNoteDocument);
   const [remove] = useMutation(DeleteNoteDocument);
 
-  if (loading) return <PageSkeleton />;
+  if (loading && !data) return <PageSkeleton />;
   const note = data?.note;
   if (!note) return <p>Anotação não encontrada.</p>;
 
@@ -30,12 +34,19 @@ export function NotePage({ user }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <BackLink to="/anotacoes">Anotações</BackLink>
-      <div className="flex items-center justify-between gap-2">
+    <AreaPage
+      actions={
+        <Button onClick={() => void onDelete()} variant="outline">
+          Excluir
+        </Button>
+      }
+      area="NOTES"
+      eyebrow={<BackLink to="/anotacoes">Anotações</BackLink>}
+      suggestions={SUGGESTIONS}
+      title={
         <Input
           aria-label="Título"
-          className="h-auto flex-1 border-none px-0 text-2xl font-semibold shadow-none focus-visible:ring-0 md:text-2xl dark:bg-transparent"
+          className="h-auto w-[min(44rem,70vw)] rounded-none border-0 border-b border-transparent bg-transparent px-0 font-serif text-4xl shadow-none focus-visible:border-ink focus-visible:ring-0 md:text-4xl"
           defaultValue={note.title}
           key={note.id}
           onBlur={event => {
@@ -43,11 +54,10 @@ export function NotePage({ user }: Props) {
             if (title && title !== note.title) void rename({ variables: { id: note.id, title } });
           }}
         />
-        <Button onClick={() => void onDelete()} variant="destructive">
-          Excluir
-        </Button>
-      </div>
+      }
+    >
+      <Attachments attachments={note.attachments} noteId={note.id} />
       <NoteEditor key={note.id} noteId={note.id} user={user} />
-    </div>
+    </AreaPage>
   );
 }

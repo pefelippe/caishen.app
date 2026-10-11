@@ -1,0 +1,49 @@
+fragment TaskFields on Task {
+  id
+  title
+  status
+  dueOn
+  project {
+    id
+    name
+  }
+  attachments {
+    ...AttachmentFields
+  }
+}
+
+query Work {
+  projects {
+    id
+    name
+  }
+  tasks {
+    ...TaskFields
+  }
+}
+
+mutation CreateProject($name: String!) {
+  createProject(name: $name) {
+    id
+  }
+}
+
+mutation DeleteProject($id: ID!) {
+  deleteProject(id: $id)
+}
+
+mutation CreateTask($input: CreateTaskInput!) {
+  createTask(input: $input) {
+    id
+  }
+}
+
+mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) {
+  updateTask(id: $id, input: $input) {
+    ...TaskFields
+  }
+}
+
+mutation DeleteTask($id: ID!) {
+  deleteTask(id: $id)
+}

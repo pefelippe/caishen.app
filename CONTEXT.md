@@ -1,16 +1,80 @@
 # mny
 
-Organizador financeiro: registra as obrigações de crédito de uma pessoa (cartões,
-empréstimos, financiamentos), calcula juros e amortização, guarda anotações
-colaborativas e produz uma avaliação de risco no estilo de um rating bancário.
+Organizador pessoal: reúne as Áreas da vida de uma pessoa (finanças, anotações,
+trabalho, fitness), cada uma com um Buddy de IA que conhece os dados dela. Em
+Finanças, registra as obrigações de crédito (cartões, empréstimos,
+financiamentos), calcula juros e amortização e produz uma avaliação de risco no
+estilo de um rating bancário.
 
 ## Language
+
+### Organizador
+
+**Área** (`Area`):
+Uma parte da vida que o mny organiza: Finanças (`FINANCE`), Anotações (`NOTES`),
+Trabalho (`WORK`) ou Fitness (`FITNESS`).
+_Avoid_: módulo, workspace, seção
+
+**Tarefa** (`Task`):
+Algo a fazer em Trabalho, com status (a fazer, fazendo, feita), prazo opcional e
+Projeto opcional.
+_Avoid_: todo, item, card
+
+**Projeto** (`Project`):
+Um agrupamento de Tarefas.
+_Avoid_: lista, quadro
+
+**Treino** (`Workout`):
+Uma sessão de exercício registrada em Fitness, com data, tipo e duração.
+_Avoid_: exercício, atividade
+
+**Meta Semanal** (`WeeklyGoal`):
+Quantos Treinos a pessoa quer fazer por semana. A semana vai de segunda a domingo.
+_Avoid_: objetivo, hábito
+
+### IA
+
+**Buddy** (`Buddy`):
+O assistente de IA de uma Área, com nome, personalidade e Modelo. O Buddy geral
+enxerga todas as Áreas.
+_Avoid_: bot, agente, assistente
+
+**Conversa** (`Conversation`):
+Uma troca salva de Mensagens entre o Usuário e um Buddy.
+_Avoid_: chat (é a tela), thread
+
+**Mensagem** (`Message`):
+Uma fala do Usuário ou do Buddy dentro de uma Conversa.
+
+**Ação** (`BuddyAction`):
+Algo que o Buddy fez nos dados durante uma Conversa (criar uma Tarefa, registrar
+um Treino, criar uma Anotação), registrado na Mensagem. O Buddy nunca altera
+Obrigações nem valores.
+_Avoid_: comando, tool
+
+**Modelo** (`Model`):
+O modelo de linguagem que um Buddy usa.
+_Avoid_: IA (como sinônimo de modelo), LLM
+
+**Insight**:
+Uma recomendação que um Buddy dá numa Conversa a partir dos dados da sua Área.
+
+### Conexões
+
+**Conexão** (`Connection`):
+O vínculo com um serviço externo não financeiro, como o Google Drive.
+_Avoid_: integração, plugin, Fonte (essa é financeira)
+
+**Anexo** (`Attachment`):
+Um arquivo de uma Conexão ligado a uma Anotação ou a uma Tarefa.
+_Avoid_: documento, link
 
 ### Acesso
 
 **Organização** (`Organization`):
-O espaço que isola dados; todo registro financeiro e toda anotação pertence a
-exatamente uma Organização.
+O espaço que isola dados; todo registro pertence a exatamente uma Organização.
+Cada Usuário ganha uma Organização pessoal no primeiro login, e ela não aparece
+na interface.
 _Avoid_: tenant, workspace, conta
 
 **Usuário** (`User`):
@@ -30,7 +94,8 @@ _Avoid_: perfil, permissão
 
 **Titular** (`Holder`):
 A pessoa cujas finanças são registradas; toda Obrigação, Renda e Avaliação
-pertence a um Titular. Pode estar ligado a um Usuário, mas não precisa.
+pertence a um Titular. No uso pessoal, o Titular é o próprio Usuário e não
+aparece como entidade na interface.
 _Avoid_: cliente, devedor, pessoa, usuário
 
 **Obrigação** (`Obligation`):
@@ -137,15 +202,11 @@ A renda mensal líquida menos os compromissos do mês; nunca negativa.
 **Limite Sugerido** (`SuggestedLimit`):
 30% da renda mensal líquida.
 
-**Insight**:
-Uma recomendação gerada por IA a partir das finanças e Anotações de um Titular.
-Reservado; fora do MVP.
-
 ### Anotações
 
 **Anotação** (`Note`):
 Um documento de texto rico e colaborativo de uma Organização, opcionalmente
-vinculado a um Titular, uma Operação de Crédito ou um Cartão.
+vinculado a um Titular, uma Operação de Crédito, um Cartão ou uma Tarefa.
 _Avoid_: nota, documento, memo
 
 ### Fontes de dados

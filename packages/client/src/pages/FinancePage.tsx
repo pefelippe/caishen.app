@@ -4,13 +4,15 @@ import {
   CreateCreditCardDocument,
   CreateCreditOperationDocument,
   HolderDocument,
+  MarketIndicatorsDocument,
   UpsertStatementDocument,
+  ViewerHolderDocument,
   type HolderQuery,
   type Modality,
 } from '@mny/graphql/client';
 import { MODALITIES, MODALITY_KEYS, today } from '@mny/finance';
 import type { FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,8 +33,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+import { AreaPage } from '../components/AreaPage';
 import { AssessmentPanel } from '../components/AssessmentPanel';
-import { BackLink } from '../components/BackLink';
 import { ConsentBanner } from '../components/ConsentBanner';
 import { FormError } from '../components/FormError';
 import { PageSkeleton } from '../components/PageSkeleton';
@@ -44,31 +46,53 @@ type Holder = NonNullable<HolderQuery['holder']>;
 /** Reads a FormData field as trimmed text, `null` when blank. */
 const text = (values: FormData, key: string) => String(values.get(key) ?? '').trim() || null;
 
-export function HolderPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data, loading } = useQuery(HolderDocument, { variables: { id: id! } });
+const SUGGESTIONS = [
+  'O que vence nos próximos 30 dias?',
+  'Qual das minhas Operações de Crédito tem a taxa mais alta?',
+  'Como está minha última Avaliação?',
+];
 
-  if (loading) return <PageSkeleton />;
+/** Finanças of the signed-in User, who is the Holder (docs/adr/0007). */
+export function FinancePage() {
+  const { data: viewer } = useQuery(ViewerHolderDocument);
+  const id = viewer?.viewerHolder.id;
+  const { data, loading } = useQuery(HolderDocument, { skip: !id, variables: { id: id! } });
+  const { data: market } = useQuery(MarketIndicatorsDocument);
+
   const holder = data?.holder;
-  if (!holder) return <p>Titular não encontrado.</p>;
+  if (!holder) {
+    return loading || !viewer ? <PageSkeleton /> : <p>Não foi possível carregar suas Finanças.</p>;
+  }
+  const indicators = market?.marketIndicators;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <BackLink to="/">Titulares</BackLink>
-        <h1 className="text-2xl font-semibold">{holder.name}</h1>
-        <p className="text-muted-foreground">
-          {holder.document ? `CPF ${holder.document} · ` : ''}Renda mensal líquida{' '}
-          {formatCents(holder.monthlyIncomeCents)}
-        </p>
-      </div>
+    <AreaPage
+      area="FINANCE"
+      description={
+        <>
+          Renda mensal líquida{' '}
+          <span className="text-foreground tabular-nums">
+            {formatCents(holder.monthlyIncomeCents)}
+          </span>
+          {indicators && (
+            <span title="Fonte: Bacen (SGS)">
+              {' '}
+              · Selic {indicators.selic ?? '—'}% · CDI {indicators.cdi ?? '—'}% · IPCA{' '}
+              {indicators.ipca ?? '—'}%
+            </span>
+          )}
+        </>
+      }
+      suggestions={SUGGESTIONS}
+      title="Finanças"
+    >
       <ConsentBanner holder={holder} />
       <AssessmentPanel holder={holder} />
       <ScrPanel holder={holder} />
       <IncomeSection holder={holder} />
       <OperationsSection holder={holder} />
       <CardsSection holder={holder} />
-    </div>
+    </AreaPage>
   );
 }
 
@@ -186,8 +210,8 @@ function OperationsSection({ holder }: { holder: Holder }) {
                 <TableRow key={operation.id}>
                   <TableCell>
                     <Link
-                      className="font-medium text-primary underline-offset-4 hover:underline"
-                      to={`/operacoes/${operation.id}`}
+                      className="font-medium text-ink underline-offset-4 hover:underline"
+                      to={`/financas/operacoes/${operation.id}`}
                     >
                       {operation.name}
                     </Link>

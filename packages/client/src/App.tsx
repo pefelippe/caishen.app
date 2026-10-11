@@ -4,13 +4,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { Layout } from './components/Layout';
 import { authClient } from './lib/auth';
+import { BuddiesPage } from './pages/BuddiesPage';
+import { ChatPage } from './pages/ChatPage';
+import { ConnectionsPage } from './pages/ConnectionsPage';
 import { CreditOperationPage } from './pages/CreditOperationPage';
-import { HolderPage } from './pages/HolderPage';
-import { HoldersPage } from './pages/HoldersPage';
+import { FinancePage } from './pages/FinancePage';
+import { FitnessPage } from './pages/FitnessPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotePage } from './pages/NotePage';
 import { NotesPage } from './pages/NotesPage';
-import { OnboardingPage } from './pages/OnboardingPage';
+import { TodayPage } from './pages/TodayPage';
+import { WorkPage } from './pages/WorkPage';
 
 export function App() {
   const { data: session, isPending } = authClient.useSession();
@@ -22,17 +26,23 @@ export function App() {
       </div>
     );
   }
+  // Every User has a personal Organization from their first session on (docs/adr/0007).
   if (!session) return <LoginPage />;
-  if (!session.session.activeOrganizationId) return <OnboardingPage />;
 
   return (
     <Routes>
       <Route element={<Layout user={session.user} />}>
-        <Route element={<HoldersPage />} index />
-        <Route element={<HolderPage />} path="titulares/:id" />
-        <Route element={<CreditOperationPage />} path="operacoes/:id" />
+        <Route element={<TodayPage user={session.user} />} index />
+        <Route element={<FinancePage />} path="financas" />
+        <Route element={<CreditOperationPage />} path="financas/operacoes/:id" />
         <Route element={<NotesPage />} path="anotacoes" />
         <Route element={<NotePage user={session.user} />} path="anotacoes/:id" />
+        <Route element={<WorkPage />} path="trabalho" />
+        <Route element={<FitnessPage />} path="fitness" />
+        <Route element={<ChatPage />} path="chat" />
+        <Route element={<ChatPage />} path="chat/:id" />
+        <Route element={<BuddiesPage />} path="buddies" />
+        <Route element={<ConnectionsPage />} path="conexoes" />
         <Route element={<Navigate replace to="/" />} path="*" />
       </Route>
     </Routes>

@@ -5,6 +5,7 @@ import { organization } from 'better-auth/plugins';
 import { asc, eq } from 'drizzle-orm';
 
 import { demo } from './demo';
+import { ensurePersonalOrganization } from './personal';
 
 const clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
 
@@ -17,8 +18,14 @@ export const auth = betterAuth({
   databaseHooks: {
     session: {
       create: {
-        // Land every new session in the oldest Organization the user belongs to.
+        // Land every new session in the oldest Organization the user belongs to. Users from
+        // before the personal Organization existed get theirs here.
         before: async session => {
+          const [user] = await db
+            .select({ name: schema.user.name })
+            .from(schema.user)
+            .where(eq(schema.user.id, session.userId));
+          await ensurePersonalOrganization(session.userId, user?.name ?? 'Pessoal');
           const [membership] = await db
             .select({ organizationId: schema.member.organizationId })
             .from(schema.member)
@@ -35,6 +42,8 @@ export const auth = betterAuth({
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
+      // Offline access yields the refresh token the Google Drive Connection needs.
+      accessType: 'offline',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       prompt: 'select_account',
     },

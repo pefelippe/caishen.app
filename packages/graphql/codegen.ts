@@ -19,6 +19,13 @@ const config: CodegenConfig = {
         enumsAsTypes: true,
         mappers: {
           Assessment: '@mny/database#AssessmentRow',
+          Attachment: '@mny/database#AttachmentRow',
+          Buddy: '@mny/database#BuddyRow',
+          Conversation: '@mny/database#ConversationRow',
+          Message: '@mny/database#MessageRow',
+          Project: '@mny/database#ProjectRow',
+          Task: '@mny/database#TaskRow',
+          Workout: '@mny/database#WorkoutRow',
           CreditCard: '@mny/database#CreditCardRow',
           CreditOperation: '@mny/database#CreditOperationRow',
           Holder: '@mny/database#HolderRow',

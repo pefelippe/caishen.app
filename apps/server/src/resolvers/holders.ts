@@ -4,7 +4,8 @@ import type { Resolvers } from '@mny/graphql/server';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { marketIndicators } from '../services/bacen';
-import { computeAssessment, monthlyIncome } from '../services/obligations';
+import { computeAssessment, monthlyIncome, upcomingDues } from '../services/obligations';
+import { viewerHolder } from '../services/viewerHolder';
 import { badInput, findHolder, notFound, requireViewer } from './guards';
 
 export const holderResolvers: Resolvers = {
@@ -31,6 +32,7 @@ export const holderResolvers: Resolvers = {
     incomeSources: holder =>
       db.select().from(schema.incomeSource).where(eq(schema.incomeSource.holderId, holder.id)),
     monthlyIncomeCents: holder => monthlyIncome(holder.id),
+    upcomingDues: holder => upcomingDues(holder.id),
     reportedScores: holder =>
       db
         .select()
@@ -145,5 +147,6 @@ export const holderResolvers: Resolvers = {
         .orderBy(schema.holder.name),
     marketIndicators: () => marketIndicators(),
     viewer: (_, __, context) => context.viewer,
+    viewerHolder: (_, __, context) => viewerHolder(requireViewer(context)),
   },
 };

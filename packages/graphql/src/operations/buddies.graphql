@@ -1,0 +1,84 @@
+fragment BuddyFields on Buddy {
+  id
+  area
+  name
+  personality
+  model
+  canAct
+}
+
+fragment MessageFields on Message {
+  id
+  role
+  content
+  createdAt
+  actions {
+    kind
+    label
+    targetId
+  }
+}
+
+query Buddies {
+  aiStatus {
+    configured
+    defaultModel
+  }
+  buddies {
+    ...BuddyFields
+  }
+}
+
+query Models {
+  models {
+    id
+    name
+    free
+    supportsTools
+  }
+}
+
+query BuddyPanel($area: BuddyArea!) {
+  aiStatus {
+    configured
+  }
+  buddy(area: $area) {
+    ...BuddyFields
+  }
+}
+
+query Conversations($buddyId: ID!) {
+  conversations(buddyId: $buddyId) {
+    id
+    title
+    updatedAt
+  }
+}
+
+query Conversation($id: ID!) {
+  conversation(id: $id) {
+    id
+    title
+    messages {
+      ...MessageFields
+    }
+  }
+}
+
+mutation UpdateBuddy($id: ID!, $input: UpdateBuddyInput!) {
+  updateBuddy(id: $id, input: $input) {
+    ...BuddyFields
+  }
+}
+
+mutation StartConversation($buddyId: ID!) {
+  startConversation(buddyId: $buddyId) {
+    id
+    title
+    updatedAt
+  }
+}
+
+mutation DeleteConversation($id: ID!) {
+  deleteConversation(id: $id)
+}

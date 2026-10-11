@@ -1,0 +1,28 @@
+query Today {
+  viewerHolder {
+    id
+    upcomingDues {
+      label
+      dueDate
+      amountCents
+    }
+  }
+  tasks {
+    id
+    title
+    status
+    dueOn
+    project {
+      id
+      name
+    }
+  }
+  fitnessWeek {
+    ...FitnessWeekFields
+  }
+  notes {
+    id
+    title
+    updatedAt
+  }
+}

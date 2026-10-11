@@ -3,9 +3,16 @@ import { CreateNoteDocument, NotesDocument } from '@mny/graphql/client';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+
+import { AreaPage } from '../components/AreaPage';
+
+const SUGGESTIONS = [
+  'O que eu anotei por último?',
+  'Resuma minhas Anotações desta semana',
+  'Crie uma Anotação com uma lista de compras',
+];
 
 export function NotesPage() {
   const navigate = useNavigate();
@@ -18,45 +25,48 @@ export function NotesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Anotações</h1>
-        <Button onClick={() => void onCreate()}>Nova anotação</Button>
-      </div>
-      <Card>
-        <CardContent>
-          {loading && !data ? (
-            <Skeleton className="h-24 w-full" />
-          ) : data?.notes.length ? (
-            <Table>
-              <TableBody>
-                {data.notes.map(note => (
-                  <TableRow key={note.id}>
-                    <TableCell>
-                      <Link
-                        className="font-medium text-primary underline-offset-4 hover:underline"
-                        to={`/anotacoes/${note.id}`}
-                      >
-                        {note.title}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {[note.holder?.name, note.creditOperation?.name, note.creditCard?.name]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground tabular-nums">
-                      {new Date(note.updatedAt).toLocaleString('pt-BR')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-muted-foreground">Nenhuma anotação ainda.</p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <AreaPage
+      actions={<Button onClick={() => void onCreate()}>Nova Anotação</Button>}
+      area="NOTES"
+      description="Texto rico e colaborativo. Uma Anotação pode ter Anexos do Google Drive."
+      suggestions={SUGGESTIONS}
+      title="Anotações"
+    >
+      {loading && !data ? (
+        <Skeleton className="h-24 w-full" />
+      ) : data?.notes.length ? (
+        <Table className="border-t border-foreground/60">
+          <TableBody>
+            {data.notes.map(note => (
+              <TableRow key={note.id}>
+                <TableCell className="py-3">
+                  <Link
+                    className="font-serif text-lg underline-offset-4 hover:underline"
+                    to={`/anotacoes/${note.id}`}
+                  >
+                    {note.title}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {[note.task?.title, note.creditOperation?.name, note.creditCard?.name]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground tabular-nums">
+                  {new Date(note.updatedAt).toLocaleString('pt-BR', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <p className="border-t border-foreground/60 pt-5 text-muted-foreground">
+          Nenhuma Anotação ainda. Comece uma, ou peça ao Buddy para criar.
+        </p>
+      )}
+    </AreaPage>
   );
 }

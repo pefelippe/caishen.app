@@ -14,6 +14,8 @@ const proxy: Record<string, ProxyOptions> = {
 };
 
 export default defineConfig({
+  // One `.env` for the whole repo; only `VITE_`-prefixed variables reach the browser.
+  envDir: fileURLToPath(new URL('../..', import.meta.url)),
   plugins: [react(), tailwindcss()],
   preview: { host: true, port: 5173, proxy },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },

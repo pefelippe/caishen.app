@@ -144,6 +144,57 @@ export const statement = pgTable(
   table => [unique('statement_card_month_unique').on(table.creditCardId, table.referenceMonth)]
 );
 
+export const taskStatus = pgEnum('task_status', ['TODO', 'DOING', 'DONE']);
+export const buddyArea = pgEnum('buddy_area', ['GENERAL', 'FINANCE', 'NOTES', 'WORK', 'FITNESS']);
+export const messageRole = pgEnum('message_role', ['USER', 'BUDDY']);
+
+export const project = pgTable(
+  'project',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    organizationId: organizationId(),
+    ...timestamps,
+  },
+  table => [index('project_organization_idx').on(table.organizationId)]
+);
+
+export const task = pgTable(
+  'task',
+  {
+    dueOn: date('due_on'),
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: organizationId(),
+    projectId: uuid('project_id').references(() => project.id, { onDelete: 'set null' }),
+    status: taskStatus('status').notNull().default('TODO'),
+    title: text('title').notNull(),
+    ...timestamps,
+  },
+  table => [index('task_organization_idx').on(table.organizationId)]
+);
+
+export const workout = pgTable(
+  'workout',
+  {
+    date: date('date').notNull(),
+    durationMinutes: integer('duration_minutes').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Free text: corrida, musculação, natação… */
+    kind: text('kind').notNull(),
+    notes: text('notes'),
+    organizationId: organizationId(),
+    ...timestamps,
+  },
+  table => [index('workout_organization_idx').on(table.organizationId, table.date)]
+);
+
+/** Weekly Goal: how many Workouts per week (Monday to Sunday). One per Organization. */
+export const weeklyGoal = pgTable('weekly_goal', {
+  organizationId: organizationId().primaryKey(),
+  workoutsPerWeek: integer('workouts_per_week').notNull(),
+  ...timestamps,
+});
+
 export const note = pgTable(
   'note',
   {
@@ -157,12 +208,79 @@ export const note = pgTable(
     holderId: uuid('holder_id').references(() => holder.id, { onDelete: 'set null' }),
     id: uuid('id').primaryKey().defaultRandom(),
     organizationId: organizationId(),
+    taskId: uuid('task_id').references(() => task.id, { onDelete: 'set null' }),
     title: text('title')
       .notNull()
       .default(sql`'Sem título'`),
     ...timestamps,
   },
   table => [index('note_organization_idx').on(table.organizationId)]
+);
+
+/** A Connection file (Google Drive) linked to a Note or a Task. */
+export const attachment = pgTable(
+  'attachment',
+  {
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** File id in the external service. */
+    fileId: text('file_id').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    mimeType: text('mime_type').notNull(),
+    name: text('name').notNull(),
+    noteId: uuid('note_id').references(() => note.id, { onDelete: 'cascade' }),
+    organizationId: organizationId(),
+    taskId: uuid('task_id').references(() => task.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+  },
+  table => [index('attachment_organization_idx').on(table.organizationId)]
+);
+
+/** One Buddy per Area (plus `GENERAL`) in each Organization (docs/adr/0008). */
+export const buddy = pgTable(
+  'buddy',
+  {
+    area: buddyArea('area').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** OpenRouter model id; `null` follows the server default. */
+    model: text('model'),
+    name: text('name').notNull(),
+    organizationId: organizationId(),
+    personality: text('personality').notNull(),
+    ...timestamps,
+  },
+  table => [unique('buddy_organization_area_unique').on(table.organizationId, table.area)]
+);
+
+export const conversation = pgTable(
+  'conversation',
+  {
+    buddyId: uuid('buddy_id')
+      .notNull()
+      .references(() => buddy.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: organizationId(),
+    title: text('title')
+      .notNull()
+      .default(sql`'Nova conversa'`),
+    ...timestamps,
+  },
+  table => [index('conversation_buddy_idx').on(table.buddyId, table.updatedAt)]
+);
+
+export const message = pgTable(
+  'message',
+  {
+    /** Buddy Actions run while producing this Message: `{ kind, label, targetId }[]`. */
+    actions: jsonb('actions').notNull().default([]),
+    content: text('content').notNull(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversation.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    role: messageRole('role').notNull(),
+  },
+  table => [index('message_conversation_idx').on(table.conversationId, table.createdAt)]
 );
 
 export const consent = pgTable('consent', {

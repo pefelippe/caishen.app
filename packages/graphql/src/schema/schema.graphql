@@ -60,8 +60,48 @@ enum DataSource {
   OPEN_FINANCE
 }
 
+enum TaskStatus {
+  TODO
+  DOING
+  DONE
+}
+
+"An Area, or `GENERAL` for the Buddy that sees all of them."
+enum BuddyArea {
+  GENERAL
+  FINANCE
+  NOTES
+  WORK
+  FITNESS
+}
+
+enum MessageRole {
+  USER
+  BUDDY
+}
+
+enum ConnectionKind {
+  GOOGLE_DRIVE
+  SPOTIFY
+}
+
 type Query {
   viewer: Viewer
+  "The Holder the signed-in User is (docs/adr/0007); created or adopted on first use."
+  viewerHolder: Holder!
+  projects: [Project!]!
+  tasks: [Task!]!
+  "Newest first."
+  workouts: [Workout!]!
+  fitnessWeek: FitnessWeek!
+  buddies: [Buddy!]!
+  buddy(area: BuddyArea!): Buddy!
+  "Models available to Buddies; empty when the server has no OpenRouter key."
+  models: [Model!]!
+  aiStatus: AiStatus!
+  conversations(buddyId: ID!): [Conversation!]!
+  conversation(id: ID!): Conversation
+  connections: [Connection!]!
   holders: [Holder!]!
   holder(id: ID!): Holder
   creditOperation(id: ID!): CreditOperation
@@ -71,6 +111,20 @@ type Query {
 }
 
 type Mutation {
+  createProject(name: String!): Project!
+  deleteProject(id: ID!): Boolean!
+  createTask(input: CreateTaskInput!): Task!
+  updateTask(id: ID!, input: UpdateTaskInput!): Task!
+  deleteTask(id: ID!): Boolean!
+  logWorkout(input: LogWorkoutInput!): Workout!
+  deleteWorkout(id: ID!): Boolean!
+  setWeeklyGoal(workoutsPerWeek: Int!): FitnessWeek!
+  updateBuddy(id: ID!, input: UpdateBuddyInput!): Buddy!
+  startConversation(buddyId: ID!): Conversation!
+  deleteConversation(id: ID!): Boolean!
+  "Links a file picked from a Connection to a Note or a Task."
+  addAttachment(input: AddAttachmentInput!): Attachment!
+  removeAttachment(id: ID!): Boolean!
   createHolder(input: CreateHolderInput!): Holder!
   addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
   createCreditOperation(input: CreateCreditOperationInput!): CreditOperation!
@@ -118,6 +172,112 @@ type Holder {
   "Outstanding Balance of Credit Operations plus open Statements, to reconcile with the SCR."
   registeredDebtCents: Cents!
   consents: [Consent!]!
+  "Installments and Statements due in the next 30 days, soonest first."
+  upcomingDues: [UpcomingDue!]!
+}
+
+type UpcomingDue {
+  label: String!
+  dueDate: Date!
+  amountCents: Cents!
+}
+
+type Project {
+  id: ID!
+  name: String!
+}
+
+type Task {
+  id: ID!
+  title: String!
+  status: TaskStatus!
+  dueOn: Date
+  project: Project
+  attachments: [Attachment!]!
+  createdAt: DateTime!
+}
+
+type Workout {
+  id: ID!
+  date: Date!
+  kind: String!
+  durationMinutes: Int!
+  notes: String
+}
+
+"Progress of the Weekly Goal in the current week (Monday to Sunday)."
+type FitnessWeek {
+  weekStart: Date!
+  weekEnd: Date!
+  "Null until a Weekly Goal is set."
+  goal: Int
+  done: Int!
+  minutes: Int!
+}
+
+type Buddy {
+  id: ID!
+  area: BuddyArea!
+  name: String!
+  personality: String!
+  "OpenRouter model id in use (own choice or the server default)."
+  model: String!
+  "False when the model cannot call tools, so the Buddy only reads and talks."
+  canAct: Boolean!
+}
+
+type Model {
+  id: ID!
+  name: String!
+  free: Boolean!
+  supportsTools: Boolean!
+}
+
+type AiStatus {
+  "False when OPENROUTER_API_KEY is missing."
+  configured: Boolean!
+  defaultModel: String!
+}
+
+type Conversation {
+  id: ID!
+  title: String!
+  buddy: Buddy!
+  messages: [Message!]!
+  updatedAt: DateTime!
+}
+
+type Message {
+  id: ID!
+  role: MessageRole!
+  content: String!
+  actions: [BuddyAction!]!
+  createdAt: DateTime!
+}
+
+"Something the Buddy did to the data while answering."
+type BuddyAction {
+  "`TASK`, `WORKOUT` or `NOTE`."
+  kind: String!
+  label: String!
+  targetId: ID
+}
+
+type Connection {
+  kind: ConnectionKind!
+  "False for Connections that are not built yet."
+  available: Boolean!
+  connected: Boolean!
+  "Why it cannot be connected right now, in pt-BR."
+  unavailableReason: String
+}
+
+type Attachment {
+  id: ID!
+  fileId: String!
+  name: String!
+  mimeType: String!
+  url: String!
 }
 
 type IncomeSource {
@@ -197,6 +357,8 @@ type Statement {
 type Note {
   id: ID!
   title: String!
+  task: Task
+  attachments: [Attachment!]!
   holder: Holder
   creditOperation: CreditOperation
   creditCard: CreditCard
@@ -304,6 +466,44 @@ type MarketIndicators {
   ipca: Float
 }
 
+input CreateTaskInput {
+  title: String!
+  dueOn: Date
+  projectId: ID
+}
+
+"Omitted fields stay as they are; `dueOn` and `projectId` accept null to clear."
+input UpdateTaskInput {
+  title: String
+  status: TaskStatus
+  dueOn: Date
+  projectId: ID
+}
+
+input LogWorkoutInput {
+  date: Date!
+  kind: String!
+  durationMinutes: Int!
+  notes: String
+}
+
+"A null `model` goes back to the server default."
+input UpdateBuddyInput {
+  name: String
+  personality: String
+  model: String
+}
+
+"Exactly one of `noteId` and `taskId`."
+input AddAttachmentInput {
+  noteId: ID
+  taskId: ID
+  fileId: String!
+  name: String!
+  mimeType: String!
+  url: String!
+}
+
 input CreateHolderInput {
   name: String!
   document: String
@@ -352,6 +552,7 @@ input UpsertStatementInput {
 
 input CreateNoteInput {
   title: String
+  taskId: ID
   holderId: ID
   creditOperationId: ID
   creditCardId: ID

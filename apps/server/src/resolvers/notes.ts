@@ -3,6 +3,7 @@ import type { Resolvers } from '@mny/graphql/server';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { findHolder, notFound, requireViewer } from './guards';
+import { findTask } from './work';
 
 const noteColumns = {
   createdAt: schema.note.createdAt,
@@ -12,6 +13,7 @@ const noteColumns = {
   holderId: schema.note.holderId,
   id: schema.note.id,
   organizationId: schema.note.organizationId,
+  taskId: schema.note.taskId,
   title: schema.note.title,
   updatedAt: schema.note.updatedAt,
 };
@@ -27,9 +29,11 @@ export const noteResolvers: Resolvers = {
     createNote: async (_, { input }, context) => {
       const viewer = requireViewer(context);
       if (input.holderId) await findHolder(viewer, input.holderId);
+      if (input.taskId) await findTask(viewer, input.taskId);
       const [row] = await db
         .insert(schema.note)
         .values({
+          taskId: input.taskId ?? null,
           createdById: viewer.userId,
           creditCardId: input.creditCardId ?? null,
           creditOperationId: input.creditOperationId ?? null,
@@ -59,6 +63,13 @@ export const noteResolvers: Resolvers = {
     },
   },
   Note: {
+    attachments: note =>
+      db.select().from(schema.attachment).where(eq(schema.attachment.noteId, note.id)),
+    task: async note => {
+      if (!note.taskId) return null;
+      const [row] = await db.select().from(schema.task).where(eq(schema.task.id, note.taskId));
+      return row ?? null;
+    },
     creditCard: async note => {
       if (!note.creditCardId) return null;
       const [row] = await db

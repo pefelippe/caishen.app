@@ -36,14 +36,14 @@ export function CreditOperationPage() {
 
   const onDelete = async () => {
     await remove({ variables: { id: operation.id } });
-    navigate(`/titulares/${operation.holder.id}`);
+    navigate('/financas');
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-8" data-area="FINANCE">
       <div>
-        <BackLink to={`/titulares/${operation.holder.id}`}>{operation.holder.name}</BackLink>
-        <h1 className="text-2xl font-semibold">{operation.name}</h1>
+        <BackLink to="/financas">Finanças</BackLink>
+        <h1>{operation.name}</h1>
         <p className="text-muted-foreground">
           {operation.modalityLabel}
           {operation.lender ? ` · ${operation.lender}` : ''} · {operation.system}

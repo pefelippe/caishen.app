@@ -1,12 +1,25 @@
 import type { Resolvers } from '@mny/graphql/server';
 
+import { buddyResolvers } from './buddies';
+import { connectionResolvers } from './connections';
+import { fitnessResolvers } from './fitness';
 import { holderResolvers } from './holders';
 import { noteResolvers } from './notes';
 import { obligationResolvers } from './obligations';
 import { scalars } from './scalars';
 import { scrResolvers } from './scr';
+import { workResolvers } from './work';
 
-const modules: Resolvers[] = [holderResolvers, obligationResolvers, noteResolvers, scrResolvers];
+const modules: Resolvers[] = [
+  holderResolvers,
+  obligationResolvers,
+  noteResolvers,
+  scrResolvers,
+  workResolvers,
+  fitnessResolvers,
+  buddyResolvers,
+  connectionResolvers,
+];
 
 /** Merges per type, so several modules can each add fields to the same type (e.g. Holder). */
 function mergeResolvers(parts: Resolvers[]): Resolvers {

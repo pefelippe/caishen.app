@@ -6,18 +6,9 @@ query Viewer {
   }
 }
 
-query Holders {
-  holders {
+query ViewerHolder {
+  viewerHolder {
     id
-    name
-    document
-    monthlyIncomeCents
-    assessments {
-      id
-      score
-      band
-      createdAt
-    }
   }
 }
 
@@ -132,12 +123,6 @@ query Holder($id: ID!) {
       grantedAt
       revokedAt
     }
-  }
-}
-
-mutation CreateHolder($input: CreateHolderInput!) {
-  createHolder(input: $input) {
-    id
   }
 }
 

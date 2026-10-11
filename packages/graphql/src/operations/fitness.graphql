@@ -1,0 +1,36 @@
+fragment FitnessWeekFields on FitnessWeek {
+  weekStart
+  weekEnd
+  goal
+  done
+  minutes
+}
+
+query Fitness {
+  fitnessWeek {
+    ...FitnessWeekFields
+  }
+  workouts {
+    id
+    date
+    kind
+    durationMinutes
+    notes
+  }
+}
+
+mutation LogWorkout($input: LogWorkoutInput!) {
+  logWorkout(input: $input) {
+    id
+  }
+}
+
+mutation DeleteWorkout($id: ID!) {
+  deleteWorkout(id: $id)
+}
+
+mutation SetWeeklyGoal($workoutsPerWeek: Int!) {
+  setWeeklyGoal(workoutsPerWeek: $workoutsPerWeek) {
+    ...FitnessWeekFields
+  }
+}

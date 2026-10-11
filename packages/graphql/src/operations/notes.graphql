@@ -1,11 +1,19 @@
+fragment AttachmentFields on Attachment {
+  id
+  fileId
+  name
+  mimeType
+  url
+}
+
 query Notes {
   notes {
     id
     title
     updatedAt
-    holder {
+    task {
       id
-      name
+      title
     }
     creditOperation {
       id
@@ -23,6 +31,9 @@ query Note($id: ID!) {
     id
     title
     updatedAt
+    attachments {
+      ...AttachmentFields
+    }
   }
 }
 
