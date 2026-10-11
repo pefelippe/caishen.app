@@ -440,4 +440,72 @@ describe('personal organizer', () => {
     );
     expect(removed.data.removeExtraAmortization.schedule).toHaveLength(12);
   });
+
+  it('searches titles and Note text inside the Organization, ignoring case and accents', async () => {
+    const viewer = await createViewer();
+    const other = await createViewer('Davi');
+    await gql(other, `mutation { createTask(input: { title: "Orçamento alheio" }) { id } }`);
+    const seeded = await gql(
+      viewer,
+      `mutation {
+        budget: createTask(input: { title: "Revisar o orçamento", dueOn: "2026-12-01" }) { id }
+        discount: createTask(input: { title: "Desconto de 100%" }) { id }
+        logWorkout(input: { date: "2026-01-05", kind: "Corrida", durationMinutes: 30, notes: "Orçamento de fôlego" }) { id }
+      }`
+    );
+    expect(seeded.errors).toEqual([]);
+    const chat = await conversationWith(viewer, 'NOTES');
+    mswServer.use(
+      completionHandler([
+        {
+          arguments: { texto: 'Cortar assinaturas para fechar o orçamento.', titulo: 'Metas' },
+          tool: 'criar_anotacao',
+        },
+        { text: 'Anotado.' },
+      ]).handler
+    );
+    await chat.say('Crie uma anotação');
+
+    const search = async (term: string) =>
+      (
+        await gql(viewer, `query ($term: String!) { search(term: $term) { kind title detail } }`, {
+          term,
+        })
+      ).data.search;
+
+    expect(await search('ORCAMENTO')).toEqual([
+      { detail: 'Prazo 01/12/2026', kind: 'TASK', title: 'Revisar o orçamento' },
+      { detail: 'Cortar assinaturas para fechar o orçamento.', kind: 'NOTE', title: 'Metas' },
+      { detail: '05/01/2026 · 30 min · Orçamento de fôlego', kind: 'WORKOUT', title: 'Corrida' },
+    ]);
+    expect(await search('100%')).toEqual([
+      { detail: null, kind: 'TASK', title: 'Desconto de 100%' },
+    ]);
+    expect(await search('%')).toEqual([]);
+
+    // Cards of the Viewer's Holder are found; those of another Holder in the Organization are not.
+    const mine = await gql(viewer, `{ viewerHolder { id } }`);
+    const [legacy] = await db
+      .insert(schema.holder)
+      .values({ name: 'Outro Titular', organizationId: viewer.organizationId })
+      .returning();
+    const card = { closingDay: 1, dueDay: 10, limitCents: 100_000 };
+    await db.insert(schema.creditCard).values([
+      {
+        ...card,
+        holderId: mine.data.viewerHolder.id,
+        name: 'Mastercard meu',
+        organizationId: viewer.organizationId,
+      },
+      {
+        ...card,
+        holderId: legacy!.id,
+        name: 'Mastercard antigo',
+        organizationId: viewer.organizationId,
+      },
+    ]);
+    expect(await search('mastercard')).toEqual([
+      { detail: null, kind: 'CREDIT_CARD', title: 'Mastercard meu' },
+    ]);
+  });
 });

@@ -8,6 +8,7 @@ import { noteResolvers } from './notes';
 import { obligationResolvers } from './obligations';
 import { scalars } from './scalars';
 import { scrResolvers } from './scr';
+import { searchResolvers } from './search';
 import { workResolvers } from './work';
 
 const modules: Resolvers[] = [
@@ -19,6 +20,7 @@ const modules: Resolvers[] = [
   fitnessResolvers,
   buddyResolvers,
   connectionResolvers,
+  searchResolvers,
 ];
 
 /** Merges per type, so several modules can each add fields to the same type (e.g. Holder). */

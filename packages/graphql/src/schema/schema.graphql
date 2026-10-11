@@ -104,6 +104,8 @@ type Query {
   conversations(buddyId: ID!): [Conversation!]!
   conversation(id: ID!): Conversation
   connections: [Connection!]!
+  "Records of every Area whose title or text contains `term` (at least two characters)."
+  search(term: String!): [SearchHit!]!
   holders: [Holder!]!
   holder(id: ID!): Holder
   creditOperation(id: ID!): CreditOperation
@@ -266,6 +268,23 @@ type BuddyAction {
   kind: String!
   label: String!
   targetId: ID
+}
+
+enum SearchKind {
+  TASK
+  NOTE
+  WORKOUT
+  CREDIT_OPERATION
+  CREDIT_CARD
+}
+
+type SearchHit {
+  kind: SearchKind!
+  "Id of the record, to link to it."
+  id: ID!
+  area: BuddyArea!
+  title: String!
+  detail: String
 }
 
 type Connection {

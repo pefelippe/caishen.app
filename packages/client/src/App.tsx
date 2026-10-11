@@ -13,6 +13,7 @@ import { FitnessPage } from './pages/FitnessPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotePage } from './pages/NotePage';
 import { NotesPage } from './pages/NotesPage';
+import { SearchPage } from './pages/SearchPage';
 import { TodayPage } from './pages/TodayPage';
 import { WorkPage } from './pages/WorkPage';
 
@@ -43,6 +44,7 @@ export function App() {
         <Route element={<ChatPage />} path="chat/:id" />
         <Route element={<BuddiesPage />} path="buddies" />
         <Route element={<ConnectionsPage />} path="conexoes" />
+        <Route element={<SearchPage />} path="busca" />
         <Route element={<Navigate replace to="/" />} path="*" />
       </Route>
     </Routes>

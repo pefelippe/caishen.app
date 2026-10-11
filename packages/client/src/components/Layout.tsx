@@ -1,7 +1,7 @@
 import type { BuddyArea } from '@mny/graphql/client';
 import { LogOutIcon, PlugIcon, SunIcon, UsersRoundIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import type { FormEvent, ReactNode } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
+  SidebarInput,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -53,13 +54,24 @@ function Item({ children, end, icon, to }: ItemProps) {
 const glyph = (area: BuddyArea) => <BuddyGlyph area={area} className="!size-5" size={20} />;
 
 export function Layout({ user }: Props) {
+  const navigate = useNavigate();
+
+  const search = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const term = String(new FormData(event.currentTarget).get('q') ?? '').trim();
+    if (term) navigate(`/busca?q=${encodeURIComponent(term)}`);
+  };
+
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader className="px-4 pt-5 pb-2">
+        <SidebarHeader className="gap-4 px-4 pt-5 pb-2">
           <NavLink className="font-serif text-3xl leading-none tracking-tight italic" to="/">
             mny
           </NavLink>
+          <form onSubmit={search} role="search">
+            <SidebarInput aria-label="Buscar" className="bg-card" name="q" placeholder="Buscar…" />
+          </form>
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
