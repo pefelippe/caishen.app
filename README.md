@@ -48,7 +48,8 @@ A Conexão com o Google Drive exige login com Google (não funciona no modo demo
 e a Google Picker API habilitadas no projeto, e `VITE_GOOGLE_API_KEY` e `VITE_GOOGLE_APP_ID` no
 `.env`. O mny pede só o escopo `drive.file`: enxerga apenas os arquivos escolhidos no seletor.
 
-Para subir tudo em containers: `docker compose up --build` e acesse http://localhost:5173.
+Para subir tudo em containers: `docker compose up --build` e acesse http://localhost:5173. Para os
+dados de demonstração: `docker compose exec server pnpm db:seed`.
 
 ## Estrutura
 
