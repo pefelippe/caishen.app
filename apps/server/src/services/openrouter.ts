@@ -76,11 +76,6 @@ export async function defaultModel(): Promise<string> {
   return pick?.id ?? '';
 }
 
-export async function supportsTools(modelId: string): Promise<boolean> {
-  const models = await listModels();
-  return models.find(model => model.id === modelId)?.supportsTools ?? false;
-}
-
 function failure(status: number, detail: string): OpenRouterError {
   if (status === 429) {
     return new OpenRouterError(

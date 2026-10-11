@@ -11,7 +11,7 @@ const DEMO_USER = { email: 'demo@mny.local', name: 'Usuário Demo' };
 const DEMO_ORGANIZATION = { name: 'Organização Demo', slug: 'demo' };
 
 /** Creates the demo User, its Organization and the owner membership on first use. */
-async function ensureDemoUser(): Promise<string> {
+export async function ensureDemoUser(): Promise<string> {
   const [existing] = await db
     .select({ id: schema.user.id })
     .from(schema.user)

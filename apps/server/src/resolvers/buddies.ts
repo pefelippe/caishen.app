@@ -4,7 +4,7 @@ import type { Resolvers } from '@mny/graphql/server';
 import { and, asc, desc, eq } from 'drizzle-orm';
 
 import { ensureBuddies } from '../services/buddies/defaults';
-import { aiConfigured, defaultModel, listModels, supportsTools } from '../services/openrouter';
+import { aiConfigured, defaultModel, listModels, supportsTools } from '../services/models';
 import { badInput, notFound, requireViewer } from './guards';
 
 /** Loads a Buddy only if it belongs to the Viewer's Organization. */

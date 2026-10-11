@@ -6,11 +6,11 @@ import { and, asc, eq } from 'drizzle-orm';
 import {
   aiConfigured,
   defaultModel,
-  OpenRouterError,
+  ModelError,
   streamCompletion,
   supportsTools,
   type ChatMessage,
-} from '../openrouter';
+} from '../models';
 import { buddyContext } from './context';
 import { runTool, toolsFor, type BuddyAction } from './tools';
 
@@ -160,7 +160,7 @@ export async function replyInConversation(options: {
   } catch (error) {
     // Keep what was already done visible: Actions ran even if the Model then failed.
     if (!actions.length && !reply) throw error;
-    reply += `\n\n(${error instanceof OpenRouterError ? error.message : 'A resposta foi interrompida.'})`;
+    reply += `\n\n(${error instanceof ModelError ? error.message : 'A resposta foi interrompida.'})`;
   }
 
   const [saved] = await db

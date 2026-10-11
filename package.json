@@ -9,6 +9,7 @@
     "codegen": "turbo run codegen",
     "db:generate": "pnpm --filter @mny/database db:generate",
     "db:migrate": "pnpm --filter @mny/database db:migrate",
+    "db:seed": "pnpm --filter @mny/server seed",
     "dev": "turbo run dev",
     "infra:down": "docker compose down",
     "infra:up": "docker compose up -d postgres",

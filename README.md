@@ -25,6 +25,7 @@ cp .env.example .env
 pnpm install
 pnpm infra:up      # Postgres no Docker (porta 5433)
 pnpm db:migrate
+pnpm db:seed       # opcional: dados realistas para o usuário demo
 pnpm dev           # server :4000 · collab :4001 · client http://localhost:5173
 ```
 
@@ -39,7 +40,8 @@ mostra "Entrar na demo", que entra como um Usuário compartilhado (`demo@mny.loc
 
 Os Buddies usam o [OpenRouter](https://openrouter.ai/keys): uma chave em `OPENROUTER_API_KEY` dá
 acesso a Modelos de vários fornecedores, inclusive gratuitos, e o Modelo de cada Buddy é escolhido
-na página Buddies. Sem a chave o app funciona e os Buddies ficam em silêncio. Modelos gratuitos têm
+na página Buddies. Sem a chave, no modo demo os Buddies usam um Modelo de demonstração, sem IA: ele resume os dados
+e executa Ações em pedidos diretos ("crie uma tarefa para…"). Fora do modo demo ficam em silêncio. Modelos gratuitos têm
 limite diário de uso.
 
 A Conexão com o Google Drive exige login com Google (não funciona no modo demo), a Google Drive API

@@ -11,7 +11,7 @@ Guidance for AI coding agents working in this repo. Keep it terse.
 
 Turborepo + pnpm (hoisted `node_modules`), mirroring `www/monorepo`.
 
-- `apps/server`: Express 5 + Apollo Server (`/graphql`) + Better Auth (`/api/auth`) + Buddy chat (`POST /api/chat/:conversationId`, server-sent events). Buddies live in `src/services/buddies` (context per Area, Actions, chat loop) and talk to Models through `src/services/openrouter.ts`.
+- `apps/server`: Express 5 + Apollo Server (`/graphql`) + Better Auth (`/api/auth`) + Buddy chat (`POST /api/chat/:conversationId`, server-sent events). Buddies live in `src/services/buddies` (context per Area, Actions, chat loop) and reach Models only through `src/services/models.ts`, which picks OpenRouter or, in demo mode, the local stand-in (`demoModel.ts`).
 - `apps/collab`: Hocuspocus; persists each Note's Yjs state in `note.content`. Documents are named `note:<uuid>`.
 - `packages/finance`: pure financial math (amortization, Implied Rate, Assessment). No I/O. All financial logic with tests lives here; other Areas keep small pure functions with tests next to their service in `apps/server/src/services`.
 - `packages/database`: Drizzle schema, migrations (`drizzle/`), lazy `db` client.
@@ -41,5 +41,6 @@ Workspace packages have no build step: `main` points at `src/index.ts`; apps run
 
 - `pnpm infra:up`, then `pnpm db:migrate`, then `pnpm dev`: Postgres in Docker, apps on the host.
 - `docker compose up --build`: everything in containers.
-- Buddies need `OPENROUTER_API_KEY`; without it the app runs and the Buddy panels explain what is missing.
+- `pnpm db:seed`: fills the demo User's Organization with realistic data, dated relative to today. Replaces only that Organization's rows.
+- Buddies need `OPENROUTER_API_KEY`. Without it, demo mode answers with a stand-in Model (no AI; it summarises the data and runs Actions on plain requests like "crie uma tarefa para…"); outside demo mode the Buddy panels explain what is missing.
 - `pnpm test:unit` · `pnpm lint:tsc` · `pnpm lint`

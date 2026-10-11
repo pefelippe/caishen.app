@@ -8,7 +8,7 @@ import express from 'express';
 
 import { resolvers } from './resolvers';
 import { ChatError, replyInConversation, type ChatEvent } from './services/buddies/chat';
-import { OpenRouterError } from './services/openrouter';
+import { ModelError } from './services/models';
 
 const port = Number(process.env.SERVER_PORT ?? 4000);
 const clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
@@ -49,7 +49,7 @@ app.post('/api/chat/:conversationId', express.json(), async (req, res) => {
       viewer,
     });
   } catch (error) {
-    const known = error instanceof ChatError || error instanceof OpenRouterError;
+    const known = error instanceof ChatError || error instanceof ModelError;
     if (!known && !abort.signal.aborted) console.error('chat failed:', error);
     send({ message: known ? error.message : 'O Buddy não conseguiu responder.', type: 'error' });
   }

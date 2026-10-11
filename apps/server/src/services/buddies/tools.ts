@@ -3,7 +3,7 @@ import { db, schema } from '@mny/database';
 import { today } from '@mny/finance';
 
 import { textToNoteContent } from '../noteContent';
-import type { ToolDefinition } from '../openrouter';
+import type { ToolDefinition } from '../models';
 import type { BuddyArea } from './defaults';
 
 /** A Buddy Action as stored on the Message and shown to the User. */
