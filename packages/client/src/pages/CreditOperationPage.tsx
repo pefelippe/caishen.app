@@ -1,9 +1,18 @@
 import { useMutation, useQuery } from '@apollo/client/react';
-import { CreditOperationDocument, DeleteCreditOperationDocument } from '@mny/graphql/client';
+import {
+  AddExtraAmortizationDocument,
+  CreditOperationDocument,
+  DeleteCreditOperationDocument,
+  RemoveExtraAmortizationDocument,
+  type CreditOperationQuery,
+} from '@mny/graphql/client';
+import { XIcon } from 'lucide-react';
+import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -15,10 +24,12 @@ import {
 import { cn } from '@/lib/utils';
 
 import { BackLink } from '../components/BackLink';
+import { FormError } from '../components/FormError';
 import { InstallmentStatusCell } from '../components/InstallmentStatusCell';
 import { Metric, Metrics } from '../components/Metric';
 import { PageSkeleton } from '../components/PageSkeleton';
-import { formatCents, formatDate, formatPercent } from '../lib/format';
+import { localToday } from '../lib/areas';
+import { formatCents, formatDate, formatPercent, parseCents } from '../lib/format';
 
 export function CreditOperationPage() {
   const { id } = useParams<{ id: string }>();
@@ -137,9 +148,91 @@ export function CreditOperationPage() {
         </CardContent>
       </Card>
 
+      <ExtraAmortizations operation={operation} />
+
       <Button className="self-start" onClick={() => void onDelete()} variant="destructive">
         Excluir operação
       </Button>
     </div>
+  );
+}
+
+type Operation = NonNullable<CreditOperationQuery['creditOperation']>;
+
+/** Payments outside the schedule; each one shortens the table above. */
+function ExtraAmortizations({ operation }: { operation: Operation }) {
+  const refetchQueries = [CreditOperationDocument];
+  const [add, { error }] = useMutation(AddExtraAmortizationDocument, { refetchQueries });
+  const [remove] = useMutation(RemoveExtraAmortizationDocument, { refetchQueries });
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const amountCents = parseCents(String(values.get('amount')));
+    if (amountCents == null) return;
+    await add({
+      variables: {
+        amountCents,
+        creditOperationId: operation.id,
+        date: String(values.get('date') || localToday()),
+      },
+    })
+      .then(() => form.reset())
+      .catch(() => undefined);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Amortizações Extraordinárias</CardTitle>
+        <CardDescription>
+          Um pagamento fora do cronograma reduz o Saldo Devedor e encurta a tabela.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {operation.extraAmortizations.length > 0 && (
+          <Table className="max-w-md">
+            <TableBody>
+              {operation.extraAmortizations.map(extra => (
+                <TableRow key={extra.id}>
+                  <TableCell className="text-muted-foreground tabular-nums">
+                    {formatDate(extra.date)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCents(extra.amountCents)}
+                  </TableCell>
+                  <TableCell className="w-8">
+                    <Button
+                      aria-label="Remover Amortização Extraordinária"
+                      className="text-muted-foreground"
+                      onClick={() => void remove({ variables: { id: extra.id } })}
+                      size="icon-xs"
+                      variant="ghost"
+                    >
+                      <XIcon />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        <form className="flex flex-wrap items-center gap-2" onSubmit={submit}>
+          <Input
+            aria-label="Data"
+            className="w-auto bg-card"
+            defaultValue={localToday()}
+            name="date"
+            type="date"
+          />
+          <Input className="w-44 bg-card" name="amount" placeholder="Valor (R$)" required />
+          <Button type="submit" variant="outline">
+            Amortizar
+          </Button>
+        </form>
+        {error && <FormError message={error.message} />}
+      </CardContent>
+    </Card>
   );
 }

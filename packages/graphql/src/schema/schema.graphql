@@ -94,6 +94,8 @@ type Query {
   "Newest first."
   workouts: [Workout!]!
   fitnessWeek: FitnessWeek!
+  "The last `weeks` weeks, oldest first, ending with the current one."
+  fitnessHistory(weeks: Int = 8): [FitnessWeek!]!
   buddies: [Buddy!]!
   buddy(area: BuddyArea!): Buddy!
   "Models available to Buddies; empty when the server has no OpenRouter key."
@@ -126,6 +128,9 @@ type Mutation {
   addAttachment(input: AddAttachmentInput!): Attachment!
   removeAttachment(id: ID!): Boolean!
   createHolder(input: CreateHolderInput!): Holder!
+  "A payment outside the schedule that reduces the Outstanding Balance from `date` on."
+  addExtraAmortization(creditOperationId: ID!, date: Date!, amountCents: Cents!): CreditOperation!
+  removeExtraAmortization(id: ID!): CreditOperation!
   addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
   createCreditOperation(input: CreateCreditOperationInput!): CreditOperation!
   deleteCreditOperation(id: ID!): Boolean!
@@ -311,10 +316,18 @@ type CreditOperation {
   stage: Int!
   overdueCents: Cents!
   latePayments: [LatePayment!]!
+  "Oldest first."
+  extraAmortizations: [ExtraAmortization!]!
   collateralDescription: String
   collateralValueCents: Cents
   schedule: [Installment!]!
   marketRate: MarketRate
+}
+
+type ExtraAmortization {
+  id: ID!
+  date: Date!
+  amountCents: Cents!
 }
 
 type Installment {

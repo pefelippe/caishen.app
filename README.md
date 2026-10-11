@@ -74,7 +74,6 @@ Para subir tudo em containers: `docker compose up --build` e acesse http://local
 - Ler o PDF do Registrato automaticamente (parser + upload com hash, descartando o arquivo).
 - Usar a faixa "a vencer em até 30 dias" do SCR no Comprometimento de Renda.
 - Importar Scores Declarados automaticamente (hoje são digitados).
-- Interface para Amortização Extraordinária (o cálculo já suporta).
 - Compras parceladas no Cartão.
 - Operações pós-fixadas (IPCA/TR) e CET.
 - Conexão com o Spotify.

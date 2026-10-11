@@ -114,6 +114,15 @@ export function FitnessPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Últimas semanas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WeekHistory weeks={data.fitnessHistory} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Registrar Treino</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -235,6 +244,41 @@ export function WeekMeter({
       <span className="text-xs text-muted-foreground tabular-nums">
         {formatDate(week.weekStart)} a {formatDate(week.weekEnd)}
       </span>
+    </div>
+  );
+}
+
+/** One column per week, as tall as its Treinos; the line marks the Meta Semanal. */
+function WeekHistory({ weeks }: { weeks: FitnessWeekFieldsFragment[] }) {
+  const goal = weeks[0]?.goal ?? 0;
+  const top = Math.max(goal, ...weeks.map(week => week.done), 1);
+  return (
+    <div className="flex max-w-xl items-end gap-3" data-area="FITNESS">
+      {weeks.map(week => (
+        <div
+          className="flex flex-1 flex-col items-center gap-1.5"
+          key={week.weekStart}
+          title={`${formatDate(week.weekStart)} a ${formatDate(week.weekEnd)}: ${week.done} Treinos, ${week.minutes} min`}
+        >
+          <span className="text-xs tabular-nums">{week.done}</span>
+          <div className="relative flex h-24 w-full items-end border-b border-foreground/60">
+            {goal > 0 && (
+              <span
+                aria-hidden
+                className="absolute inset-x-0 border-t border-dashed border-ink/50"
+                style={{ bottom: `${(goal / top) * 100}%` }}
+              />
+            )}
+            <span
+              className={cn('w-full', goal && week.done >= goal ? 'bg-ink' : 'bg-ink/45')}
+              style={{ height: `${(week.done / top) * 100}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {formatDate(week.weekStart).slice(0, 5)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

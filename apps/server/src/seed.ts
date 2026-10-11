@@ -203,6 +203,11 @@ const sessions: [number, number, string, number, string?][] = [
   [5, 0, 'Corrida', 25],
   [5, 3, 'Musculação', 50],
   [5, 5, 'Natação', 40],
+  [6, 1, 'Musculação', 50],
+  [6, 4, 'Corrida', 30],
+  [7, 0, 'Musculação', 45],
+  [7, 2, 'Bicicleta', 60],
+  [7, 5, 'Corrida', 27],
 ];
 await db.insert(schema.workout).values(
   sessions

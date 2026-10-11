@@ -2,7 +2,7 @@ import { db, schema } from '@mny/database';
 import type { Resolvers } from '@mny/graphql/server';
 import { desc } from 'drizzle-orm';
 
-import { fitnessWeek } from '../services/fitness';
+import { fitnessHistory, fitnessWeek } from '../services/fitness';
 import { badInput, owned, requireViewer } from './guards';
 
 export const fitnessResolvers: Resolvers = {
@@ -49,6 +49,11 @@ export const fitnessResolvers: Resolvers = {
     },
   },
   Query: {
+    fitnessHistory: (_, { weeks }, context) => {
+      const count = weeks ?? 8;
+      if (!Number.isInteger(count) || count < 1 || count > 52) badInput('Peça de 1 a 52 semanas');
+      return fitnessHistory(requireViewer(context).organizationId, count);
+    },
     fitnessWeek: (_, __, context) => fitnessWeek(requireViewer(context).organizationId),
     workouts: (_, __, context) =>
       db

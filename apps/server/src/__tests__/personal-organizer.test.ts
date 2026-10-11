@@ -338,4 +338,106 @@ describe('personal organizer', () => {
       { connected: false, kind: 'SPOTIFY' },
     ]);
   });
+
+  it('edits a Task field by field and buckets Workouts into past weeks', async () => {
+    const viewer = await createViewer();
+    const created = await gql(
+      viewer,
+      `mutation {
+        createProject(name: "Casa") { id }
+        createTask(input: { title: "Pintar a sala", dueOn: "2026-11-02" }) { id }
+      }`
+    );
+    const update = (input: Record<string, unknown>) =>
+      gql(
+        viewer,
+        `mutation ($id: ID!, $input: UpdateTaskInput!) {
+          updateTask(id: $id, input: $input) { title status dueOn project { name } }
+        }`,
+        { id: created.data.createTask.id, input }
+      );
+    // An omitted field stays; an explicit null clears.
+    expect((await update({ projectId: created.data.createProject.id })).data.updateTask).toEqual({
+      dueOn: '2026-11-02',
+      project: { name: 'Casa' },
+      status: 'TODO',
+      title: 'Pintar a sala',
+    });
+    expect((await update({ dueOn: null, status: 'DONE' })).data.updateTask).toEqual({
+      dueOn: null,
+      project: { name: 'Casa' },
+      status: 'DONE',
+      title: 'Pintar a sala',
+    });
+    expect((await update({ title: '  ' })).errors).toEqual(['BAD_USER_INPUT']);
+
+    const { weekStart } = weekRange(today());
+    for (const [date, minutes] of [
+      [addDays(weekStart, -14), 20],
+      [addDays(weekStart, -8), 30],
+      [addDays(weekStart, -7), 40],
+      [addDays(weekStart, -22), 99],
+    ] as const) {
+      await gql(
+        viewer,
+        `mutation ($date: Date!, $minutes: Int!) {
+          logWorkout(input: { date: $date, kind: "Corrida", durationMinutes: $minutes }) { id }
+        }`,
+        { date, minutes }
+      );
+    }
+    const history = await gql(viewer, `{ fitnessHistory(weeks: 3) { weekStart done minutes } }`);
+    expect(history.data.fitnessHistory).toEqual([
+      { done: 2, minutes: 50, weekStart: addDays(weekStart, -14) },
+      { done: 1, minutes: 40, weekStart: addDays(weekStart, -7) },
+      { done: 0, minutes: 0, weekStart },
+    ]);
+  });
+
+  it('shortens the schedule with an Extra Amortization and refuses one above the balance', async () => {
+    const viewer = await createViewer();
+    const holder = await gql(viewer, `{ viewerHolder { id } }`);
+    const created = await gql(
+      viewer,
+      `mutation ($holderId: ID!) {
+        createCreditOperation(input: {
+          holderId: $holderId, name: "Carro", modality: VEHICLE_FINANCING, system: PRICE,
+          principalCents: 1200000, termMonths: 12, firstDueDate: "2030-01-10", monthlyRate: 0.02
+        }) { id schedule { number } }
+      }`,
+      { holderId: holder.data.viewerHolder.id }
+    );
+    const id: string = created.data.createCreditOperation.id;
+    expect(created.data.createCreditOperation.schedule).toHaveLength(12);
+
+    const add = (as: Viewer, amountCents: number, date = '2030-02-15') =>
+      gql(
+        as,
+        `mutation ($id: ID!, $date: Date!, $amountCents: Cents!) {
+          addExtraAmortization(creditOperationId: $id, date: $date, amountCents: $amountCents) {
+            schedule { number }
+            extraAmortizations { id date amountCents }
+          }
+        }`,
+        { amountCents, date, id }
+      );
+
+    const added = await add(viewer, 500_000);
+    const operation = added.data.addExtraAmortization;
+    expect(operation.extraAmortizations).toMatchObject([
+      { amountCents: 500_000, date: '2030-02-15' },
+    ]);
+    expect(operation.schedule.length).toBeLessThan(12);
+
+    expect((await add(viewer, 99_000_000)).errors).toEqual(['BAD_USER_INPUT']);
+    expect((await add(viewer, 100, '2029-12-31')).errors).toEqual(['BAD_USER_INPUT']);
+    expect((await add(await createViewer('Davi'), 100)).errors).toEqual(['NOT_FOUND']);
+
+    const removed = await gql(
+      viewer,
+      `mutation ($id: ID!) { removeExtraAmortization(id: $id) { schedule { number } } }`,
+      { id: operation.extraAmortizations[0].id }
+    );
+    expect(removed.data.removeExtraAmortization.schedule).toHaveLength(12);
+  });
 });
