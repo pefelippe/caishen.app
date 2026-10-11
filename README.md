@@ -20,6 +20,15 @@ pnpm db:migrate
 pnpm dev           # server :4000 · collab :4001 · client http://localhost:5173
 ```
 
+O login é só com Google. Antes do primeiro `pnpm dev`, crie um OAuth Client do tipo "Web
+application" no [Google Cloud Console](https://console.cloud.google.com/apis/credentials) com a
+origem `http://localhost:5173` e a redirect URI `http://localhost:5173/api/auth/callback/google`,
+e preencha `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no `.env`.
+
+Sem credenciais do Google, use o **modo demo**: com `DEMO_MODE=true` no `.env`, a tela de login
+mostra "Entrar na demo", que entra como um Usuário compartilhado (`demo@mny.local`, na
+"Organização Demo", criada no primeiro uso). O Postgres continua necessário. Nunca ative em produção.
+
 Para subir tudo em containers: `docker compose up --build` e acesse http://localhost:5173.
 
 ## Estrutura
@@ -28,7 +37,7 @@ Para subir tudo em containers: `docker compose up --build` e acesse http://local
 | --- | --- |
 | `apps/server` | API GraphQL + autenticação (Better Auth com Organizações) |
 | `apps/collab` | Servidor Hocuspocus das Anotações (Yjs) |
-| `packages/client` | Web app React + Tiptap |
+| `packages/client` | Web app React + shadcn/ui + Tiptap |
 | `packages/finance` | Matemática financeira pura, com testes |
 | `packages/database` | Schema Drizzle e migrations |
 | `packages/auth` | Instância do Better Auth compartilhada |
@@ -38,12 +47,13 @@ Para subir tudo em containers: `docker compose up --build` e acesse http://local
 
 - **Bacen SGS** (Selic, CDI, IPCA) e **taxas de juros por modalidade** (Olinda): APIs abertas,
   sem chave. Cache de 6h no servidor.
-- **Registrato**: modelado como Fonte com Consentimento; importação do relatório ainda não
-  implementada.
+- **Registrato**: vira um Retrato SCR (ADR 0006), com Consentimento obrigatório. Hoje é preenchido
+  a partir do relatório; a leitura automática do PDF aguarda uma amostra real do layout.
 
 ## Próximos passos
 
-- Importar o relatório do Registrato (SCR) como Fonte.
+- Ler o PDF do Registrato automaticamente (parser + upload com hash, descartando o arquivo).
+- Usar a faixa "a vencer em até 30 dias" do SCR no Comprometimento de Renda.
 - Importar Scores Declarados automaticamente (hoje são digitados).
 - Interface para Amortização Extraordinária (o cálculo já suporta).
 - Compras parceladas no Cartão.

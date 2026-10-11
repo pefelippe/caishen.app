@@ -26,6 +26,8 @@ const config: CodegenConfig = {
           LatePayment: '@mny/database#LatePaymentRow',
           Note: '@mny/database#NoteRow',
           ReportedScore: '@mny/database#ReportedScoreRow',
+          ScrEntry: '@mny/database#ScrEntryRow',
+          ScrSnapshot: '@mny/database#ScrSnapshotRow',
           Statement: '@mny/database#StatementRow',
           Consent: '@mny/database#ConsentRow',
         },

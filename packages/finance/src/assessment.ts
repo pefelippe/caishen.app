@@ -3,6 +3,7 @@ import {
   daysLate,
   overdueCents,
   settledInLastYear,
+  stageFor,
   stageOf,
   type LatePaymentFact,
   type Stage,
@@ -10,7 +11,7 @@ import {
 import { Decimal, toCents, type Cents } from './money';
 
 /** Bump when scoring rules change; stored on every Assessment. */
-export const ASSESSMENT_MODEL_VERSION = '2026-09-v2';
+export const ASSESSMENT_MODEL_VERSION = '2026-09-v3';
 
 export type RiskBand = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -25,6 +26,44 @@ const SUGGESTED_LIMIT_SHARE = new Decimal('0.3');
 const STAGE_3_CAP = 300;
 const OVERCOMMITTED_CAP = 700;
 
+/** Totals of the latest SCR Snapshot, reported by the institutions to Bacen (docs/adr/0006). */
+export interface ScrSummary {
+  dueCents: Cents;
+  lossCents: Cents;
+  /** Upper bound of the worst overdue bucket; `null` when the report does not say. */
+  overdueMaxDays: number | null;
+  overdueCents: Cents;
+  referenceMonth: string;
+}
+
+export interface ScrLine {
+  dueCents: Cents;
+  lossCents: Cents;
+  overdueCents: Cents;
+  overdueMaxDays: number | null;
+}
+
+export function summarizeScr(referenceMonth: string, lines: ScrLine[]): ScrSummary {
+  const sum = (pick: (line: ScrLine) => Cents) =>
+    lines.reduce((total, line) => total + pick(line), 0);
+  const days = lines.filter(line => line.overdueCents > 0).map(line => line.overdueMaxDays);
+  return {
+    dueCents: sum(line => line.dueCents),
+    lossCents: sum(line => line.lossCents),
+    overdueCents: sum(line => line.overdueCents),
+    overdueMaxDays:
+      days.length === 0 || days.includes(null) ? null : Math.max(...(days as number[])),
+    referenceMonth,
+  };
+}
+
+/** Stage the SCR implies: any Loss is Stage 3; overdue without a day range counts as 31+ days. */
+export function scrStage(scr: ScrSummary): Stage {
+  if (scr.lossCents > 0) return 3;
+  if (scr.overdueCents > 0) return stageFor(scr.overdueMaxDays ?? 31);
+  return 1;
+}
+
 export interface AssessmentInput {
   asOf: IsoDate;
   /** Credit Operation installments plus Statements due in the next 30 days. */
@@ -36,6 +75,8 @@ export interface AssessmentInput {
   openStatementsCents: Cents;
   /** Outstanding Balance summed over every Credit Operation. */
   outstandingDebtCents: Cents;
+  /** Latest SCR Snapshot, if one was imported; it prevails over declared data. */
+  scr?: ScrSummary | null;
   totalCardLimitCents: Cents;
 }
 
@@ -50,6 +91,9 @@ export interface Indicators {
   outstandingDebtCents: Cents;
   overdueCents: Cents;
   paymentCapacityCents: Cents;
+  /** Total debt in the SCR Snapshot (due + overdue + loss); `null` without one. */
+  scrDebtCents: Cents | null;
+  scrReferenceMonth: string | null;
   suggestedLimitCents: Cents;
   worstStage: Stage;
 }
@@ -78,8 +122,14 @@ function points(value: number, bands: Band[], above: number): number {
 }
 
 /** Up to 500: payment history weighs most, as bureaus state. */
-function punctualityPoints(latePayments: LatePaymentFact[], asOf: IsoDate, stage: Stage) {
-  const openLate = latePayments.some(fact => fact.paidOn === null && fact.dueDate <= asOf);
+function punctualityPoints(
+  latePayments: LatePaymentFact[],
+  asOf: IsoDate,
+  stage: Stage,
+  scrOverdue: boolean
+) {
+  const openLate =
+    scrOverdue || latePayments.some(fact => fact.paidOn === null && fact.dueDate <= asOf);
   const base = stage === 3 ? 0 : stage === 2 ? 200 : openLate ? 400 : 500;
   const history = settledInLastYear(latePayments, asOf).reduce(
     (penalty, fact) => penalty + (daysLate(fact, asOf) > 30 ? 100 : 50),
@@ -94,18 +144,19 @@ export function assess(input: AssessmentInput): AssessmentResult {
     throw new AssessmentError('Cadastre ao menos uma Fonte de Renda para gerar a Avaliação');
   }
 
-  const { asOf, latePayments } = input;
-  const worstStage = stageOf(latePayments, asOf);
-  const overdue = overdueCents(latePayments, asOf);
+  const { asOf, latePayments, scr } = input;
+  // What institutions reported to Bacen prevails over what was declared (docs/adr/0006).
+  const worstStage = Math.max(stageOf(latePayments, asOf), scr ? scrStage(scr) : 1) as Stage;
+  const overdue = Math.max(overdueCents(latePayments, asOf), scr?.overdueCents ?? 0);
+  const scrDebtCents = scr ? scr.dueCents + scr.overdueCents + scr.lossCents : null;
 
   const incomeCommitment = new Decimal(input.dueNext30DaysCents)
     .plus(overdue)
     .div(income)
     .toNumber();
   // The schedule presumes every past installment was paid, so open Late Payments are added back.
-  const debtToIncome = new Decimal(input.outstandingDebtCents)
-    .plus(input.openStatementsCents)
-    .plus(overdue)
+  const declaredDebt = input.outstandingDebtCents + input.openStatementsCents + overdue;
+  const debtToIncome = new Decimal(Math.max(declaredDebt, scrDebtCents ?? 0))
     .div(income)
     .toNumber();
   const creditUtilization =
@@ -135,7 +186,7 @@ export function assess(input: AssessmentInput): AssessmentResult {
         ],
         0
       ),
-    punctuality: punctualityPoints(latePayments, asOf, worstStage),
+    punctuality: punctualityPoints(latePayments, asOf, worstStage, (scr?.overdueCents ?? 0) > 0),
     // No cards is not a risk signal, so it earns the full share.
     utilization:
       creditUtilization === null
@@ -172,6 +223,8 @@ export function assess(input: AssessmentInput): AssessmentResult {
         0,
         input.monthlyIncomeCents - input.dueNext30DaysCents - overdue
       ),
+      scrDebtCents,
+      scrReferenceMonth: scr?.referenceMonth ?? null,
       suggestedLimitCents: toCents(income.times(SUGGESTED_LIMIT_SHARE)),
       worstStage,
     },

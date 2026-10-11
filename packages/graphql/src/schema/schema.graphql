@@ -86,6 +86,9 @@ type Mutation {
   "Marks the installment as paid on time again."
   clearLatePayment(creditOperationId: ID!, installmentNumber: Int!): Boolean!
   addReportedScore(input: AddReportedScoreInput!): ReportedScore!
+  "Stores an SCR Snapshot typed from a Registrato report. Needs an active Registrato Consent."
+  createScrSnapshot(input: CreateScrSnapshotInput!): ScrSnapshot!
+  deleteScrSnapshot(id: ID!): Boolean!
   grantConsent(holderId: ID!, source: DataSource!): Consent!
   revokeConsent(id: ID!): Consent!
 }
@@ -110,6 +113,10 @@ type Holder {
   creditCards: [CreditCard!]!
   assessments: [Assessment!]!
   reportedScores: [ReportedScore!]!
+  "Newest reference month first."
+  scrSnapshots: [ScrSnapshot!]!
+  "Outstanding Balance of Credit Operations plus open Statements, to reconcile with the SCR."
+  registeredDebtCents: Cents!
   consents: [Consent!]!
 }
 
@@ -244,6 +251,41 @@ type AssessmentIndicators {
   overdueCents: Cents!
   worstStage: Int!
   lateLast12Months: Int!
+  scrDebtCents: Cents
+  scrReferenceMonth: String
+}
+
+"A Holder's debts in the Bacen SCR for one reference month, from a Registrato report."
+type ScrSnapshot {
+  id: ID!
+  "`YYYY-MM` data-base."
+  referenceMonth: String!
+  "True when extracted from a file, false when typed in."
+  imported: Boolean!
+  createdAt: DateTime!
+  entries: [ScrEntry!]!
+  totals: ScrTotals!
+}
+
+type ScrEntry {
+  id: ID!
+  institution: String!
+  modality: String!
+  dueCents: Cents!
+  overdueCents: Cents!
+  overdueMaxDays: Int
+  lossCents: Cents!
+  limitCents: Cents!
+}
+
+type ScrTotals {
+  dueCents: Cents!
+  overdueCents: Cents!
+  lossCents: Cents!
+  limitCents: Cents!
+  "due + overdue + loss"
+  debtCents: Cents!
+  stage: Int!
 }
 
 type Consent {
@@ -320,4 +362,20 @@ input AddReportedScoreInput {
   bureau: Bureau!
   score: Int!
   consultedOn: Date!
+}
+
+input ScrEntryInput {
+  institution: String!
+  modality: String!
+  dueCents: Cents!
+  overdueCents: Cents!
+  overdueMaxDays: Int
+  lossCents: Cents!
+  limitCents: Cents!
+}
+
+input CreateScrSnapshotInput {
+  holderId: ID!
+  referenceMonth: String!
+  entries: [ScrEntryInput!]!
 }

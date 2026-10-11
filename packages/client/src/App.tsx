@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { Skeleton } from '@/components/ui/skeleton';
+
 import { Layout } from './components/Layout';
 import { authClient } from './lib/auth';
 import { CreditOperationPage } from './pages/CreditOperationPage';
@@ -13,7 +15,13 @@ import { OnboardingPage } from './pages/OnboardingPage';
 export function App() {
   const { data: session, isPending } = authClient.useSession();
 
-  if (isPending) return <div className="centered muted">Carregando…</div>;
+  if (isPending) {
+    return (
+      <div className="grid min-h-svh place-items-center p-4">
+        <Skeleton className="h-48 w-full max-w-sm" />
+      </div>
+    );
+  }
   if (!session) return <LoginPage />;
   if (!session.session.activeOrganizationId) return <OnboardingPage />;
 

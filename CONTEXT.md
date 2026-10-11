@@ -159,6 +159,22 @@ A autorização explícita, registrada com data, para consultar dados de uma Fon
 externa em nome de um Titular.
 _Avoid_: permissão, aceite
 
+**Retrato SCR** (`ScrSnapshot`):
+A foto das dívidas de um Titular no SCR do Bacen numa data-base (mês), obtida do
+relatório do Registrato. Tem saldos agregados por instituição e Modalidade, sem
+taxa nem prazo por contrato; por isso não gera Operações de Crédito, serve para
+conciliar e como fonte oficial de atraso.
+_Avoid_: extrato, consulta SCR, relatório (o relatório é o arquivo; o Retrato é o dado)
+
+**Linha do Retrato** (`ScrEntry`):
+Os saldos de uma instituição numa Modalidade dentro de um Retrato SCR: a vencer,
+vencido (com a faixa de dias), prejuízo e limite.
+
+**Prejuízo** (`Loss`):
+Dívida que a instituição já lançou como perda por falta de pagamento prolongada.
+Qualquer Prejuízo no Retrato SCR coloca o Titular no Estágio 3.
+_Avoid_: calote, dívida perdida
+
 **Taxa Média de Mercado** (`MarketRate`):
 A taxa média de juros publicada pelo Bacen para uma Modalidade num período,
 usada como referência de comparação.

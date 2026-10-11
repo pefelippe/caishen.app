@@ -5,6 +5,8 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect, useMemo, useState } from 'react';
 
+import { Card, CardContent } from '@/components/ui/card';
+
 const COLORS = ['#2563eb', '#16a34a', '#db2777', '#ea580c', '#7c3aed', '#0891b2'];
 
 function colorFor(id: string) {
@@ -50,15 +52,17 @@ export function NoteEditor({ noteId, user }: Props) {
   );
 
   return (
-    <div className="card stack">
-      <span className="muted small">
-        {status === 'connected'
-          ? '● sincronizado'
-          : status === 'forbidden'
-            ? 'sem acesso'
-            : '○ conectando…'}
-      </span>
-      <EditorContent className="editor" editor={editor} />
-    </div>
+    <Card>
+      <CardContent className="flex flex-col gap-3">
+        <span className="text-xs text-muted-foreground">
+          {status === 'connected'
+            ? '● sincronizado'
+            : status === 'forbidden'
+              ? 'sem acesso'
+              : '○ conectando…'}
+        </span>
+        <EditorContent className="editor" editor={editor} />
+      </CardContent>
+    </Card>
   );
 }

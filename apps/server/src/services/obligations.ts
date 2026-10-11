@@ -19,6 +19,8 @@ import {
 } from '@mny/finance';
 import { and, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm';
 
+import { latestScrSummary } from './scr';
+
 export async function scheduleFor(operation: CreditOperationRow): Promise<Installment[]> {
   const extras = await db
     .select({
@@ -87,10 +89,8 @@ export function lateFacts(rows: LatePaymentRow[], schedule: Installment[]): Late
   });
 }
 
-/** Gathers every Obligation of a Holder into Assessment inputs and scores them. */
-export async function computeAssessment(holderId: string) {
-  const asOf = today();
-
+/** Everything the Holder declared: Credit Operations, Late Payments, Cards and Statements. */
+export async function declaredObligations(holderId: string, asOf = today()) {
   const operations = await db
     .select()
     .from(schema.creditOperation)
@@ -129,13 +129,22 @@ export async function computeAssessment(holderId: string) {
     if (dueDate > asOf && dueDate <= in30Days) dueNext30DaysCents += item.amountCents;
   }
 
-  return assess({
-    asOf,
+  return {
     dueNext30DaysCents,
     latePayments,
-    monthlyIncomeCents: await monthlyIncome(holderId, asOf),
     openStatementsCents,
     outstandingDebtCents,
     totalCardLimitCents: cards.reduce((sum, card) => sum + card.limitCents, 0),
+  };
+}
+
+/** Scores declared Obligations together with the latest SCR Snapshot, which prevails. */
+export async function computeAssessment(holderId: string) {
+  const asOf = today();
+  return assess({
+    ...(await declaredObligations(holderId, asOf)),
+    asOf,
+    monthlyIncomeCents: await monthlyIncome(holderId, asOf),
+    scr: await latestScrSummary(holderId),
   });
 }

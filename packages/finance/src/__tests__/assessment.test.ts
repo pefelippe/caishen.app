@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { AssessmentError, assess, riskBand, type AssessmentInput } from '../assessment';
+import {
+  AssessmentError,
+  assess,
+  riskBand,
+  summarizeScr,
+  type AssessmentInput,
+} from '../assessment';
 
 const base: AssessmentInput = {
   asOf: '2026-09-26',
@@ -104,5 +110,81 @@ describe('assess', () => {
 
   it('requires income', () => {
     expect(() => assess({ ...base, monthlyIncomeCents: 0 })).toThrow(AssessmentError);
+  });
+});
+
+describe('assess with an SCR Snapshot', () => {
+  const clean = {
+    dueCents: 0,
+    lossCents: 0,
+    overdueCents: 0,
+    overdueMaxDays: null,
+    referenceMonth: '2026-08',
+  };
+
+  it('uses the SCR debt when it is larger than what was declared', () => {
+    const result = assess({
+      ...base,
+      outstandingDebtCents: 1_000_000,
+      scr: { ...clean, dueCents: 8_000_000 },
+    });
+    expect(result.indicators.debtToIncome).toBe(8);
+    expect(result.indicators.scrDebtCents).toBe(8_000_000);
+    expect(result.indicators.scrReferenceMonth).toBe('2026-08');
+  });
+
+  it('keeps declared debt when the SCR shows less', () => {
+    const result = assess({
+      ...base,
+      outstandingDebtCents: 5_000_000,
+      scr: { ...clean, dueCents: 1_000_000 },
+    });
+    expect(result.indicators.debtToIncome).toBe(5);
+  });
+
+  it('takes the Stage from the overdue bucket reported to Bacen', () => {
+    const result = assess({
+      ...base,
+      scr: { ...clean, overdueCents: 200_000, overdueMaxDays: 60 },
+    });
+    expect(result.indicators.worstStage).toBe(2);
+    expect(result.indicators.overdueCents).toBe(200_000);
+  });
+
+  it('treats overdue without a day range as Stage 2', () => {
+    const result = assess({ ...base, scr: { ...clean, overdueCents: 1 } });
+    expect(result.indicators.worstStage).toBe(2);
+  });
+
+  it('puts any Loss in Stage 3 and high risk', () => {
+    const result = assess({ ...base, scr: { ...clean, lossCents: 10_000 } });
+    expect(result.indicators.worstStage).toBe(3);
+    expect(result.band).toBe('HIGH');
+  });
+});
+
+describe('summarizeScr', () => {
+  it('sums lines and keeps the worst overdue bucket', () => {
+    const line = { dueCents: 100, lossCents: 0, overdueCents: 0, overdueMaxDays: null };
+    const summary = summarizeScr('2026-08', [
+      line,
+      { ...line, overdueCents: 50, overdueMaxDays: 30 },
+      { ...line, overdueCents: 70, overdueMaxDays: 90 },
+    ]);
+    expect(summary).toEqual({
+      dueCents: 300,
+      lossCents: 0,
+      overdueCents: 120,
+      overdueMaxDays: 90,
+      referenceMonth: '2026-08',
+    });
+  });
+
+  it('forgets the day range when any overdue line lacks it', () => {
+    const summary = summarizeScr('2026-08', [
+      { dueCents: 0, lossCents: 0, overdueCents: 50, overdueMaxDays: 30 },
+      { dueCents: 0, lossCents: 0, overdueCents: 10, overdueMaxDays: null },
+    ]);
+    expect(summary.overdueMaxDays).toBeNull();
   });
 });

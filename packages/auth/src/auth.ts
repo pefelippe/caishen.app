@@ -4,9 +4,14 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import { asc, eq } from 'drizzle-orm';
 
+import { demo } from './demo';
+
 const clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
 
 export const auth = betterAuth({
+  // Google is the only way in: no password, no manual sign-up. Linking lets pre-existing
+  // email/password Users sign in with the same address and keep their Organizations.
+  account: { accountLinking: { trustedProviders: ['google'] } },
   basePath: '/api/auth',
   database: drizzleAdapter(db, { provider: 'pg', schema }),
   databaseHooks: {
@@ -25,9 +30,15 @@ export const auth = betterAuth({
       },
     },
   },
-  emailAndPassword: { enabled: true },
-  plugins: [organization()],
+  plugins: [organization(), demo()],
   secret: process.env.BETTER_AUTH_SECRET,
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      prompt: 'select_account',
+    },
+  },
   trustedOrigins: [clientOrigin],
 });
 

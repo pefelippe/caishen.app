@@ -1,5 +1,10 @@
 import { type FormEvent, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+import { FormError } from '../components/FormError';
 import { authClient } from '../lib/auth';
 
 const slugify = (name: string) =>
@@ -23,16 +28,27 @@ export function OnboardingPage() {
   };
 
   return (
-    <div className="centered">
-      <form className="card narrow stack" onSubmit={submit}>
-        <h2>Crie sua Organização</h2>
-        <p className="muted">
-          A Organização agrupa os Titulares e Anotações. Você pode convidar outras pessoas depois.
-        </p>
-        <input name="name" placeholder="Ex.: Família Fernandes" required />
-        {error && <p className="error">{error}</p>}
-        <button type="submit">Criar</button>
-      </form>
+    <div className="grid min-h-svh place-items-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Crie sua Organização</CardTitle>
+          <CardDescription>
+            A Organização agrupa os Titulares e Anotações. Você pode convidar outras pessoas depois.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="flex flex-col gap-3" onSubmit={submit}>
+            <Input
+              aria-label="Nome da Organização"
+              name="name"
+              placeholder="Ex.: Família Fernandes"
+              required
+            />
+            {error && <FormError message={error} />}
+            <Button type="submit">Criar</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

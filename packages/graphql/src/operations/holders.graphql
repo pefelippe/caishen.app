@@ -44,6 +44,8 @@ fragment AssessmentFields on Assessment {
     overdueCents
     worstStage
     lateLast12Months
+    scrDebtCents
+    scrReferenceMonth
   }
 }
 
@@ -91,6 +93,31 @@ query Holder($id: ID!) {
     }
     assessments {
       ...AssessmentFields
+    }
+    registeredDebtCents
+    scrSnapshots {
+      id
+      referenceMonth
+      imported
+      createdAt
+      totals {
+        dueCents
+        overdueCents
+        lossCents
+        limitCents
+        debtCents
+        stage
+      }
+      entries {
+        id
+        institution
+        modality
+        dueCents
+        overdueCents
+        overdueMaxDays
+        lossCents
+        limitCents
+      }
     }
     reportedScores {
       id
@@ -144,4 +171,14 @@ mutation AddReportedScore($input: AddReportedScoreInput!) {
   addReportedScore(input: $input) {
     id
   }
+}
+
+mutation CreateScrSnapshot($input: CreateScrSnapshotInput!) {
+  createScrSnapshot(input: $input) {
+    id
+  }
+}
+
+mutation DeleteScrSnapshot($id: ID!) {
+  deleteScrSnapshot(id: $id)
 }

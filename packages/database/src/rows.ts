@@ -10,3 +10,5 @@ export type NoteRow = typeof schema.note.$inferSelect;
 export type StatementRow = typeof schema.statement.$inferSelect;
 export type LatePaymentRow = typeof schema.latePayment.$inferSelect;
 export type ReportedScoreRow = typeof schema.reportedScore.$inferSelect;
+export type ScrSnapshotRow = typeof schema.scrSnapshot.$inferSelect;
+export type ScrEntryRow = typeof schema.scrEntry.$inferSelect;

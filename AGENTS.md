@@ -18,6 +18,9 @@ Turborepo + pnpm (hoisted `node_modules`), mirroring `www/monorepo`.
 - `packages/auth`: Better Auth instance + `resolveViewer(headers)`, shared by server and collab.
 - `packages/graphql`: SDL schema, client operations (`src/operations/*.graphql`), codegen output (`src/generated`, gitignored).
 - `packages/client`: React + Vite + Apollo Client 4 + Tiptap. Vite proxies `/api`, `/graphql` and `/collab` so every request shares one origin and one session cookie.
+  - UI is shadcn/ui on Tailwind v4. Every control or surface (button, input, select, table, card, alert…) is a shadcn component from `src/components/ui`. Add missing ones with `pnpm dlx shadcn@latest add <name>` from `packages/client`, then point their `cn` import at `@/lib/utils`. Never use raw `<button>`/`<input>`/`<select>`/`<table>`.
+  - Sign-in is Google only (`authClient.signIn.social`). Needs `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`.
+  - `DEMO_MODE=true` adds a shared mocked demo User (`packages/auth/src/demo.ts`, a Better Auth plugin: `GET /api/auth/demo`, `POST /api/auth/demo/sign-in`). Dev/demo only.
 
 Workspace packages have no build step: `main` points at `src/index.ts`; apps run with `tsx`.
 

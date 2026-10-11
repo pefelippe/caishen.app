@@ -230,3 +230,41 @@ export const reportedScore = pgTable(
   },
   table => [index('reported_score_holder_idx').on(table.holderId, table.consultedOn)]
 );
+
+/** SCR Snapshot: a Holder's debts in the Bacen SCR for one reference month (docs/adr/0006). */
+export const scrSnapshot = pgTable(
+  'scr_snapshot',
+  {
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    importedById: text('imported_by_id').references(() => user.id, { onDelete: 'set null' }),
+    /** `YYYY-MM` data-base of the report. */
+    referenceMonth: text('reference_month').notNull(),
+    /** SHA-256 of the imported file; the file itself is discarded. `null` for manual entry. */
+    sourceHash: text('source_hash'),
+  },
+  table => [
+    unique('scr_snapshot_holder_month_unique').on(table.holderId, table.referenceMonth),
+    unique('scr_snapshot_holder_hash_unique').on(table.holderId, table.sourceHash),
+  ]
+);
+
+/** One institution × Modality line of an SCR Snapshot. */
+export const scrEntry = pgTable('scr_entry', {
+  dueCents: cents('due_cents').notNull().default(0),
+  id: uuid('id').primaryKey().defaultRandom(),
+  institution: text('institution').notNull(),
+  limitCents: cents('limit_cents').notNull().default(0),
+  lossCents: cents('loss_cents').notNull().default(0),
+  /** Modality as written in the report (SCR naming, not our Modality enum). */
+  modality: text('modality').notNull(),
+  overdueCents: cents('overdue_cents').notNull().default(0),
+  /** Upper bound in days of the worst overdue bucket; null when unknown. */
+  overdueMaxDays: integer('overdue_max_days'),
+  scrSnapshotId: uuid('scr_snapshot_id')
+    .notNull()
+    .references(() => scrSnapshot.id, { onDelete: 'cascade' }),
+});

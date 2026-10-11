@@ -1,8 +1,13 @@
 import { useMutation, useQuery } from '@apollo/client/react';
 import { DeleteNoteDocument, NoteDocument, RenameNoteDocument } from '@mny/graphql/client';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+import { BackLink } from '../components/BackLink';
 import { NoteEditor } from '../components/NoteEditor';
+import { PageSkeleton } from '../components/PageSkeleton';
 
 interface Props {
   user: { id: string; name: string };
@@ -15,7 +20,7 @@ export function NotePage({ user }: Props) {
   const [rename] = useMutation(RenameNoteDocument);
   const [remove] = useMutation(DeleteNoteDocument);
 
-  if (loading) return <p className="muted">Carregando…</p>;
+  if (loading) return <PageSkeleton />;
   const note = data?.note;
   if (!note) return <p>Anotação não encontrada.</p>;
 
@@ -25,13 +30,12 @@ export function NotePage({ user }: Props) {
   };
 
   return (
-    <div className="stack">
-      <Link className="muted small" to="/anotacoes">
-        ← Anotações
-      </Link>
-      <div className="row between">
-        <input
-          className="title-input"
+    <div className="flex flex-col gap-4">
+      <BackLink to="/anotacoes">Anotações</BackLink>
+      <div className="flex items-center justify-between gap-2">
+        <Input
+          aria-label="Título"
+          className="h-auto flex-1 border-none px-0 text-2xl font-semibold shadow-none focus-visible:ring-0 md:text-2xl dark:bg-transparent"
           defaultValue={note.title}
           key={note.id}
           onBlur={event => {
@@ -39,9 +43,9 @@ export function NotePage({ user }: Props) {
             if (title && title !== note.title) void rename({ variables: { id: note.id, title } });
           }}
         />
-        <button className="danger" onClick={() => void onDelete()} type="button">
+        <Button onClick={() => void onDelete()} variant="destructive">
           Excluir
-        </button>
+        </Button>
       </div>
       <NoteEditor key={note.id} noteId={note.id} user={user} />
     </div>

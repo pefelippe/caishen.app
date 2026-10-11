@@ -3,6 +3,19 @@ import { CreateHolderDocument, HoldersDocument } from '@mny/graphql/client';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 import { ScoreBadge } from '../components/ScoreBadge';
 import { formatCents } from '../lib/format';
 
@@ -26,57 +39,75 @@ export function HoldersPage() {
   };
 
   return (
-    <div className="stack">
-      <h1>Titulares</h1>
-      <p className="muted">
-        Cada Titular é uma pessoa cujas finanças você acompanha. A Avaliação é sempre por Titular.
-      </p>
-
-      <div className="card">
-        {loading ? (
-          <p className="muted">Carregando…</p>
-        ) : data?.holders.length ? (
-          <table>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>CPF</th>
-                <th className="num">Renda mensal</th>
-                <th>Última avaliação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.holders.map(holder => (
-                <tr key={holder.id}>
-                  <td>
-                    <Link to={`/titulares/${holder.id}`}>{holder.name}</Link>
-                  </td>
-                  <td>{holder.document ?? '—'}</td>
-                  <td className="num">{formatCents(holder.monthlyIncomeCents)}</td>
-                  <td>
-                    {holder.assessments[0] ? (
-                      <ScoreBadge
-                        band={holder.assessments[0].band}
-                        score={holder.assessments[0].score}
-                      />
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p className="muted">Nenhum Titular ainda.</p>
-        )}
+    <div className="flex flex-col gap-4">
+      <div>
+        <h1 className="text-2xl font-semibold">Titulares</h1>
+        <p className="text-muted-foreground">
+          Cada Titular é uma pessoa cujas finanças você acompanha. A Avaliação é sempre por Titular.
+        </p>
       </div>
 
-      <form className="card row" onSubmit={submit}>
-        <input name="name" placeholder="Nome do Titular" required />
-        <input name="document" placeholder="CPF (opcional)" />
-        <button type="submit">Adicionar Titular</button>
-      </form>
+      <Card>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : data?.holders.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>CPF</TableHead>
+                  <TableHead className="text-right">Renda mensal</TableHead>
+                  <TableHead>Última avaliação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.holders.map(holder => (
+                  <TableRow key={holder.id}>
+                    <TableCell>
+                      <Link
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                        to={`/titulares/${holder.id}`}
+                      >
+                        {holder.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{holder.document ?? '—'}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCents(holder.monthlyIncomeCents)}
+                    </TableCell>
+                    <TableCell>
+                      {holder.assessments[0] ? (
+                        <ScoreBadge
+                          band={holder.assessments[0].band}
+                          score={holder.assessments[0].score}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground">Nenhum Titular ainda.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Novo Titular</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="flex flex-wrap items-center gap-2" onSubmit={submit}>
+            <Input className="w-64" name="name" placeholder="Nome do Titular" required />
+            <Input className="w-48" name="document" placeholder="CPF (opcional)" />
+            <Button type="submit">Adicionar Titular</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

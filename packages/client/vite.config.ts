@@ -1,4 +1,6 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, type ProxyOptions } from 'vite';
 
 const serverUrl = process.env.SERVER_URL ?? 'http://localhost:4000';
@@ -12,7 +14,8 @@ const proxy: Record<string, ProxyOptions> = {
 };
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   preview: { host: true, port: 5173, proxy },
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: { port: 5173, proxy },
 });
