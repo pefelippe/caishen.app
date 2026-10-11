@@ -21,7 +21,7 @@ import {
   scheduleFor,
   statementDueDate,
 } from '../services/obligations';
-import { badInput, findHolder, notFound, requireViewer } from './guards';
+import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
 async function operationById(id: string) {
   const [operation] = await db
@@ -220,12 +220,7 @@ export const obligationResolvers: Resolvers = {
       const viewer = requireViewer(context);
       const deleted = await db
         .delete(schema.creditOperation)
-        .where(
-          and(
-            eq(schema.creditOperation.id, id),
-            eq(schema.creditOperation.organizationId, viewer.organizationId)
-          )
-        )
+        .where(owned(schema.creditOperation, viewer, id))
         .returning({ id: schema.creditOperation.id });
       return deleted.length > 0;
     },
@@ -235,12 +230,7 @@ export const obligationResolvers: Resolvers = {
       const [card] = await db
         .select()
         .from(schema.creditCard)
-        .where(
-          and(
-            eq(schema.creditCard.id, input.creditCardId),
-            eq(schema.creditCard.organizationId, viewer.organizationId)
-          )
-        );
+        .where(owned(schema.creditCard, viewer, input.creditCardId));
       if (!card) notFound('Cartão');
       const [row] = await db
         .insert(schema.statement)
@@ -259,12 +249,7 @@ export const obligationResolvers: Resolvers = {
       const [row] = await db
         .select()
         .from(schema.creditOperation)
-        .where(
-          and(
-            eq(schema.creditOperation.id, id),
-            eq(schema.creditOperation.organizationId, viewer.organizationId)
-          )
-        );
+        .where(owned(schema.creditOperation, viewer, id));
       return row ?? null;
     },
   },

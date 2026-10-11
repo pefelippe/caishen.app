@@ -2,6 +2,7 @@ import type { Viewer } from '@mny/auth';
 import { db, schema } from '@mny/database';
 import type { Context } from '@mny/graphql/server';
 import { and, eq } from 'drizzle-orm';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { GraphQLError } from 'graphql';
 
 export function requireViewer(context: Context): Viewer {
@@ -21,11 +22,26 @@ export function badInput(message: string): never {
   throw new GraphQLError(message, { extensions: { code: 'BAD_USER_INPUT' } });
 }
 
+/**
+ * The one place the Organization boundary is written: a `where` clause for the rows of `table`
+ * that belong to the Viewer's Organization, narrowed to `id` when given.
+ */
+export function owned(
+  table: { id: AnyPgColumn; organizationId: AnyPgColumn },
+  viewer: Viewer,
+  id?: string
+) {
+  return and(
+    eq(table.organizationId, viewer.organizationId),
+    id === undefined ? undefined : eq(table.id, id)
+  );
+}
+
 /** Loads a Holder only if it belongs to the Viewer's Organization. */
 export async function findHolder(viewer: Viewer, id: string) {
   const [holder] = await db
     .select()
     .from(schema.holder)
-    .where(and(eq(schema.holder.id, id), eq(schema.holder.organizationId, viewer.organizationId)));
+    .where(owned(schema.holder, viewer, id));
   return holder ?? notFound('Titular');
 }

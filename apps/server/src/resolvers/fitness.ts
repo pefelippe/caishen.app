@@ -1,9 +1,9 @@
 import { db, schema } from '@mny/database';
 import type { Resolvers } from '@mny/graphql/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 
 import { fitnessWeek } from '../services/fitness';
-import { badInput, requireViewer } from './guards';
+import { badInput, owned, requireViewer } from './guards';
 
 export const fitnessResolvers: Resolvers = {
   Mutation: {
@@ -11,9 +11,7 @@ export const fitnessResolvers: Resolvers = {
       const viewer = requireViewer(context);
       const deleted = await db
         .delete(schema.workout)
-        .where(
-          and(eq(schema.workout.id, id), eq(schema.workout.organizationId, viewer.organizationId))
-        )
+        .where(owned(schema.workout, viewer, id))
         .returning({ id: schema.workout.id });
       return deleted.length > 0;
     },
@@ -56,7 +54,7 @@ export const fitnessResolvers: Resolvers = {
       db
         .select()
         .from(schema.workout)
-        .where(eq(schema.workout.organizationId, requireViewer(context).organizationId))
+        .where(owned(schema.workout, requireViewer(context)))
         .orderBy(desc(schema.workout.date), desc(schema.workout.createdAt))
         .limit(100),
   },

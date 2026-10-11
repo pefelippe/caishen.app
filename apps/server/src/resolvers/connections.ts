@@ -3,7 +3,7 @@ import type { Resolvers } from '@mny/graphql/server';
 import { and, eq } from 'drizzle-orm';
 
 import { driveConnected, googleConfigured } from '../services/drive';
-import { badInput, notFound, requireViewer } from './guards';
+import { badInput, notFound, owned, requireViewer } from './guards';
 import { findTask } from './work';
 
 export const connectionResolvers: Resolvers = {
@@ -18,12 +18,7 @@ export const connectionResolvers: Resolvers = {
         const [note] = await db
           .select({ id: schema.note.id })
           .from(schema.note)
-          .where(
-            and(
-              eq(schema.note.id, input.noteId),
-              eq(schema.note.organizationId, viewer.organizationId)
-            )
-          );
+          .where(owned(schema.note, viewer, input.noteId));
         if (!note) notFound('Anotação');
       }
       const [row] = await db
@@ -44,12 +39,7 @@ export const connectionResolvers: Resolvers = {
       const viewer = requireViewer(context);
       const deleted = await db
         .delete(schema.attachment)
-        .where(
-          and(
-            eq(schema.attachment.id, id),
-            eq(schema.attachment.organizationId, viewer.organizationId)
-          )
-        )
+        .where(owned(schema.attachment, viewer, id))
         .returning({ id: schema.attachment.id });
       return deleted.length > 0;
     },

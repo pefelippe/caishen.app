@@ -1,31 +1,25 @@
 import type { Viewer } from '@mny/auth';
 import { db, schema } from '@mny/database';
 import type { Resolvers } from '@mny/graphql/server';
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 
-import { badInput, notFound, requireViewer } from './guards';
-
-const projectOf = (viewer: Viewer, id?: string) =>
-  and(
-    eq(schema.project.organizationId, viewer.organizationId),
-    id ? eq(schema.project.id, id) : undefined
-  );
-
-const taskOf = (viewer: Viewer, id?: string) =>
-  and(
-    eq(schema.task.organizationId, viewer.organizationId),
-    id ? eq(schema.task.id, id) : undefined
-  );
+import { badInput, notFound, owned, requireViewer } from './guards';
 
 /** Loads a Project only if it belongs to the Viewer's Organization. */
 async function findProject(viewer: Viewer, id: string) {
-  const [row] = await db.select().from(schema.project).where(projectOf(viewer, id));
+  const [row] = await db
+    .select()
+    .from(schema.project)
+    .where(owned(schema.project, viewer, id));
   return row ?? notFound('Projeto');
 }
 
 /** Loads a Task only if it belongs to the Viewer's Organization. */
 export async function findTask(viewer: Viewer, id: string) {
-  const [row] = await db.select().from(schema.task).where(taskOf(viewer, id));
+  const [row] = await db
+    .select()
+    .from(schema.task)
+    .where(owned(schema.task, viewer, id));
   return row ?? notFound('Tarefa');
 }
 
@@ -58,14 +52,14 @@ export const workResolvers: Resolvers = {
     deleteProject: async (_, { id }, context) => {
       const deleted = await db
         .delete(schema.project)
-        .where(projectOf(requireViewer(context), id))
+        .where(owned(schema.project, requireViewer(context), id))
         .returning({ id: schema.project.id });
       return deleted.length > 0;
     },
     deleteTask: async (_, { id }, context) => {
       const deleted = await db
         .delete(schema.task)
-        .where(taskOf(requireViewer(context), id))
+        .where(owned(schema.task, requireViewer(context), id))
         .returning({ id: schema.task.id });
       return deleted.length > 0;
     },
@@ -83,7 +77,7 @@ export const workResolvers: Resolvers = {
           status: input.status ?? undefined,
           title: input.title?.trim(),
         })
-        .where(taskOf(viewer, id))
+        .where(owned(schema.task, viewer, id))
         .returning();
       return row!;
     },
@@ -93,14 +87,14 @@ export const workResolvers: Resolvers = {
       db
         .select()
         .from(schema.project)
-        .where(projectOf(requireViewer(context)))
+        .where(owned(schema.project, requireViewer(context)))
         .orderBy(asc(schema.project.name)),
     // Open Tasks first, soonest deadline on top; done Tasks last, most recent first.
     tasks: (_, __, context) =>
       db
         .select()
         .from(schema.task)
-        .where(taskOf(requireViewer(context)))
+        .where(owned(schema.task, requireViewer(context)))
         .orderBy(
           sql`${schema.task.status} = 'DONE'`,
           sql`${schema.task.dueOn} asc nulls last`,

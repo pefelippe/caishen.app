@@ -1,8 +1,8 @@
 import { db, schema } from '@mny/database';
 import type { Resolvers } from '@mny/graphql/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
-import { findHolder, notFound, requireViewer } from './guards';
+import { findHolder, notFound, owned, requireViewer } from './guards';
 import { findTask } from './work';
 
 const noteColumns = {
@@ -20,9 +20,6 @@ const noteColumns = {
 
 /** Notes without their Yjs `content`, which only the collab app reads. */
 const selectNotes = () => db.select(noteColumns).from(schema.note);
-
-const inOrganization = (organizationId: string, id?: string) =>
-  and(eq(schema.note.organizationId, organizationId), id ? eq(schema.note.id, id) : undefined);
 
 export const noteResolvers: Resolvers = {
   Mutation: {
@@ -48,7 +45,7 @@ export const noteResolvers: Resolvers = {
       const viewer = requireViewer(context);
       const deleted = await db
         .delete(schema.note)
-        .where(inOrganization(viewer.organizationId, id))
+        .where(owned(schema.note, viewer, id))
         .returning({ id: schema.note.id });
       return deleted.length > 0;
     },
@@ -57,7 +54,7 @@ export const noteResolvers: Resolvers = {
       const [row] = await db
         .update(schema.note)
         .set({ title })
-        .where(inOrganization(viewer.organizationId, id))
+        .where(owned(schema.note, viewer, id))
         .returning(noteColumns);
       return row ? { ...row, content: null } : notFound('Anotação');
     },
@@ -97,14 +94,12 @@ export const noteResolvers: Resolvers = {
   },
   Query: {
     note: async (_, { id }, context) => {
-      const [row] = await selectNotes().where(
-        inOrganization(requireViewer(context).organizationId, id)
-      );
+      const [row] = await selectNotes().where(owned(schema.note, requireViewer(context), id));
       return row ? { ...row, content: null } : null;
     },
     notes: async (_, __, context) => {
       const rows = await selectNotes()
-        .where(inOrganization(requireViewer(context).organizationId))
+        .where(owned(schema.note, requireViewer(context)))
         .orderBy(desc(schema.note.updatedAt));
       return rows.map(row => ({ ...row, content: null }));
     },

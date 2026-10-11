@@ -30,7 +30,7 @@ Workspace packages have no build step: `main` points at `src/index.ts`; apps run
 
 - Code in English, UI in pt-BR.
 - Money is integer cents (`number`, `bigint` in Postgres); rates are monthly effective fractions. Money math uses `decimal.js` in `@mny/finance`, never `float` arithmetic (ADR 0004).
-- Every query or mutation scopes by `viewer.organizationId`; load a Holder through `findHolder` to enforce it. The Organization is personal and hidden, and Finanças uses the `viewerHolder` (ADR 0007).
+- Every query or mutation scopes by `viewer.organizationId`: build the filter with `owned(table, viewer, id?)` from `resolvers/guards.ts`, never by hand, and load a Holder through `findHolder`. The Organization is personal and hidden, and Finanças uses the `viewerHolder` (ADR 0007).
 - Buddy Actions are only simple and reversible (create Task, log Workout, create Note). Never add a tool that touches Obligations or amounts, and give Models money already formatted (ADR 0008).
 - A Note's `content` is Yjs state. Write it on the server only through `services/noteContent.ts`.
 - Changing the GraphQL schema or operations: run `pnpm codegen`.
@@ -43,4 +43,5 @@ Workspace packages have no build step: `main` points at `src/index.ts`; apps run
 - `docker compose up --build`: everything in containers.
 - `pnpm db:seed`: fills the demo User's Organization with realistic data, dated relative to today. Replaces only that Organization's rows.
 - Buddies need `OPENROUTER_API_KEY`. Without it, demo mode answers with a stand-in Model (no AI; it summarises the data and runs Actions on plain requests like "crie uma tarefa para…"); outside demo mode the Buddy panels explain what is missing.
+- Server tests (`apps/server/src/__tests__`) use a real Postgres database, `mny_test`, created and migrated on demand, so they need `pnpm infra:up`. External APIs are faked with MSW (`apps/server/test/msw`); our own code is not mocked. One test file per feature.
 - `pnpm test:unit` · `pnpm lint:tsc` · `pnpm lint`

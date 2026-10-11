@@ -1,12 +1,12 @@
 import { db, schema } from '@mny/database';
 import { AssessmentError, riskBand } from '@mny/finance';
 import type { Resolvers } from '@mny/graphql/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 import { marketIndicators } from '../services/bacen';
 import { computeAssessment, monthlyIncome, upcomingDues } from '../services/obligations';
 import { viewerHolder } from '../services/viewerHolder';
-import { badInput, findHolder, notFound, requireViewer } from './guards';
+import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
 export const holderResolvers: Resolvers = {
   Assessment: {
@@ -134,16 +134,14 @@ export const holderResolvers: Resolvers = {
       const [row] = await db
         .select()
         .from(schema.holder)
-        .where(
-          and(eq(schema.holder.id, id), eq(schema.holder.organizationId, viewer.organizationId))
-        );
+        .where(owned(schema.holder, viewer, id));
       return row ?? null;
     },
     holders: (_, __, context) =>
       db
         .select()
         .from(schema.holder)
-        .where(eq(schema.holder.organizationId, requireViewer(context).organizationId))
+        .where(owned(schema.holder, requireViewer(context)))
         .orderBy(schema.holder.name),
     marketIndicators: () => marketIndicators(),
     viewer: (_, __, context) => context.viewer,

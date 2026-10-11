@@ -1,26 +1,22 @@
 import type { Viewer } from '@mny/auth';
 import { db, schema } from '@mny/database';
 import type { Resolvers } from '@mny/graphql/server';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 
 import { ensureBuddies } from '../services/buddies/defaults';
 import { aiConfigured, defaultModel, listModels, supportsTools } from '../services/models';
-import { badInput, notFound, requireViewer } from './guards';
+import { badInput, notFound, owned, requireViewer } from './guards';
 
 /** Loads a Buddy only if it belongs to the Viewer's Organization. */
 async function findBuddy(viewer: Viewer, id: string) {
   const [row] = await db
     .select()
     .from(schema.buddy)
-    .where(and(eq(schema.buddy.id, id), eq(schema.buddy.organizationId, viewer.organizationId)));
+    .where(owned(schema.buddy, viewer, id));
   return row ?? notFound('Buddy');
 }
 
-const conversationOf = (viewer: Viewer, id: string) =>
-  and(
-    eq(schema.conversation.id, id),
-    eq(schema.conversation.organizationId, viewer.organizationId)
-  );
+const conversationOf = (viewer: Viewer, id: string) => owned(schema.conversation, viewer, id);
 
 export const buddyResolvers: Resolvers = {
   Buddy: {
