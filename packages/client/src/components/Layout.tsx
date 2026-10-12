@@ -25,6 +25,7 @@ import { AREA_ORDER, AREAS } from '../lib/areas';
 import { authClient } from '../lib/auth';
 import { BuddyGlyph } from './BuddyGlyph';
 import { PageSkeleton } from './PageSkeleton';
+import { PomodoroClock, PomodoroProvider } from './Pomodoro';
 
 interface Props {
   user: { email: string; name: string };
@@ -64,82 +65,90 @@ export function Layout({ user }: Props) {
   };
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader className="gap-4 px-4 pt-5 pb-2">
-          <NavLink className="font-serif text-3xl leading-none tracking-tight italic" to="/">
-            mny
-          </NavLink>
-          <form onSubmit={search} role="search">
-            <SidebarInput aria-label="Buscar" className="bg-card" name="q" placeholder="Buscar…" />
-          </form>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <Item end icon={<SunIcon />} to="/">
-                  Hoje
-                </Item>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel>Áreas</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {AREA_ORDER.map(area => (
-                  <Item icon={glyph(area)} key={area} to={AREAS[area].path}>
-                    {AREAS[area].label}
+    <PomodoroProvider>
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarHeader className="gap-4 px-4 pt-5 pb-2">
+            <NavLink className="font-serif text-3xl leading-none tracking-tight italic" to="/">
+              mny
+            </NavLink>
+            <form onSubmit={search} role="search">
+              <SidebarInput
+                aria-label="Buscar"
+                className="bg-card"
+                name="q"
+                placeholder="Buscar…"
+              />
+            </form>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <Item end icon={<SunIcon />} to="/">
+                    Hoje
                   </Item>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel>IA</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <Item icon={glyph('GENERAL')} to="/chat">
-                  Chat
-                </Item>
-                <Item icon={<UsersRoundIcon />} to="/buddies">
-                  Buddies
-                </Item>
-                <Item icon={<PlugIcon />} to="/conexoes">
-                  Conexões
-                </Item>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-        <SidebarFooter className="gap-2 border-t p-4">
-          <div className="min-w-0 leading-tight">
-            <div className="truncate font-medium">{user.name}</div>
-            <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            <SidebarGroup>
+              <SidebarGroupLabel>Áreas</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {AREA_ORDER.map(area => (
+                    <Item icon={glyph(area)} key={area} to={AREAS[area].path}>
+                      {AREAS[area].label}
+                    </Item>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            <SidebarGroup>
+              <SidebarGroupLabel>IA</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <Item icon={glyph('GENERAL')} to="/chat">
+                    Chat
+                  </Item>
+                  <Item icon={<UsersRoundIcon />} to="/buddies">
+                    Buddies
+                  </Item>
+                  <Item icon={<PlugIcon />} to="/conexoes">
+                    Conexões
+                  </Item>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+          <SidebarFooter className="gap-2 border-t p-4">
+            <PomodoroClock />
+            <div className="min-w-0 leading-tight">
+              <div className="truncate font-medium">{user.name}</div>
+              <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+            </div>
+            <Button
+              className="justify-start px-0 text-muted-foreground hover:bg-transparent"
+              onClick={() => void authClient.signOut()}
+              size="sm"
+              variant="ghost"
+            >
+              <LogOutIcon />
+              Sair
+            </Button>
+          </SidebarFooter>
+        </Sidebar>
+        <SidebarInset>
+          <div className="flex items-center gap-2 border-b px-4 py-2 md:hidden">
+            <SidebarTrigger />
+            <span className="font-serif text-xl italic">mny</span>
           </div>
-          <Button
-            className="justify-start px-0 text-muted-foreground hover:bg-transparent"
-            onClick={() => void authClient.signOut()}
-            size="sm"
-            variant="ghost"
-          >
-            <LogOutIcon />
-            Sair
-          </Button>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <div className="flex items-center gap-2 border-b px-4 py-2 md:hidden">
-          <SidebarTrigger />
-          <span className="font-serif text-xl italic">mny</span>
-        </div>
-        <main className="w-full max-w-[1320px] px-5 pt-8 pb-16 md:px-12 md:pt-10">
-          <Suspense fallback={<PageSkeleton />}>
-            <Outlet />
-          </Suspense>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+          <main className="w-full max-w-[1320px] px-5 pt-8 pb-16 md:px-12 md:pt-10">
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </PomodoroProvider>
   );
 }

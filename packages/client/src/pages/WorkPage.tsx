@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { AreaPage } from '../components/AreaPage';
 import { Attachments } from '../components/Attachments';
 import { PageSkeleton } from '../components/PageSkeleton';
+import { PomodoroCard, usePomodoro } from '../components/Pomodoro';
 import { TaskDialog } from '../components/TaskDialog';
 import { localToday } from '../lib/areas';
 import { formatDate } from '../lib/format';
@@ -84,7 +85,7 @@ export function WorkPage() {
   return (
     <AreaPage
       area="WORK"
-      description="Tarefas com prazo e status, agrupadas por Projeto quando fizer sentido."
+      description="Tarefas com prazo e status, agrupadas por Projeto, e Pomodoros para focar nelas."
       suggestions={SUGGESTIONS}
       title="Trabalho"
     >
@@ -114,6 +115,8 @@ export function WorkPage() {
         )}
         <Button type="submit">Adicionar Tarefa</Button>
       </form>
+
+      <PomodoroCard />
 
       <Card>
         <CardHeader>
@@ -204,6 +207,7 @@ function TaskList({ projects, tasks }: TaskListProps) {
   const [editing, setEditing] = useState<TaskFieldsFragment | null>(null);
   const [update] = useMutation(UpdateTaskDocument, { refetchQueries: [WorkDocument] });
   const [remove] = useMutation(DeleteTaskDocument, { refetchQueries: [WorkDocument] });
+  const { start, timer } = usePomodoro();
   const today = localToday();
 
   return (
@@ -242,9 +246,24 @@ function TaskList({ projects, tasks }: TaskListProps) {
                   </Button>
                   {task.status === 'DOING' && <Badge variant="secondary">fazendo</Badge>}
                   {task.project && <Badge variant="outline">{task.project.name}</Badge>}
+                  {task.pomodoros > 0 && (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {task.pomodoros} {task.pomodoros === 1 ? 'Pomodoro' : 'Pomodoros'}
+                    </span>
+                  )}
                 </div>
                 <Attachments attachments={task.attachments} taskId={task.id} />
               </div>
+              {!isDone && !timer && (
+                <Button
+                  className="h-auto px-0 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  onClick={() => start({ id: task.id, title: task.title })}
+                  title="Começar um Pomodoro nesta Tarefa"
+                  variant="link"
+                >
+                  focar
+                </Button>
+              )}
               {!isDone && (
                 <Button
                   className="h-auto px-0 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"

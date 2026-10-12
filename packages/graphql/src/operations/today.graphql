@@ -17,6 +17,13 @@ query Today {
       name
     }
   }
+  focus {
+    todayMinutes
+    weekMinutes
+    today {
+      id
+    }
+  }
   fitnessWeek {
     ...FitnessWeekFields
   }

@@ -8,7 +8,8 @@
     "build": "vite build",
     "dev": "vite",
     "lint:tsc": "tsc",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:unit": "vitest --run"
   },
   "dependencies": {
     "@apollo/client": "4.0.9",
@@ -45,6 +46,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.1",
     "tailwindcss": "4.3.3",
-    "vite": "8.2.1"
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
   }
 }

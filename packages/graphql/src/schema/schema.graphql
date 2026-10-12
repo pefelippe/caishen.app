@@ -99,6 +99,8 @@ type Query {
   viewerHolder: Holder!
   projects: [Project!]!
   tasks: [Task!]!
+  "Pomodoros finished today and in the current week (Monday to Sunday)."
+  focus: Focus!
   "Newest first."
   workouts: [Workout!]!
   fitnessWeek: FitnessWeek!
@@ -128,6 +130,9 @@ type Mutation {
   createTask(input: CreateTaskInput!): Task!
   updateTask(id: ID!, input: UpdateTaskInput!): Task!
   deleteTask(id: ID!): Boolean!
+  "Records a Pomodoro that just ended, of `minutes` of focus, on a Task or on none."
+  logPomodoro(taskId: ID, minutes: Int!): Pomodoro!
+  deletePomodoro(id: ID!): Boolean!
   logWorkout(input: LogWorkoutInput!): Workout!
   deleteWorkout(id: ID!): Boolean!
   setWeeklyGoal(workoutsPerWeek: Int!): FitnessWeek!
@@ -209,7 +214,24 @@ type Task {
   dueOn: Date
   project: Project
   attachments: [Attachment!]!
+  "How many Pomodoros were finished on this Task."
+  pomodoros: Int!
   createdAt: DateTime!
+}
+
+type Pomodoro {
+  id: ID!
+  minutes: Int!
+  endedAt: DateTime!
+  task: Task
+}
+
+type Focus {
+  "Today's Pomodoros, oldest first."
+  today: [Pomodoro!]!
+  todayMinutes: Int!
+  weekCount: Int!
+  weekMinutes: Int!
 }
 
 type Workout {
@@ -297,6 +319,9 @@ type SearchHit {
 
 type Connection {
   kind: ConnectionKind!
+  category: ConnectionCategory!
+  "What the Connection is doing right now, in pt-BR (e.g. the default Model)."
+  detail: String
   "False for Connections that are not built yet."
   available: Boolean!
   connected: Boolean!
@@ -319,9 +344,6 @@ type IncomeSource {
   startsOn: Date!
   endsOn: Date
 }
-  category: ConnectionCategory!
-  "What the Connection is doing right now, in pt-BR (e.g. the default Model)."
-  detail: String
 
 type CreditOperation {
   id: ID!

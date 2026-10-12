@@ -14,6 +14,7 @@ export type ScrSnapshotRow = typeof schema.scrSnapshot.$inferSelect;
 export type ScrEntryRow = typeof schema.scrEntry.$inferSelect;
 export type ProjectRow = typeof schema.project.$inferSelect;
 export type TaskRow = typeof schema.task.$inferSelect;
+export type PomodoroRow = typeof schema.pomodoro.$inferSelect;
 export type WorkoutRow = typeof schema.workout.$inferSelect;
 export type AttachmentRow = typeof schema.attachment.$inferSelect;
 export type BuddyRow = typeof schema.buddy.$inferSelect;

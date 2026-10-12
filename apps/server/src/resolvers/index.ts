@@ -3,6 +3,7 @@ import type { Resolvers } from '@mny/graphql/server';
 import { buddyResolvers } from './buddies';
 import { connectionResolvers } from './connections';
 import { fitnessResolvers } from './fitness';
+import { focusResolvers } from './focus';
 import { holderResolvers } from './holders';
 import { noteResolvers } from './notes';
 import { obligationResolvers } from './obligations';
@@ -17,6 +18,7 @@ const modules: Resolvers[] = [
   noteResolvers,
   scrResolvers,
   workResolvers,
+  focusResolvers,
   fitnessResolvers,
   buddyResolvers,
   connectionResolvers,

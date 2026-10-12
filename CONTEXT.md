@@ -24,6 +24,11 @@ _Avoid_: todo, item, card
 Um agrupamento de Tarefas.
 _Avoid_: lista, quadro
 
+**Pomodoro** (`Pomodoro`):
+Um bloco de foco concluído em Trabalho, de 25 minutos, numa Tarefa ou em nenhuma.
+Um bloco interrompido não é um Pomodoro.
+_Avoid_: timer, sessão, cronômetro
+
 **Treino** (`Workout`):
 Uma sessão de exercício registrada em Fitness, com data, tipo e duração.
 _Avoid_: exercício, atividade

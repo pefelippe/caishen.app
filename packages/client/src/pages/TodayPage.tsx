@@ -123,6 +123,12 @@ export function TodayPage({ user }: { user: { name: string } }) {
                 : 'Nenhuma Tarefa aberta.'}
             </Empty>
           )}
+          {data.focus.today.length > 0 && (
+            <p className="mt-3 border-t pt-2 text-muted-foreground tabular-nums">
+              Foco hoje: {data.focus.todayMinutes} min em {data.focus.today.length}{' '}
+              {data.focus.today.length === 1 ? 'Pomodoro' : 'Pomodoros'}.
+            </p>
+          )}
         </Section>
 
         <Section area="FINANCE" title="A vencer em 30 dias">

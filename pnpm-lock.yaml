@@ -230,6 +230,9 @@ importers:
       vite:
         specifier: 8.2.1
         version: 8.2.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1)
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.13.0)(vite@8.2.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1))
 
   packages/database:
     dependencies:
@@ -7853,7 +7856,6 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 8.2.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1)
-    optional: true
 
   '@vitest/mocker@4.1.10(vite@8.3.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1))':
     dependencies:
@@ -9741,7 +9743,6 @@ snapshots:
       '@types/node': 24.13.0
     transitivePeerDependencies:
       - msw
-    optional: true
 
   vitest@4.1.10(@types/node@24.13.0)(vite@8.3.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1)):
     dependencies:

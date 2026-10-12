@@ -23,6 +23,7 @@ const config: CodegenConfig = {
           Buddy: '@mny/database#BuddyRow',
           Conversation: '@mny/database#ConversationRow',
           Message: '@mny/database#MessageRow',
+          Pomodoro: '@mny/database#PomodoroRow',
           Project: '@mny/database#ProjectRow',
           Task: '@mny/database#TaskRow',
           Workout: '@mny/database#WorkoutRow',

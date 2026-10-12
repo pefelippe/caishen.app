@@ -5,6 +5,7 @@ import { desc, eq, sql } from 'drizzle-orm';
 
 import { attachmentText, driveConnected } from '../drive';
 import { fitnessWeek } from '../fitness';
+import { focus } from '../focus';
 import { noteContentToText } from '../noteContent';
 import { monthlyIncome, scheduleFor, upcomingDues } from '../obligations';
 import { viewerHolder } from '../viewerHolder';
@@ -158,7 +159,13 @@ async function work(viewer: Viewer, withAttachments: boolean): Promise<string> {
       extra.push(...(await attachments(viewer, files, `"${task.title}"`)));
     }
   }
-  return ['## Trabalho', list(lines, 'Nenhuma Tarefa ainda.'), ...extra].join('\n');
+  const pomodoros = await focus(viewer.organizationId, asOf);
+  return [
+    '## Trabalho',
+    list(lines, 'Nenhuma Tarefa ainda.'),
+    `Pomodoros: ${pomodoros.today.length} hoje (${pomodoros.todayMinutes} min de foco), ${pomodoros.weekCount} na semana (${pomodoros.weekMinutes} min).`,
+    ...extra,
+  ].join('\n');
 }
 
 async function fitness(viewer: Viewer): Promise<string> {

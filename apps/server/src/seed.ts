@@ -178,7 +178,22 @@ const tasks: Omit<typeof schema.task.$inferInsert, 'organizationId'>[] = [
   { dueOn: addDays(now, -4), projectId: site!.id, status: 'DONE', title: 'Escolher a paleta' },
   { dueOn: addDays(now, -7), status: 'DONE', title: 'Renovar o seguro do apartamento' },
 ];
-await db.insert(schema.task).values(tasks.map(task => ({ ...task, organizationId })));
+const [, domain] = await db
+  .insert(schema.task)
+  .values(tasks.map(task => ({ ...task, organizationId })))
+  .returning();
+
+// Pomodoros finished a while ago today and yesterday; the Task with the domain got most of them.
+const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000);
+await db.insert(schema.pomodoro).values(
+  [
+    { endedAt: hoursAgo(1), taskId: domain!.id },
+    { endedAt: hoursAgo(2), taskId: domain!.id },
+    { endedAt: hoursAgo(3), taskId: null },
+    { endedAt: hoursAgo(26), taskId: domain!.id },
+    { endedAt: hoursAgo(27), taskId: null },
+  ].map(pomodoro => ({ ...pomodoro, minutes: 25, organizationId }))
+);
 
 // --- Fitness ------------------------------------------------------------------------------------
 await db.insert(schema.weeklyGoal).values({ organizationId, workoutsPerWeek: 4 });

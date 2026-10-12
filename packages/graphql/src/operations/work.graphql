@@ -3,6 +3,7 @@ fragment TaskFields on Task {
   title
   status
   dueOn
+  pomodoros
   project {
     id
     name
@@ -46,4 +47,35 @@ mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) {
 
 mutation DeleteTask($id: ID!) {
   deleteTask(id: $id)
+}
+
+fragment FocusFields on Focus {
+  todayMinutes
+  weekCount
+  weekMinutes
+  today {
+    id
+    minutes
+    endedAt
+    task {
+      id
+      title
+    }
+  }
+}
+
+query Focus {
+  focus {
+    ...FocusFields
+  }
+}
+
+mutation LogPomodoro($taskId: ID, $minutes: Int!) {
+  logPomodoro(taskId: $taskId, minutes: $minutes) {
+    id
+  }
+}
+
+mutation DeletePomodoro($id: ID!) {
+  deletePomodoro(id: $id)
 }

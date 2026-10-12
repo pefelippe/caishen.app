@@ -173,6 +173,20 @@ export const task = pgTable(
   table => [index('task_organization_idx').on(table.organizationId)]
 );
 
+/** Pomodoro: a finished block of focus, on a Task or on none. Unfinished blocks are not stored. */
+export const pomodoro = pgTable(
+  'pomodoro',
+  {
+    endedAt: timestamp('ended_at', { withTimezone: true }).notNull().defaultNow(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    minutes: integer('minutes').notNull(),
+    organizationId: organizationId(),
+    taskId: uuid('task_id').references(() => task.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  table => [index('pomodoro_organization_idx').on(table.organizationId, table.endedAt)]
+);
+
 export const workout = pgTable(
   'workout',
   {
