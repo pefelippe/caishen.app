@@ -81,8 +81,16 @@ enum MessageRole {
 }
 
 enum ConnectionKind {
+  OPENROUTER
   GOOGLE_DRIVE
   SPOTIFY
+}
+
+"What a Connection is for; the Conexões page has one section per category."
+enum ConnectionCategory {
+  AI
+  FILE_STORAGE
+  MUSIC
 }
 
 type Query {
@@ -311,6 +319,9 @@ type IncomeSource {
   startsOn: Date!
   endsOn: Date
 }
+  category: ConnectionCategory!
+  "What the Connection is doing right now, in pt-BR (e.g. the default Model)."
+  detail: String
 
 type CreditOperation {
   id: ID!

@@ -32,6 +32,8 @@ Workspace packages have no build step: `main` points at `src/index.ts`; apps run
 - Money is integer cents (`number`, `bigint` in Postgres); rates are monthly effective fractions. Money math uses `decimal.js` in `@mny/finance`, never `float` arithmetic (ADR 0004).
 - Every query or mutation scopes by `viewer.organizationId`: build the filter with `owned(table, viewer, id?)` from `resolvers/guards.ts`, never by hand, and load a Holder through `findHolder`. The Organization is personal and hidden, and Finanças uses the `viewerHolder` (ADR 0007).
 - Buddy Actions are only simple and reversible (create Task, log Workout, create Note). Never add a tool that touches Obligations or amounts, and give Models money already formatted (ADR 0008).
+- A Connection is an entry in `services/connections.ts` (kind, category, status) plus its copy on the Conexões page.
+- The Pomodoro clock runs in the browser (`PomodoroProvider`, above the routes; state machine in `lib/pomodoro.ts`). Only finished blocks reach the server, which stamps the end itself.
 - A Note's `content` is Yjs state. Write it on the server only through `services/noteContent.ts`.
 - Changing the GraphQL schema or operations: run `pnpm codegen`.
 - Changing the Drizzle schema: run `pnpm db:generate`, then `pnpm db:migrate`.

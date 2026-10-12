@@ -1,8 +1,7 @@
 import { db, schema } from '@mny/database';
 import type { Resolvers } from '@mny/graphql/server';
-import { and, eq } from 'drizzle-orm';
 
-import { driveConnected, googleConfigured } from '../services/drive';
+import { connections } from '../services/connections';
 import { badInput, notFound, owned, requireViewer } from './guards';
 import { findTask } from './work';
 
@@ -45,33 +44,6 @@ export const connectionResolvers: Resolvers = {
     },
   },
   Query: {
-    connections: async (_, __, context) => {
-      const viewer = requireViewer(context);
-      const [google] = await db
-        .select({ id: schema.account.id })
-        .from(schema.account)
-        .where(
-          and(eq(schema.account.userId, viewer.userId), eq(schema.account.providerId, 'google'))
-        );
-      const unavailableReason = !googleConfigured()
-        ? 'O servidor está sem as credenciais do Google (GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET).'
-        : !google
-          ? 'Entre com sua conta Google para conectar o Drive. O usuário de demonstração não tem uma.'
-          : null;
-      return [
-        {
-          available: true,
-          connected: !unavailableReason && (await driveConnected(viewer.userId)),
-          kind: 'GOOGLE_DRIVE' as const,
-          unavailableReason,
-        },
-        {
-          available: false,
-          connected: false,
-          kind: 'SPOTIFY' as const,
-          unavailableReason: 'Em breve.',
-        },
-      ];
-    },
+    connections: (_, __, context) => connections(requireViewer(context)),
   },
 };

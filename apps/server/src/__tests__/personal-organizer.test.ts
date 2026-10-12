@@ -334,6 +334,7 @@ describe('personal organizer', () => {
 
     const connections = await gql(viewer, `{ connections { kind connected } }`);
     expect(connections.data.connections).toEqual([
+      { connected: true, kind: 'OPENROUTER' },
       { connected: true, kind: 'GOOGLE_DRIVE' },
       { connected: false, kind: 'SPOTIFY' },
     ]);

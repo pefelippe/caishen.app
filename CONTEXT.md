@@ -62,7 +62,9 @@ Uma recomendação que um Buddy dá numa Conversa a partir dos dados da sua Áre
 ### Conexões
 
 **Conexão** (`Connection`):
-O vínculo com um serviço externo não financeiro, como o Google Drive.
+O vínculo com um serviço externo não financeiro. Cada Conexão é de uma categoria:
+IA (de onde vêm os Modelos, hoje o OpenRouter), Arquivos (Google Drive) ou Música
+(Spotify).
 _Avoid_: integração, plugin, Fonte (essa é financeira)
 
 **Anexo** (`Attachment`):

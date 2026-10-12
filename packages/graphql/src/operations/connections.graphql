@@ -1,6 +1,8 @@
 query Connections {
   connections {
     kind
+    category
+    detail
     available
     connected
     unavailableReason
