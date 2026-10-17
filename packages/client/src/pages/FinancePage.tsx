@@ -9,8 +9,8 @@ import {
   ViewerHolderDocument,
   type HolderQuery,
   type Modality,
-} from '@mny/graphql/client';
-import { MODALITIES, MODALITY_KEYS, today } from '@mny/finance';
+} from '@zapbots/graphql/client';
+import { MODALITIES, MODALITY_KEYS, today } from '@zapbots/finance';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -33,7 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-import { AreaPage } from '../components/AreaPage';
+import { BotPage } from '../components/BotPage';
 import { AssessmentPanel } from '../components/AssessmentPanel';
 import { ConsentBanner } from '../components/ConsentBanner';
 import { FormError } from '../components/FormError';
@@ -66,8 +66,13 @@ export function FinancePage() {
   const indicators = market?.marketIndicators;
 
   return (
-    <AreaPage
-      area="FINANCE"
+    <BotPage
+      actions={
+        <Button asChild variant="outline">
+          <Link to="/caishen/trabalhos">Trabalhos</Link>
+        </Button>
+      }
+      bot="FINANCE"
       description={
         <>
           Renda mensal líquida{' '}
@@ -84,6 +89,9 @@ export function FinancePage() {
         </>
       }
       suggestions={SUGGESTIONS}
+      eyebrow={
+        <span className="text-xs font-medium tracking-[0.14em] text-ink uppercase">Caishen</span>
+      }
       title="Finanças"
     >
       <ConsentBanner holder={holder} />
@@ -92,7 +100,7 @@ export function FinancePage() {
       <IncomeSection holder={holder} />
       <OperationsSection holder={holder} />
       <CardsSection holder={holder} />
-    </AreaPage>
+    </BotPage>
   );
 }
 
@@ -211,7 +219,7 @@ function OperationsSection({ holder }: { holder: Holder }) {
                   <TableCell>
                     <Link
                       className="font-medium text-ink underline-offset-4 hover:underline"
-                      to={`/financas/operacoes/${operation.id}`}
+                      to={`/caishen/operacoes/${operation.id}`}
                     >
                       {operation.name}
                     </Link>

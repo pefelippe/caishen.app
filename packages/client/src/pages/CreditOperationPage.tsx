@@ -5,7 +5,7 @@ import {
   DeleteCreditOperationDocument,
   RemoveExtraAmortizationDocument,
   type CreditOperationQuery,
-} from '@mny/graphql/client';
+} from '@zapbots/graphql/client';
 import { XIcon } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -28,7 +28,7 @@ import { FormError } from '../components/FormError';
 import { InstallmentStatusCell } from '../components/InstallmentStatusCell';
 import { Metric, Metrics } from '../components/Metric';
 import { PageSkeleton } from '../components/PageSkeleton';
-import { localToday } from '../lib/areas';
+import { localToday } from '../lib/bots';
 import { formatCents, formatDate, formatPercent, parseCents } from '../lib/format';
 
 export function CreditOperationPage() {
@@ -47,13 +47,13 @@ export function CreditOperationPage() {
 
   const onDelete = async () => {
     await remove({ variables: { id: operation.id } });
-    navigate('/financas');
+    navigate('/caishen');
   };
 
   return (
-    <div className="flex flex-col gap-8" data-area="FINANCE">
+    <div className="flex flex-col gap-8" data-bot="FINANCE">
       <div>
-        <BackLink to="/financas">Finanças</BackLink>
+        <BackLink to="/caishen">Finanças</BackLink>
         <h1>{operation.name}</h1>
         <p className="text-muted-foreground">
           {operation.modalityLabel}

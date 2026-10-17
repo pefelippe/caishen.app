@@ -1,6 +1,6 @@
-import { db, schema } from '@mny/database';
-import { scrStage } from '@mny/finance';
-import type { Resolvers } from '@mny/graphql/server';
+import { db, schema } from '@zapbots/database';
+import { scrStage } from '@zapbots/finance';
+import type { Resolvers } from '@zapbots/graphql/server';
 import { desc, eq } from 'drizzle-orm';
 
 import { declaredObligations } from '../services/obligations';

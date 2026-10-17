@@ -1,0 +1,4 @@
+{
+  "extends": "@zapbots/typescript-config/tsconfig.base.json",
+  "include": ["src/**/*"]
+}

@@ -1,4 +1,4 @@
-import { db, schema } from '@mny/database';
+import { db, schema } from '@zapbots/database';
 import { eq } from 'drizzle-orm';
 
 /**

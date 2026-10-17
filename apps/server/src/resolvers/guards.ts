@@ -1,6 +1,6 @@
-import type { Viewer } from '@mny/auth';
-import { db, schema } from '@mny/database';
-import type { Context } from '@mny/graphql/server';
+import type { Viewer } from '@zapbots/auth';
+import { db, schema } from '@zapbots/database';
+import type { Context } from '@zapbots/graphql/server';
 import { and, eq } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { GraphQLError } from 'graphql';

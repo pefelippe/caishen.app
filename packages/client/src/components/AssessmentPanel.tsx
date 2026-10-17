@@ -5,8 +5,8 @@ import {
   HolderDocument,
   type Bureau,
   type HolderQuery,
-} from '@mny/graphql/client';
-import { today } from '@mny/finance';
+} from '@zapbots/graphql/client';
+import { today } from '@zapbots/finance';
 import type { FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -73,7 +73,7 @@ export function AssessmentPanel({ holder }: { holder: Holder }) {
             <div className="flex flex-wrap items-center gap-4">
               <ScoreBadge band={latest.band} large score={latest.score} />
               <p className="text-xs text-muted-foreground">
-                Score de 0 a 1000 nas faixas do SPC, calculado pelo mny a partir dos dados
+                Score de 0 a 1000 nas faixas do SPC, calculado pelo zapbots a partir dos dados
                 cadastrados. Não é o score de nenhum birô.
                 <br />
                 Pontualidade {latest.breakdown.punctuality}/500 · Capacidade{' '}
@@ -195,7 +195,7 @@ function ReportedScores({ holder, ourScore }: { holder: Holder; ourScore: number
                     <TableCell className="text-xs whitespace-normal">
                       {Math.abs(gap) >= DIVERGENCE_POINTS && (
                         <span className="text-destructive">
-                          Diverge {Math.abs(gap)} pts do Score do mny: confira se faltam dados
+                          Diverge {Math.abs(gap)} pts do Score do zapbots: confira se faltam dados
                           cadastrados
                         </span>
                       )}

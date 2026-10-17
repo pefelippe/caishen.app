@@ -5,7 +5,7 @@ import {
   HolderDocument,
   type HolderQuery,
   type ScrEntryInput,
-} from '@mny/graphql/client';
+} from '@zapbots/graphql/client';
 import { TriangleAlertIcon } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 

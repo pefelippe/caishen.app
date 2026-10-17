@@ -4,7 +4,7 @@ import {
   type ConnectionCategory,
   type ConnectionKind,
   type ConnectionsQuery,
-} from '@mny/graphql/client';
+} from '@zapbots/graphql/client';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -20,39 +20,30 @@ type Connection = ConnectionsQuery['connections'][number];
 const CATEGORIES: { category: ConnectionCategory; description: string; title: string }[] = [
   {
     category: 'AI',
-    description: 'De onde vêm os Modelos que os Buddies usam.',
+    description: 'De onde vêm os Modelos que os Bots usam.',
     title: 'IA',
   },
   {
     category: 'FILE_STORAGE',
-    description: 'De onde vêm os Anexos de Anotações e Tarefas.',
+    description: 'Os arquivos que você entrega aos Bots junto com um Trabalho.',
     title: 'Arquivos',
-  },
-  {
-    category: 'MUSIC',
-    description: 'Música para os Treinos e para os Pomodoros.',
-    title: 'Música',
   },
 ];
 
 const COPY: Record<ConnectionKind, { description: string; name: string }> = {
   GOOGLE_DRIVE: {
     description:
-      'O mny só enxerga os arquivos que você escolher no seletor do Google, e os Buddies leem o texto dos que estiverem anexados.',
+      'O zapbots só enxerga os arquivos que você escolher no seletor do Google, e os Bots leem o texto dos que você entregar num Trabalho.',
     name: 'Google Drive',
   },
   OPENROUTER: {
     description:
-      'Um serviço que dá acesso a Modelos de vários fornecedores, inclusive gratuitos. A chave fica no servidor e vale para todos os Buddies.',
+      'Um serviço que dá acesso a Modelos de vários fornecedores, inclusive gratuitos. A chave fica no servidor e vale para todos os Bots.',
     name: 'OpenRouter',
-  },
-  SPOTIFY: {
-    description: 'Tocar uma playlist enquanto o Pomodoro ou o Treino durar.',
-    name: 'Spotify',
   },
 };
 
-/** Connections with services outside mny, one section per category. */
+/** Connections with services outside zapbots, one section per category. */
 export function ConnectionsPage() {
   const { data, loading } = useQuery(ConnectionsDocument, { fetchPolicy: 'cache-and-network' });
   const [error, setError] = useState<string | null>(null);
@@ -69,11 +60,11 @@ export function ConnectionsPage() {
     <div className="flex max-w-3xl flex-col gap-10">
       <header>
         <span className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          IA
+          Ferramentas
         </span>
         <h1>Conexões</h1>
         <p className="mt-1 max-w-prose text-muted-foreground">
-          Serviços de fora que o mny e os Buddies podem usar.
+          As ferramentas em que os Bots entram por você. Eles só leem: nada é alterado lá fora.
         </p>
       </header>
 
@@ -128,7 +119,7 @@ function ConnectionRow({
         )}
         {drive && connection.connected && (
           <p className="text-xs text-muted-foreground">
-            Para desconectar, remova o acesso do mny em myaccount.google.com/permissions.
+            Para desconectar, remova o acesso do zapbots em myaccount.google.com/permissions.
           </p>
         )}
       </div>
@@ -139,7 +130,7 @@ function ConnectionRow({
       )}
       {connection.kind === 'OPENROUTER' && (
         <Button asChild variant="outline">
-          <Link to="/buddies">Escolher Modelos</Link>
+          <Link to="/">Escolher Modelos</Link>
         </Button>
       )}
     </li>

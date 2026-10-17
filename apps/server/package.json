@@ -1,5 +1,5 @@
 {
-  "name": "@mny/server",
+  "name": "@zapbots/server",
   "version": "0.0.0",
   "private": true,
   "description": "GraphQL API and Better Auth endpoints.",
@@ -14,20 +14,19 @@
   "dependencies": {
     "@apollo/server": "5.5.0",
     "@as-integrations/express5": "1.1.2",
-    "@mny/auth": "workspace:*",
-    "@mny/database": "workspace:*",
-    "@mny/finance": "workspace:*",
-    "@mny/graphql": "workspace:*",
+    "@zapbots/auth": "workspace:*",
+    "@zapbots/database": "workspace:*",
+    "@zapbots/finance": "workspace:*",
+    "@zapbots/graphql": "workspace:*",
     "better-auth": "1.7.6",
     "cors": "2.8.5",
     "drizzle-orm": "0.45.2",
     "express": "5.2.0",
     "graphql": "16.12.0",
-    "tsx": "4.21.0",
-    "yjs": "13.6.28"
+    "tsx": "4.21.0"
   },
   "devDependencies": {
-    "@mny/typescript-config": "workspace:*",
+    "@zapbots/typescript-config": "workspace:*",
     "@types/cors": "2.8.13",
     "@types/express": "5.0.4",
     "msw": "3.0.3",

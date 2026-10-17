@@ -1,13 +1,14 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
-import { auth, resolveViewer } from '@mny/auth';
-import { type Context, typeDefs } from '@mny/graphql/server';
+import { auth, resolveViewer } from '@zapbots/auth';
+import { type Context, typeDefs } from '@zapbots/graphql/server';
 import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import express from 'express';
 
 import { resolvers } from './resolvers';
-import { ChatError, replyInConversation, type ChatEvent } from './services/buddies/chat';
+import { ChatError, replyInConversation, type ChatEvent } from './services/bots/chat';
+import { failInterruptedJobs } from './services/bots/jobs';
 import { ModelError } from './services/models';
 
 const port = Number(process.env.SERVER_PORT ?? 4000);
@@ -23,7 +24,7 @@ app.get('/health', (_, res) => {
   res.json({ ok: true });
 });
 
-// Streams a Buddy's reply as server-sent events: `delta`, `action`, then `done` or `error`.
+// Streams a Bot's reply as server-sent events: `delta`, then `done` or `error`.
 app.post('/api/chat/:conversationId', express.json(), async (req, res) => {
   const viewer = await resolveViewer(req.headers);
   if (!viewer) {
@@ -51,10 +52,12 @@ app.post('/api/chat/:conversationId', express.json(), async (req, res) => {
   } catch (error) {
     const known = error instanceof ChatError || error instanceof ModelError;
     if (!known && !abort.signal.aborted) console.error('chat failed:', error);
-    send({ message: known ? error.message : 'O Buddy não conseguiu responder.', type: 'error' });
+    send({ message: known ? error.message : 'O Bot não conseguiu responder.', type: 'error' });
   }
   res.end();
 });
+
+await failInterruptedJobs();
 
 const apollo = new ApolloServer<Context>({ resolvers, typeDefs });
 await apollo.start();

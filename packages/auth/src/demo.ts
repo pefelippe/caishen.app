@@ -1,4 +1,4 @@
-import { db, schema } from '@mny/database';
+import { db, schema } from '@zapbots/database';
 import type { BetterAuthPlugin } from 'better-auth';
 import { APIError, createAuthEndpoint } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 /** Demo mode lets anyone sign in as one shared, mocked User without Google. Never enable in production. */
 export const demoEnabled = process.env.DEMO_MODE === 'true';
 
-const DEMO_USER = { email: 'demo@mny.local', name: 'Usuário Demo' };
+const DEMO_USER = { email: 'demo@zapbots.local', name: 'Usuário Demo' };
 const DEMO_ORGANIZATION = { name: 'Organização Demo', slug: 'demo' };
 
 /** Creates the demo User, its Organization and the owner membership on first use. */

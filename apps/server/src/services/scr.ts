@@ -1,6 +1,6 @@
-import type { Viewer } from '@mny/auth';
-import { type ScrEntryRow, db, schema } from '@mny/database';
-import { summarizeScr, type ScrSummary } from '@mny/finance';
+import type { Viewer } from '@zapbots/auth';
+import { type ScrEntryRow, db, schema } from '@zapbots/database';
+import { summarizeScr, type ScrSummary } from '@zapbots/finance';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
 export class ScrImportError extends Error {}

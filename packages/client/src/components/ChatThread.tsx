@@ -1,29 +1,23 @@
 import { useApolloClient, useQuery } from '@apollo/client/react';
 import {
   ConversationDocument,
-  type BuddyFieldsFragment,
+  type BotFieldsFragment,
   type MessageFieldsFragment,
-} from '@mny/graphql/client';
-import { ArrowUpIcon, CheckIcon } from 'lucide-react';
+} from '@zapbots/graphql/client';
+import { ArrowUpIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
-import { streamChat, type BuddyAction } from '../lib/chat';
-import { BuddyGlyph } from './BuddyGlyph';
+import { streamChat } from '../lib/chat';
+import { BotGlyph } from './BotGlyph';
 import { FormError } from './FormError';
 
-const ACTION_LINK: Record<string, (id: string) => string> = {
-  NOTE: id => `/anotacoes/${id}`,
-  TASK: () => '/trabalho',
-  WORKOUT: () => '/fitness',
-};
-
 interface Props {
-  buddy: BuddyFieldsFragment;
+  bot: BotFieldsFragment;
   className?: string;
   /** `null` until the first Message; `ensureConversation` then creates it. */
   conversationId: string | null;
@@ -32,9 +26,9 @@ interface Props {
   suggestions?: string[];
 }
 
-/** One Conversation with a Buddy: the Messages so far, the reply being written, and the input. */
+/** One Conversation with a Bot: the Messages so far, the reply being written, and the input. */
 export function ChatThread({
-  buddy,
+  bot,
   className,
   conversationId,
   ensureConversation,
@@ -48,7 +42,6 @@ export function ChatThread({
   });
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<{
-    actions: BuddyAction[];
     /** Messages on screen when this one was sent; later ones are the exchange in flight. */
     before: number;
     sent: string;
@@ -64,13 +57,13 @@ export function ChatThread({
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });
-  }, [messages.length, pending?.text, pending?.actions.length]);
+  }, [messages.length, pending?.text]);
 
   const send = async (content: string) => {
     if (!content.trim() || pending) return;
     setError(null);
     setDraft('');
-    setPending({ actions: [], before: saved.length, sent: content.trim(), text: '' });
+    setPending({ before: saved.length, sent: content.trim(), text: '' });
     try {
       const id = await ensureConversation();
       await streamChat({
@@ -79,24 +72,18 @@ export function ChatThread({
         onEvent: event => {
           if (event.type === 'delta') {
             setPending(current => current && { ...current, text: current.text + event.text });
-          } else if (event.type === 'action') {
-            setPending(
-              current => current && { ...current, actions: [...current.actions, event.action] }
-            );
           } else if (event.type === 'error') setError(event.message);
         },
         screen: location.pathname,
       });
-      // Load the saved exchange before dropping the pending bubbles, then refresh what is on
-      // screen: the Buddy may have created a Task, a Workout or a Note.
+      // Load the saved exchange before dropping the pending bubbles.
       await apollo.query({
         fetchPolicy: 'network-only',
         query: ConversationDocument,
         variables: { id },
       });
-      await apollo.refetchQueries({ include: 'active' });
     } catch {
-      setError('Não foi possível falar com o Buddy.');
+      setError('Não foi possível falar com o Bot.');
     }
     setPending(null);
   };
@@ -120,7 +107,7 @@ export function ChatThread({
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
         {empty && (
           <div className="flex flex-col gap-3 py-2">
-            <p className="font-serif text-lg leading-snug text-pretty">{buddy.personality}</p>
+            <p className="font-serif text-lg leading-snug text-pretty">{bot.personality}</p>
             {suggestions.map(suggestion => (
               <Button
                 className="h-auto justify-start px-0 py-0.5 text-left whitespace-normal text-ink"
@@ -134,15 +121,12 @@ export function ChatThread({
           </div>
         )}
         {messages.map(message => (
-          <Bubble buddy={buddy} key={message.id} message={message} />
+          <Bubble bot={bot} key={message.id} message={message} />
         ))}
         {pending && (
           <>
-            <Bubble buddy={buddy} message={{ actions: [], content: pending.sent, role: 'USER' }} />
-            <Bubble
-              buddy={buddy}
-              message={{ actions: pending.actions, content: pending.text || '…', role: 'BUDDY' }}
-            />
+            <Bubble bot={bot} message={{ content: pending.sent, role: 'USER' }} />
+            <Bubble bot={bot} message={{ content: pending.text || '…', role: 'BOT' }} />
           </>
         )}
         <div ref={end} />
@@ -150,12 +134,12 @@ export function ChatThread({
       {error && <FormError message={error} />}
       <form className="relative mt-3 shrink-0" onSubmit={onSubmit}>
         <Textarea
-          aria-label={`Mensagem para ${buddy.name}`}
+          aria-label={`Mensagem para ${bot.name}`}
           className="max-h-40 min-h-[4.25rem] resize-none bg-card pr-11"
           disabled={Boolean(pending)}
           onChange={event => setDraft(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={`Escreva para ${buddy.name}…`}
+          placeholder={`Escreva para ${bot.name}…`}
           value={draft}
         />
         <Button
@@ -173,12 +157,12 @@ export function ChatThread({
 }
 
 interface BubbleProps {
-  buddy: BuddyFieldsFragment;
-  message: Pick<MessageFieldsFragment, 'actions' | 'content' | 'role'>;
+  bot: BotFieldsFragment;
+  message: Pick<MessageFieldsFragment, 'content' | 'role'>;
 }
 
-/** The User's Messages sit right in a tinted block; the Buddy's are plain text beside its glyph. */
-function Bubble({ buddy, message }: BubbleProps) {
+/** The User's Messages sit right in a tinted block; the Bot's are plain text beside its glyph. */
+function Bubble({ bot, message }: BubbleProps) {
   if (message.role === 'USER') {
     return (
       <p className="max-w-[85%] self-end rounded-md bg-secondary px-3 py-2 whitespace-pre-wrap">
@@ -188,20 +172,8 @@ function Bubble({ buddy, message }: BubbleProps) {
   }
   return (
     <div className="flex gap-2.5">
-      <BuddyGlyph area={buddy.area} className="mt-0.5" size={22} />
-      <div className="flex min-w-0 flex-col gap-2">
-        <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
-        {message.actions.map((action, index) => (
-          <Link
-            className="flex items-center gap-1.5 text-xs text-ink underline-offset-4 hover:underline"
-            key={index}
-            to={ACTION_LINK[action.kind]?.(action.targetId ?? '') ?? '/'}
-          >
-            <CheckIcon className="size-3.5" />
-            {action.label}
-          </Link>
-        ))}
-      </div>
+      <BotGlyph bot={bot.key} className="mt-0.5" size={22} />
+      <p className="min-w-0 leading-relaxed whitespace-pre-wrap">{message.content}</p>
     </div>
   );
 }

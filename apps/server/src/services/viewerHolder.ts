@@ -1,5 +1,5 @@
-import type { Viewer } from '@mny/auth';
-import { db, schema, type HolderRow } from '@mny/database';
+import type { Viewer } from '@zapbots/auth';
+import { db, schema, type HolderRow } from '@zapbots/database';
 import { and, asc, eq } from 'drizzle-orm';
 
 /**

@@ -4,12 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, type ProxyOptions } from 'vite';
 
 const serverUrl = process.env.SERVER_URL ?? 'http://localhost:4000';
-const collabUrl = process.env.COLLAB_URL ?? 'ws://localhost:4001';
 
-/** Same origin for API, auth and collab, so the session cookie reaches all three. */
+/** Same origin for API and auth, so the session cookie reaches both. */
 const proxy: Record<string, ProxyOptions> = {
   '/api': { changeOrigin: false, target: serverUrl },
-  '/collab': { rewrite: path => path.replace(/^\/collab/, ''), target: collabUrl, ws: true },
   '/graphql': { changeOrigin: false, target: serverUrl },
 };
 

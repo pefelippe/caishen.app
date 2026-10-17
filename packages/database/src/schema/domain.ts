@@ -1,8 +1,7 @@
-import { MODALITY_KEYS } from '@mny/finance';
+import { MODALITY_KEYS } from '@zapbots/finance';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
-  customType,
   date,
   index,
   integer,
@@ -20,12 +19,6 @@ import { organization, user } from './auth';
 
 /** Money columns: integer cents (docs/adr/0004). `number` mode is exact up to R$ 90 trilhões. */
 const cents = (name: string) => bigint(name, { mode: 'number' });
-
-const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
-  dataType: () => 'bytea',
-  fromDriver: value => new Uint8Array(value),
-  toDriver: value => Buffer.from(value),
-});
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -144,133 +137,33 @@ export const statement = pgTable(
   table => [unique('statement_card_month_unique').on(table.creditCardId, table.referenceMonth)]
 );
 
-export const taskStatus = pgEnum('task_status', ['TODO', 'DOING', 'DONE']);
-export const buddyArea = pgEnum('buddy_area', ['GENERAL', 'FINANCE', 'NOTES', 'WORK', 'FITNESS']);
-export const messageRole = pgEnum('message_role', ['USER', 'BUDDY']);
+export const botKey = pgEnum('bot_key', ['FINANCE']);
+export const messageRole = pgEnum('message_role', ['USER', 'BOT']);
+export const jobStatus = pgEnum('job_status', ['QUEUED', 'RUNNING', 'DONE', 'FAILED']);
 
-export const project = pgTable(
-  'project',
+/**
+ * A Bot an Organization has on its team. Name and personality come from the catalog in code; only
+ * the Model is chosen here (docs/adr/0010).
+ */
+export const bot = pgTable(
+  'bot',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    name: text('name').notNull(),
-    organizationId: organizationId(),
-    ...timestamps,
-  },
-  table => [index('project_organization_idx').on(table.organizationId)]
-);
-
-export const task = pgTable(
-  'task',
-  {
-    dueOn: date('due_on'),
-    id: uuid('id').primaryKey().defaultRandom(),
-    organizationId: organizationId(),
-    projectId: uuid('project_id').references(() => project.id, { onDelete: 'set null' }),
-    status: taskStatus('status').notNull().default('TODO'),
-    title: text('title').notNull(),
-    ...timestamps,
-  },
-  table => [index('task_organization_idx').on(table.organizationId)]
-);
-
-/** Pomodoro: a finished block of focus, on a Task or on none. Unfinished blocks are not stored. */
-export const pomodoro = pgTable(
-  'pomodoro',
-  {
-    endedAt: timestamp('ended_at', { withTimezone: true }).notNull().defaultNow(),
-    id: uuid('id').primaryKey().defaultRandom(),
-    minutes: integer('minutes').notNull(),
-    organizationId: organizationId(),
-    taskId: uuid('task_id').references(() => task.id, { onDelete: 'set null' }),
-    ...timestamps,
-  },
-  table => [index('pomodoro_organization_idx').on(table.organizationId, table.endedAt)]
-);
-
-export const workout = pgTable(
-  'workout',
-  {
-    date: date('date').notNull(),
-    durationMinutes: integer('duration_minutes').notNull(),
-    id: uuid('id').primaryKey().defaultRandom(),
-    /** Free text: corrida, musculação, natação… */
-    kind: text('kind').notNull(),
-    notes: text('notes'),
-    organizationId: organizationId(),
-    ...timestamps,
-  },
-  table => [index('workout_organization_idx').on(table.organizationId, table.date)]
-);
-
-/** Weekly Goal: how many Workouts per week (Monday to Sunday). One per Organization. */
-export const weeklyGoal = pgTable('weekly_goal', {
-  organizationId: organizationId().primaryKey(),
-  workoutsPerWeek: integer('workouts_per_week').notNull(),
-  ...timestamps,
-});
-
-export const note = pgTable(
-  'note',
-  {
-    /** Yjs document state (Y.encodeStateAsUpdate), owned by the collab app. */
-    content: bytea('content'),
-    createdById: text('created_by_id').references(() => user.id, { onDelete: 'set null' }),
-    creditCardId: uuid('credit_card_id').references(() => creditCard.id, { onDelete: 'set null' }),
-    creditOperationId: uuid('credit_operation_id').references(() => creditOperation.id, {
-      onDelete: 'set null',
-    }),
-    holderId: uuid('holder_id').references(() => holder.id, { onDelete: 'set null' }),
-    id: uuid('id').primaryKey().defaultRandom(),
-    organizationId: organizationId(),
-    taskId: uuid('task_id').references(() => task.id, { onDelete: 'set null' }),
-    title: text('title')
-      .notNull()
-      .default(sql`'Sem título'`),
-    ...timestamps,
-  },
-  table => [index('note_organization_idx').on(table.organizationId)]
-);
-
-/** A Connection file (Google Drive) linked to a Note or a Task. */
-export const attachment = pgTable(
-  'attachment',
-  {
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** File id in the external service. */
-    fileId: text('file_id').notNull(),
-    id: uuid('id').primaryKey().defaultRandom(),
-    mimeType: text('mime_type').notNull(),
-    name: text('name').notNull(),
-    noteId: uuid('note_id').references(() => note.id, { onDelete: 'cascade' }),
-    organizationId: organizationId(),
-    taskId: uuid('task_id').references(() => task.id, { onDelete: 'cascade' }),
-    url: text('url').notNull(),
-  },
-  table => [index('attachment_organization_idx').on(table.organizationId)]
-);
-
-/** One Buddy per Area (plus `GENERAL`) in each Organization (docs/adr/0008). */
-export const buddy = pgTable(
-  'buddy',
-  {
-    area: buddyArea('area').notNull(),
-    id: uuid('id').primaryKey().defaultRandom(),
+    key: botKey('key').notNull(),
     /** OpenRouter model id; `null` follows the server default. */
     model: text('model'),
-    name: text('name').notNull(),
     organizationId: organizationId(),
-    personality: text('personality').notNull(),
     ...timestamps,
   },
-  table => [unique('buddy_organization_area_unique').on(table.organizationId, table.area)]
+  table => [unique('bot_organization_key_unique').on(table.organizationId, table.key)]
 );
 
 export const conversation = pgTable(
   'conversation',
   {
-    buddyId: uuid('buddy_id')
+    botId: uuid('bot_id')
       .notNull()
-      .references(() => buddy.id, { onDelete: 'cascade' }),
+      .references(() => bot.id, { onDelete: 'cascade' }),
     id: uuid('id').primaryKey().defaultRandom(),
     organizationId: organizationId(),
     title: text('title')
@@ -278,14 +171,12 @@ export const conversation = pgTable(
       .default(sql`'Nova conversa'`),
     ...timestamps,
   },
-  table => [index('conversation_buddy_idx').on(table.buddyId, table.updatedAt)]
+  table => [index('conversation_bot_idx').on(table.botId, table.updatedAt)]
 );
 
 export const message = pgTable(
   'message',
   {
-    /** Buddy Actions run while producing this Message: `{ kind, label, targetId }[]`. */
-    actions: jsonb('actions').notNull().default([]),
     content: text('content').notNull(),
     conversationId: uuid('conversation_id')
       .notNull()
@@ -295,6 +186,48 @@ export const message = pgTable(
     role: messageRole('role').notNull(),
   },
   table => [index('message_conversation_idx').on(table.conversationId, table.createdAt)]
+);
+
+/** Job: work handed to a Bot, done in the background and finished with a Deliverable. */
+export const job = pgTable(
+  'job',
+  {
+    botId: uuid('bot_id')
+      .notNull()
+      .references(() => bot.id, { onDelete: 'cascade' }),
+    createdById: text('created_by_id').references(() => user.id, { onDelete: 'set null' }),
+    /** The Deliverable, in plain text; set when `DONE`. */
+    deliverable: text('deliverable'),
+    /** Why the Job failed, in pt-BR; set when `FAILED`. */
+    error: text('error'),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    instructions: text('instructions').notNull(),
+    organizationId: organizationId(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    status: jobStatus('status').notNull().default('QUEUED'),
+    ...timestamps,
+  },
+  table => [index('job_bot_idx').on(table.botId, table.createdAt)]
+);
+
+/** A Connection file (Google Drive) handed to a Bot with a Job. */
+export const attachment = pgTable(
+  'attachment',
+  {
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** File id in the external service. */
+    fileId: text('file_id').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    jobId: uuid('job_id')
+      .notNull()
+      .references(() => job.id, { onDelete: 'cascade' }),
+    mimeType: text('mime_type').notNull(),
+    name: text('name').notNull(),
+    organizationId: organizationId(),
+    url: text('url').notNull(),
+  },
+  table => [index('attachment_job_idx').on(table.jobId)]
 );
 
 export const consent = pgTable('consent', {

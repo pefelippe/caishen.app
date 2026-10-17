@@ -1,79 +1,62 @@
-# mny
+# zapbots
 
-Organizador pessoal: reúne as Áreas da vida de uma pessoa (finanças, anotações,
-trabalho, fitness), cada uma com um Buddy de IA que conhece os dados dela. Em
-Finanças, registra as obrigações de crédito (cartões, empréstimos,
-financiamentos), calcula juros e amortização e produz uma avaliação de risco no
-estilo de um rating bancário.
+Uma equipe de Bots de IA a quem se dá trabalho de verdade: eles entram nas
+ferramentas que o Usuário conecta, leem o que precisam e voltam com o trabalho
+pronto. O primeiro é o Caishen, o assistente financeiro: ele acompanha as
+obrigações de crédito (cartões, empréstimos, financiamentos), calcula juros e
+amortização e produz uma avaliação de risco no estilo de um rating bancário.
 
 ## Language
 
-### Organizador
+### Equipe
 
-**Área** (`Area`):
-Uma parte da vida que o mny organiza: Finanças (`FINANCE`), Anotações (`NOTES`),
-Trabalho (`WORK`) ou Fitness (`FITNESS`).
-_Avoid_: módulo, workspace, seção
+**Bot** (`Bot`):
+Um colega de IA do catálogo do zapbots, com nome, personalidade e um campo de
+trabalho fixos. O Usuário escolhe só o Modelo dele. O Caishen é o Bot de
+finanças.
+_Avoid_: Buddy, agente, assistente, teammate (só no marketing)
 
-**Tarefa** (`Task`):
-Algo a fazer em Trabalho, com status (a fazer, fazendo, feita), prazo opcional e
-Projeto opcional.
-_Avoid_: todo, item, card
+**Caishen** (`FINANCE`, código `finance`):
+O Bot de finanças. Lê as Finanças do Titular e os arquivos que recebe, conversa
+e faz Trabalhos sobre elas.
+_Avoid_: Cifra (o antigo Buddy de Finanças)
 
-**Projeto** (`Project`):
-Um agrupamento de Tarefas.
-_Avoid_: lista, quadro
+**Equipe**:
+Os Bots que um Usuário tem. Hoje é o catálogo inteiro.
+_Avoid_: time, workspace
 
-**Pomodoro** (`Pomodoro`):
-Um bloco de foco concluído em Trabalho, de 25 minutos, numa Tarefa ou em nenhuma.
-Um bloco interrompido não é um Pomodoro.
-_Avoid_: timer, sessão, cronômetro
+**Trabalho** (`Job`):
+Um pedido feito a um Bot, que ele faz sozinho e em segundo plano até chegar a
+uma Entrega. Está na fila, trabalhando, pronto ou falhou. Um Trabalho
+interrompido termina como falho e precisa ser pedido de novo.
+_Avoid_: tarefa, pedido (como entidade)
 
-**Treino** (`Workout`):
-Uma sessão de exercício registrada em Fitness, com data, tipo e duração.
-_Avoid_: exercício, atividade
-
-**Meta Semanal** (`WeeklyGoal`):
-Quantos Treinos a pessoa quer fazer por semana. A semana vai de segunda a domingo.
-_Avoid_: objetivo, hábito
-
-### IA
-
-**Buddy** (`Buddy`):
-O assistente de IA de uma Área, com nome, personalidade e Modelo. O Buddy geral
-enxerga todas as Áreas.
-_Avoid_: bot, agente, assistente
+**Entrega** (`Deliverable`):
+O resultado pronto de um Trabalho: um texto para usar como está (um plano, uma
+análise, um resumo).
+_Avoid_: resposta, relatório, output
 
 **Conversa** (`Conversation`):
-Uma troca salva de Mensagens entre o Usuário e um Buddy.
+Uma troca salva de Mensagens entre o Usuário e um Bot.
 _Avoid_: chat (é a tela), thread
 
 **Mensagem** (`Message`):
-Uma fala do Usuário ou do Buddy dentro de uma Conversa.
-
-**Ação** (`BuddyAction`):
-Algo que o Buddy fez nos dados durante uma Conversa (criar uma Tarefa, registrar
-um Treino, criar uma Anotação), registrado na Mensagem. O Buddy nunca altera
-Obrigações nem valores.
-_Avoid_: comando, tool
+Uma fala do Usuário ou do Bot dentro de uma Conversa.
 
 **Modelo** (`Model`):
-O modelo de linguagem que um Buddy usa.
+O modelo de linguagem que um Bot usa.
 _Avoid_: IA (como sinônimo de modelo), LLM
-
-**Insight**:
-Uma recomendação que um Buddy dá numa Conversa a partir dos dados da sua Área.
 
 ### Conexões
 
 **Conexão** (`Connection`):
-O vínculo com um serviço externo não financeiro. Cada Conexão é de uma categoria:
-IA (de onde vêm os Modelos, hoje o OpenRouter), Arquivos (Google Drive) ou Música
-(Spotify).
+O vínculo, autorizado pelo Usuário, com uma ferramenta de fora em que os Bots
+entram por ele. Cada Conexão é de uma categoria: IA (de onde vêm os Modelos,
+hoje o OpenRouter) ou Arquivos (Google Drive). Os Bots só leem por uma Conexão.
 _Avoid_: integração, plugin, Fonte (essa é financeira)
 
 **Anexo** (`Attachment`):
-Um arquivo de uma Conexão ligado a uma Anotação ou a uma Tarefa.
+Um arquivo de uma Conexão entregue a um Bot junto com um Trabalho.
 _Avoid_: documento, link
 
 ### Acesso
@@ -181,7 +164,7 @@ _Avoid_: rating, relatório
 
 **Score**:
 A pontuação de 0 a 1000 de uma Avaliação, na mesma escala dos birôs de crédito.
-Calculada pelo mny; não é o score de nenhum birô.
+Calculada pelo zapbots; não é o score de nenhum birô.
 _Avoid_: nota, rating
 
 **Faixa** (`RiskBand`):
@@ -191,7 +174,7 @@ _Avoid_: classificação, nível
 
 **Score Declarado** (`ReportedScore`):
 Um score de birô (SPC, Serasa, Boa Vista, Quod) que o Titular consultou e
-informou, com a data da consulta. Serve para comparar com o Score do mny.
+informou, com a data da consulta. Serve para comparar com o Score do zapbots.
 _Avoid_: score externo, score oficial
 
 **Comprometimento de Renda** (`IncomeCommitment`):
@@ -208,13 +191,6 @@ A renda mensal líquida menos os compromissos do mês; nunca negativa.
 
 **Limite Sugerido** (`SuggestedLimit`):
 30% da renda mensal líquida.
-
-### Anotações
-
-**Anotação** (`Note`):
-Um documento de texto rico e colaborativo de uma Organização, opcionalmente
-vinculado a um Titular, uma Operação de Crédito, um Cartão ou uma Tarefa.
-_Avoid_: nota, documento, memo
 
 ### Fontes de dados
 

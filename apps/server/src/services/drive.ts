@@ -1,8 +1,8 @@
-import { auth } from '@mny/auth';
-import { db, schema, type AttachmentRow } from '@mny/database';
+import { auth } from '@zapbots/auth';
+import { db, schema, type AttachmentRow } from '@zapbots/database';
 import { and, eq } from 'drizzle-orm';
 
-/** Only files the User picks are visible to mny; nothing else in their Drive is. */
+/** Only files the User picks are visible to zapbots; nothing else in their Drive is. */
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 const GOOGLE_DOC = 'application/vnd.google-apps.document';
@@ -37,7 +37,7 @@ async function accessToken(userId: string): Promise<string | null> {
 }
 
 /**
- * The text of an Attachment, for a Buddy to read: Google Docs are exported, plain-text files
+ * The text of an Attachment, for a Bot to read: Google Docs are exported, plain-text files
  * downloaded. Other types (PDF, images, Sheets) have no text here and return `null`.
  */
 export async function attachmentText(

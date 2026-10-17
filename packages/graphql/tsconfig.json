@@ -1,4 +1,4 @@
 {
-  "extends": "@mny/typescript-config/tsconfig.base.json",
+  "extends": "@zapbots/typescript-config/tsconfig.base.json",
   "include": ["src/**/*", "codegen.ts"]
 }

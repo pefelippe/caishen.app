@@ -4,11 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
-import { BuddyGlyph } from '../components/BuddyGlyph';
+import { BotGlyph } from '../components/BotGlyph';
 import { FormError } from '../components/FormError';
 import { authClient } from '../lib/auth';
-
-const BUDDIES = ['GENERAL', 'FINANCE', 'NOTES', 'WORK', 'FITNESS'] as const;
 
 /**
  * Google is the only way in; the first sign-in creates the User. When the server runs with
@@ -53,14 +51,11 @@ export function LoginPage() {
     <div className="grid min-h-svh place-items-center p-6">
       <div className="flex w-full max-w-sm flex-col gap-8">
         <div className="flex flex-col gap-3">
-          <div className="flex gap-1.5">
-            {BUDDIES.map(area => (
-              <BuddyGlyph area={area} key={area} size={34} />
-            ))}
-          </div>
-          <span className="font-serif text-6xl leading-none tracking-tight italic">mny</span>
+          <BotGlyph bot="FINANCE" size={40} />
+          <span className="font-serif text-6xl leading-none tracking-tight italic">zapbots</span>
           <p className="text-base text-muted-foreground">
-            Finanças, anotações, trabalho e treinos num lugar só, cada um com seu Buddy.
+            Bots que entram nas suas ferramentas e voltam com o trabalho pronto. O primeiro é o
+            Caishen, seu assistente financeiro.
           </p>
         </div>
         <Card>

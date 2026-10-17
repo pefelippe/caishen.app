@@ -1,7 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
-/** Tests run against their own database, `mny_test`, on the same Postgres as development. */
-const databaseUrl = process.env.TEST_DATABASE_URL ?? 'postgres://mny:mny@localhost:5433/mny_test';
+/** Tests run against their own database, `zapbots_test`, on the same Postgres as development. */
+const databaseUrl =
+  process.env.TEST_DATABASE_URL ?? 'postgres://zapbots:zapbots@localhost:5433/zapbots_test';
 
 export default defineConfig({
   test: {

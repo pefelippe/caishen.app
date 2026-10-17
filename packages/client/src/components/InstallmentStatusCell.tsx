@@ -5,7 +5,7 @@ import {
   HolderDocument,
   RecordLatePaymentDocument,
   type CreditOperationQuery,
-} from '@mny/graphql/client';
+} from '@zapbots/graphql/client';
 import { type FormEvent, useState } from 'react';
 
 import { Button } from '@/components/ui/button';

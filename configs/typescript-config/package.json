@@ -1,5 +1,5 @@
 {
-  "name": "@mny/typescript-config",
+  "name": "@zapbots/typescript-config",
   "version": "0.0.0",
   "private": true,
   "description": "Shared TypeScript configs"

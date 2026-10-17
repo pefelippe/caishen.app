@@ -1,4 +1,4 @@
-import { db, schema } from '@mny/database';
+import { db, schema } from '@zapbots/database';
 import {
   ImpliedRateError,
   MODALITIES,
@@ -9,8 +9,8 @@ import {
   overdueCents,
   stageOf,
   today,
-} from '@mny/finance';
-import type { Resolvers } from '@mny/graphql/server';
+} from '@zapbots/finance';
+import type { Resolvers } from '@zapbots/graphql/server';
 import { and, eq } from 'drizzle-orm';
 
 import { marketRate } from '../services/bacen';

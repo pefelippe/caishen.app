@@ -1,28 +1,18 @@
-import type { Resolvers } from '@mny/graphql/server';
+import type { Resolvers } from '@zapbots/graphql/server';
 
-import { buddyResolvers } from './buddies';
+import { botResolvers } from './bots';
 import { connectionResolvers } from './connections';
-import { fitnessResolvers } from './fitness';
-import { focusResolvers } from './focus';
 import { holderResolvers } from './holders';
-import { noteResolvers } from './notes';
 import { obligationResolvers } from './obligations';
 import { scalars } from './scalars';
 import { scrResolvers } from './scr';
-import { searchResolvers } from './search';
-import { workResolvers } from './work';
 
 const modules: Resolvers[] = [
   holderResolvers,
   obligationResolvers,
-  noteResolvers,
   scrResolvers,
-  workResolvers,
-  focusResolvers,
-  fitnessResolvers,
-  buddyResolvers,
+  botResolvers,
   connectionResolvers,
-  searchResolvers,
 ];
 
 /** Merges per type, so several modules can each add fields to the same type (e.g. Holder). */

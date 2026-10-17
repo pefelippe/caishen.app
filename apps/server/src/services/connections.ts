@@ -1,6 +1,6 @@
-import { demoEnabled, type Viewer } from '@mny/auth';
-import { db, schema } from '@mny/database';
-import type { ConnectionCategory, ConnectionKind } from '@mny/graphql/server';
+import { demoEnabled, type Viewer } from '@zapbots/auth';
+import { db, schema } from '@zapbots/database';
+import type { ConnectionCategory, ConnectionKind } from '@zapbots/graphql/server';
 import { and, eq } from 'drizzle-orm';
 
 import { driveConnected, googleConfigured } from './drive';
@@ -23,14 +23,14 @@ interface Provider {
 const openRouter: Provider = {
   category: 'AI',
   kind: 'OPENROUTER',
-  // One key on the server serves every User (docs/adr/0008), so there is nothing to connect here.
+  // One key on the server serves every User (docs/adr/0009), so there is nothing to connect here.
   status: async () => {
     if (!openrouter.aiConfigured()) {
       return {
         available: true,
         connected: false,
         detail: demoEnabled
-          ? 'No modo demo os Buddies respondem com um substituto local, que não é IA.'
+          ? 'No modo demo os Bots respondem com um substituto local, que não é IA.'
           : null,
         unavailableReason: 'O servidor está sem a chave do OpenRouter (OPENROUTER_API_KEY).',
       };
@@ -71,19 +71,8 @@ const googleDrive: Provider = {
   },
 };
 
-const spotify: Provider = {
-  category: 'MUSIC',
-  kind: 'SPOTIFY',
-  status: async () => ({
-    available: false,
-    connected: false,
-    detail: null,
-    unavailableReason: 'Em breve.',
-  }),
-};
-
-/** Every Connection mny knows. A new one is a new entry here and its copy on the Conexões page. */
-const PROVIDERS: Provider[] = [openRouter, googleDrive, spotify];
+/** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
+const PROVIDERS: Provider[] = [openRouter, googleDrive];
 
 export function connections(viewer: Viewer) {
   return Promise.all(

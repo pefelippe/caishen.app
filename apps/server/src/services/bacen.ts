@@ -3,7 +3,7 @@
  * - SGS time series (Selic, CDI, IPCA): https://api.bcb.gov.br/dados/serie
  * - Interest rates by modality and institution: https://olinda.bcb.gov.br/olinda/servico/taxaJuros
  */
-import { MODALITIES, addDays, today, type Modality } from '@mny/finance';
+import { MODALITIES, addDays, today, type Modality } from '@zapbots/finance';
 
 const SGS_SERIES = { cdi: 4389, ipca: 433, selic: 432 } as const;
 const OLINDA = 'https://olinda.bcb.gov.br/olinda/servico/taxaJuros/versao/v2/odata';

@@ -1,6 +1,6 @@
 import { authClient } from './auth';
 
-/** Only files the User picks become visible to mny (non-sensitive scope). */
+/** Only files the User picks become visible to zapbots (non-sensitive scope). */
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;

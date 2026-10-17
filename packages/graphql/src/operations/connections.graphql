@@ -8,13 +8,3 @@ query Connections {
     unavailableReason
   }
 }
-
-mutation AddAttachment($input: AddAttachmentInput!) {
-  addAttachment(input: $input) {
-    ...AttachmentFields
-  }
-}
-
-mutation RemoveAttachment($id: ID!) {
-  removeAttachment(id: $id)
-}

@@ -13,7 +13,7 @@
 
 /*
  * "Papel e tinta": warm off-white paper, dark ink, thin rules instead of boxes, and one ink colour
- * per Area. There is no dark theme.
+ * per Bot. There is no dark theme.
  */
 :root {
   --radius: 0.25rem;
@@ -47,12 +47,9 @@
   --sidebar-border: oklch(0.87 0.012 80);
   --sidebar-ring: oklch(0.6 0.02 60);
 
-  /* One ink per Area; the Buddy of the Area wears it. */
-  --area-general: oklch(0.36 0.012 60);
-  --area-finance: oklch(0.42 0.08 160);
-  --area-notes: oklch(0.42 0.1 255);
-  --area-work: oklch(0.52 0.13 45);
-  --area-fitness: oklch(0.44 0.11 340);
+  /* One ink per Bot, and a neutral one outside them. */
+  --ink-neutral: oklch(0.36 0.012 60);
+  --bot-finance: oklch(0.42 0.08 160);
 }
 
 @theme inline {
@@ -91,13 +88,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-area-general: var(--area-general);
-  --color-area-finance: var(--area-finance);
-  --color-area-notes: var(--area-notes);
-  --color-area-work: var(--area-work);
-  --color-area-fitness: var(--area-fitness);
-  /* The ink of the Area on screen; set by `data-area` on a wrapper. */
-  --color-ink: var(--ink, var(--area-general));
+  /* The ink of the Bot on screen; set by `data-bot` on a wrapper. */
+  --color-ink: var(--ink, var(--ink-neutral));
 }
 
 @layer base {
@@ -110,20 +102,8 @@
   h1 {
     @apply font-serif text-4xl leading-tight font-normal tracking-tight;
   }
-  [data-area='GENERAL'] {
-    --ink: var(--area-general);
-  }
-  [data-area='FINANCE'] {
-    --ink: var(--area-finance);
-  }
-  [data-area='NOTES'] {
-    --ink: var(--area-notes);
-  }
-  [data-area='WORK'] {
-    --ink: var(--area-work);
-  }
-  [data-area='FITNESS'] {
-    --ink: var(--area-fitness);
+  [data-bot='FINANCE'] {
+    --ink: var(--bot-finance);
   }
 }
 
@@ -132,64 +112,4 @@
   font-family: var(--font-mono);
   font-size: 0.94em;
   letter-spacing: -0.01em;
-}
-
-/* Tiptap has no shadcn counterpart; these style the collaborative editor. */
-.editor .tiptap {
-  min-height: 320px;
-  max-width: 44rem;
-  font-size: 1rem;
-  line-height: 1.7;
-  outline: none;
-
-  /* Tailwind's preflight strips these; restore readable rich text. */
-  & > * + * {
-    margin-top: 0.75em;
-  }
-  & h1 {
-    @apply text-2xl font-semibold;
-  }
-  & h2 {
-    @apply text-xl font-semibold;
-  }
-  & h3 {
-    @apply text-lg font-semibold;
-  }
-  & ul {
-    @apply list-disc pl-6;
-  }
-  & ol {
-    @apply list-decimal pl-6;
-  }
-  & blockquote {
-    @apply border-l-2 pl-4 text-muted-foreground;
-  }
-  & code {
-    @apply rounded bg-muted px-1 font-mono text-[0.9em];
-  }
-  & pre {
-    @apply rounded-md bg-muted p-3 font-mono;
-  }
-  & hr {
-    @apply border-border;
-  }
-}
-.collaboration-carets__caret {
-  border-left: 1px solid;
-  border-right: 1px solid;
-  margin-left: -1px;
-  margin-right: -1px;
-  position: relative;
-  word-break: normal;
-}
-.collaboration-carets__label {
-  border-radius: 3px 3px 3px 0;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  left: -1px;
-  padding: 1px 4px;
-  position: absolute;
-  top: -1.4em;
-  white-space: nowrap;
 }

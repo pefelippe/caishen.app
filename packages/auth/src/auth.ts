@@ -1,4 +1,4 @@
-import { db, schema } from '@mny/database';
+import { db, schema } from '@zapbots/database';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';

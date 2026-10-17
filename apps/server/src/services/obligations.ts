@@ -4,7 +4,7 @@ import {
   type LatePaymentRow,
   db,
   schema,
-} from '@mny/database';
+} from '@zapbots/database';
 import {
   addDays,
   addMonths,
@@ -16,7 +16,7 @@ import {
   today,
   type Installment,
   type LatePaymentFact,
-} from '@mny/finance';
+} from '@zapbots/finance';
 import { and, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm';
 
 import { latestScrSummary } from './scr';
@@ -73,7 +73,7 @@ export function latePaymentRows(creditOperationId: string) {
     .orderBy(schema.latePayment.installmentNumber);
 }
 
-/** Late Payments of an Operation as facts for `@mny/finance`, priced from its schedule. */
+/** Late Payments of an Operation as facts for `@zapbots/finance`, priced from its schedule. */
 export function lateFacts(rows: LatePaymentRow[], schedule: Installment[]): LatePaymentFact[] {
   return rows.flatMap(row => {
     const installment = schedule.find(item => item.number === row.installmentNumber);

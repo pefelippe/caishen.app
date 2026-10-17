@@ -11,7 +11,7 @@ afterAll(() => mswServer.close());
 const QUERY = `{ connections { kind category available connected detail unavailableReason } }`;
 
 describe('connections', () => {
-  it('lists one Connection per category: the Model provider, file storage and music', async () => {
+  it('lists one Connection per category: the Model provider and file storage', async () => {
     const { data, errors } = await gql(await createViewer(), QUERY);
 
     expect(errors).toEqual([]);
@@ -32,14 +32,6 @@ describe('connections', () => {
         kind: 'GOOGLE_DRIVE',
         // The test User never signed in with Google.
         unavailableReason: expect.stringContaining('Entre com sua conta Google'),
-      },
-      {
-        available: false,
-        category: 'MUSIC',
-        connected: false,
-        detail: null,
-        kind: 'SPOTIFY',
-        unavailableReason: 'Em breve.',
       },
     ]);
   });

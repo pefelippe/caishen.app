@@ -4,7 +4,7 @@ import {
   HolderDocument,
   type DataSource,
   type HolderQuery,
-} from '@mny/graphql/client';
+} from '@zapbots/graphql/client';
 import { InfoIcon } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

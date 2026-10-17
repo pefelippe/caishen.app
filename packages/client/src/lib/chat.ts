@@ -1,20 +1,15 @@
-import type { MessageFieldsFragment } from '@mny/graphql/client';
-
-export type BuddyAction = MessageFieldsFragment['actions'][number];
-
 /** Events of `POST /api/chat/:conversationId`, in the order the server sends them. */
 export type ChatEvent =
   | { text: string; type: 'delta' }
-  | { action: BuddyAction; type: 'action' }
   | { message: { id: string }; type: 'done' }
   | { message: string; type: 'error' };
 
-/** Sends one Message and reads the Buddy's reply as it is written. */
+/** Sends one Message and reads the Bot's reply as it is written. */
 export async function streamChat(options: {
   content: string;
   conversationId: string;
   onEvent: (event: ChatEvent) => void;
-  /** Path of the screen the User is on, so the Buddy knows the context. */
+  /** Path of the screen the User is on, so the Bot knows the context. */
   screen: string;
 }): Promise<void> {
   const response = await fetch(`/api/chat/${options.conversationId}`, {
@@ -24,7 +19,7 @@ export async function streamChat(options: {
     method: 'POST',
   });
   if (!response.ok || !response.body) {
-    options.onEvent({ message: 'Não foi possível falar com o Buddy.', type: 'error' });
+    options.onEvent({ message: 'Não foi possível falar com o Bot.', type: 'error' });
     return;
   }
 

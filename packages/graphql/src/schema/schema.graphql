@@ -60,88 +60,64 @@ enum DataSource {
   OPEN_FINANCE
 }
 
-enum TaskStatus {
-  TODO
-  DOING
-  DONE
-}
-
-"An Area, or `GENERAL` for the Buddy that sees all of them."
-enum BuddyArea {
-  GENERAL
+"A Bot of the catalog, by its code name. `FINANCE` is Caishen."
+enum BotKey {
   FINANCE
-  NOTES
-  WORK
-  FITNESS
 }
 
 enum MessageRole {
   USER
-  BUDDY
+  BOT
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
 }
 
 enum ConnectionKind {
   OPENROUTER
   GOOGLE_DRIVE
-  SPOTIFY
 }
 
 "What a Connection is for; the Conexões page has one section per category."
 enum ConnectionCategory {
   AI
   FILE_STORAGE
-  MUSIC
 }
 
 type Query {
   viewer: Viewer
   "The Holder the signed-in User is (docs/adr/0007); created or adopted on first use."
   viewerHolder: Holder!
-  projects: [Project!]!
-  tasks: [Task!]!
-  "Pomodoros finished today and in the current week (Monday to Sunday)."
-  focus: Focus!
-  "Newest first."
-  workouts: [Workout!]!
-  fitnessWeek: FitnessWeek!
-  "The last `weeks` weeks, oldest first, ending with the current one."
-  fitnessHistory(weeks: Int = 8): [FitnessWeek!]!
-  buddies: [Buddy!]!
-  buddy(area: BuddyArea!): Buddy!
-  "Models available to Buddies; empty when the server has no OpenRouter key."
+  "The Organization's team: every Bot of the catalog."
+  bots: [Bot!]!
+  bot(key: BotKey!): Bot!
+  "Models available to Bots; empty when the server has no OpenRouter key."
   models: [Model!]!
   aiStatus: AiStatus!
-  conversations(buddyId: ID!): [Conversation!]!
+  conversations(botId: ID!): [Conversation!]!
   conversation(id: ID!): Conversation
+  "Newest first."
+  jobs(botId: ID!): [Job!]!
+  job(id: ID!): Job
   connections: [Connection!]!
-  "Records of every Area whose title or text contains `term` (at least two characters)."
-  search(term: String!): [SearchHit!]!
   holders: [Holder!]!
   holder(id: ID!): Holder
   creditOperation(id: ID!): CreditOperation
-  notes: [Note!]!
-  note(id: ID!): Note
   marketIndicators: MarketIndicators!
 }
 
 type Mutation {
-  createProject(name: String!): Project!
-  deleteProject(id: ID!): Boolean!
-  createTask(input: CreateTaskInput!): Task!
-  updateTask(id: ID!, input: UpdateTaskInput!): Task!
-  deleteTask(id: ID!): Boolean!
-  "Records a Pomodoro that just ended, of `minutes` of focus, on a Task or on none."
-  logPomodoro(taskId: ID, minutes: Int!): Pomodoro!
-  deletePomodoro(id: ID!): Boolean!
-  logWorkout(input: LogWorkoutInput!): Workout!
-  deleteWorkout(id: ID!): Boolean!
-  setWeeklyGoal(workoutsPerWeek: Int!): FitnessWeek!
-  updateBuddy(id: ID!, input: UpdateBuddyInput!): Buddy!
-  startConversation(buddyId: ID!): Conversation!
+  "Picks the Model a Bot uses; null goes back to the server default."
+  setBotModel(id: ID!, model: String): Bot!
+  startConversation(botId: ID!): Conversation!
   deleteConversation(id: ID!): Boolean!
-  "Links a file picked from a Connection to a Note or a Task."
-  addAttachment(input: AddAttachmentInput!): Attachment!
-  removeAttachment(id: ID!): Boolean!
+  "Hands work to a Bot. It runs in the background; poll `job` for the Deliverable."
+  createJob(input: CreateJobInput!): Job!
+  deleteJob(id: ID!): Boolean!
   createHolder(input: CreateHolderInput!): Holder!
   "A payment outside the schedule that reduces the Outstanding Balance from `date` on."
   addExtraAmortization(creditOperationId: ID!, date: Date!, amountCents: Cents!): CreditOperation!
@@ -151,9 +127,6 @@ type Mutation {
   deleteCreditOperation(id: ID!): Boolean!
   createCreditCard(input: CreateCreditCardInput!): CreditCard!
   upsertStatement(input: UpsertStatementInput!): Statement!
-  createNote(input: CreateNoteInput!): Note!
-  renameNote(id: ID!, title: String!): Note!
-  deleteNote(id: ID!): Boolean!
   generateAssessment(holderId: ID!): Assessment!
   "Records that an installment was late; a null `paidOn` keeps it open."
   recordLatePayment(creditOperationId: ID!, installmentNumber: Int!, paidOn: Date): LatePayment!
@@ -202,65 +175,15 @@ type UpcomingDue {
   amountCents: Cents!
 }
 
-type Project {
+type Bot {
   id: ID!
+  key: BotKey!
   name: String!
-}
-
-type Task {
-  id: ID!
-  title: String!
-  status: TaskStatus!
-  dueOn: Date
-  project: Project
-  attachments: [Attachment!]!
-  "How many Pomodoros were finished on this Task."
-  pomodoros: Int!
-  createdAt: DateTime!
-}
-
-type Pomodoro {
-  id: ID!
-  minutes: Int!
-  endedAt: DateTime!
-  task: Task
-}
-
-type Focus {
-  "Today's Pomodoros, oldest first."
-  today: [Pomodoro!]!
-  todayMinutes: Int!
-  weekCount: Int!
-  weekMinutes: Int!
-}
-
-type Workout {
-  id: ID!
-  date: Date!
-  kind: String!
-  durationMinutes: Int!
-  notes: String
-}
-
-"Progress of the Weekly Goal in the current week (Monday to Sunday)."
-type FitnessWeek {
-  weekStart: Date!
-  weekEnd: Date!
-  "Null until a Weekly Goal is set."
-  goal: Int
-  done: Int!
-  minutes: Int!
-}
-
-type Buddy {
-  id: ID!
-  area: BuddyArea!
-  name: String!
+  "One line on what the Bot does, in pt-BR."
+  description: String!
   personality: String!
   "OpenRouter model id in use (own choice or the server default)."
   model: String!
-  "False when the model cannot call tools, so the Buddy only reads and talks."
-  canAct: Boolean!
 }
 
 type Model {
@@ -279,7 +202,7 @@ type AiStatus {
 type Conversation {
   id: ID!
   title: String!
-  buddy: Buddy!
+  bot: Bot!
   messages: [Message!]!
   updatedAt: DateTime!
 }
@@ -288,33 +211,24 @@ type Message {
   id: ID!
   role: MessageRole!
   content: String!
-  actions: [BuddyAction!]!
   createdAt: DateTime!
 }
 
-"Something the Buddy did to the data while answering."
-type BuddyAction {
-  "`TASK`, `WORKOUT` or `NOTE`."
-  kind: String!
-  label: String!
-  targetId: ID
-}
-
-enum SearchKind {
-  TASK
-  NOTE
-  WORKOUT
-  CREDIT_OPERATION
-  CREDIT_CARD
-}
-
-type SearchHit {
-  kind: SearchKind!
-  "Id of the record, to link to it."
+"Work handed to a Bot, done in the background and finished with a Deliverable."
+type Job {
   id: ID!
-  area: BuddyArea!
-  title: String!
-  detail: String
+  bot: Bot!
+  instructions: String!
+  status: JobStatus!
+  "The finished work, in plain text; set when `DONE`."
+  deliverable: String
+  "Why the Job failed, in pt-BR; set when `FAILED`."
+  error: String
+  "Files from a Connection the Bot reads for this Job."
+  attachments: [Attachment!]!
+  createdAt: DateTime!
+  startedAt: DateTime
+  finishedAt: DateTime
 }
 
 type Connection {
@@ -419,17 +333,6 @@ type Statement {
   dueDate: Date!
 }
 
-type Note {
-  id: ID!
-  title: String!
-  task: Task
-  attachments: [Attachment!]!
-  holder: Holder
-  creditOperation: CreditOperation
-  creditCard: CreditCard
-  updatedAt: DateTime!
-}
-
 type Assessment {
   id: ID!
   "0 to 1000, same scale as the bureaus."
@@ -531,44 +434,6 @@ type MarketIndicators {
   ipca: Float
 }
 
-input CreateTaskInput {
-  title: String!
-  dueOn: Date
-  projectId: ID
-}
-
-"Omitted fields stay as they are; `dueOn` and `projectId` accept null to clear."
-input UpdateTaskInput {
-  title: String
-  status: TaskStatus
-  dueOn: Date
-  projectId: ID
-}
-
-input LogWorkoutInput {
-  date: Date!
-  kind: String!
-  durationMinutes: Int!
-  notes: String
-}
-
-"A null `model` goes back to the server default."
-input UpdateBuddyInput {
-  name: String
-  personality: String
-  model: String
-}
-
-"Exactly one of `noteId` and `taskId`."
-input AddAttachmentInput {
-  noteId: ID
-  taskId: ID
-  fileId: String!
-  name: String!
-  mimeType: String!
-  url: String!
-}
-
 input CreateHolderInput {
   name: String!
   document: String
@@ -615,14 +480,6 @@ input UpsertStatementInput {
   amountCents: Cents!
 }
 
-input CreateNoteInput {
-  title: String
-  taskId: ID
-  holderId: ID
-  creditOperationId: ID
-  creditCardId: ID
-}
-
 input AddReportedScoreInput {
   holderId: ID!
   bureau: Bureau!
@@ -644,4 +501,18 @@ input CreateScrSnapshotInput {
   holderId: ID!
   referenceMonth: String!
   entries: [ScrEntryInput!]!
+}
+
+"A file picked from a Connection (Google Drive)."
+input AttachmentInput {
+  fileId: String!
+  name: String!
+  mimeType: String!
+  url: String!
+}
+
+input CreateJobInput {
+  botId: ID!
+  instructions: String!
+  attachments: [AttachmentInput!]
 }

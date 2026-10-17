@@ -1,4 +1,4 @@
-import type { RiskBand } from '@mny/graphql/client';
+import type { RiskBand } from '@zapbots/graphql/client';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

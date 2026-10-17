@@ -1,7 +1,7 @@
 import { ApolloServer } from '@apollo/server';
-import type { Viewer } from '@mny/auth';
-import { db, schema } from '@mny/database';
-import { type Context, typeDefs } from '@mny/graphql/server';
+import type { Viewer } from '@zapbots/auth';
+import { db, schema } from '@zapbots/database';
+import { type Context, typeDefs } from '@zapbots/graphql/server';
 
 import { resolvers } from '../src/resolvers';
 

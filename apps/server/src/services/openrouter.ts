@@ -1,4 +1,4 @@
-/** OpenRouter: one server key, many Models (docs/adr/0008). OpenAI-compatible API. */
+/** OpenRouter: one server key, many Models (docs/adr/0009). OpenAI-compatible API. */
 const BASE_URL = 'https://openrouter.ai/api/v1';
 const MODELS_TTL_MS = 60 * 60 * 1000;
 
@@ -79,7 +79,7 @@ export async function defaultModel(): Promise<string> {
 function failure(status: number, detail: string): OpenRouterError {
   if (status === 429) {
     return new OpenRouterError(
-      'O Modelo atingiu o limite de uso por agora. Modelos gratuitos têm limite diário; tente mais tarde ou escolha outro Modelo na página de Buddies.'
+      'O Modelo atingiu o limite de uso por agora. Modelos gratuitos têm limite diário; tente mais tarde ou escolha outro Modelo na página Equipe.'
     );
   }
   if (status === 401 || status === 403) {
@@ -124,7 +124,7 @@ export async function streamCompletion(options: {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
-      'X-Title': 'mny',
+      'X-Title': 'zapbots',
     },
     method: 'POST',
     signal: options.signal,

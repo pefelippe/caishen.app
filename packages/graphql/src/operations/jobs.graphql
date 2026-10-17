@@ -1,0 +1,46 @@
+fragment AttachmentFields on Attachment {
+  id
+  fileId
+  name
+  mimeType
+  url
+}
+
+fragment JobFields on Job {
+  id
+  instructions
+  status
+  createdAt
+  finishedAt
+}
+
+query Jobs($botId: ID!) {
+  jobs(botId: $botId) {
+    ...JobFields
+  }
+}
+
+query Job($id: ID!) {
+  job(id: $id) {
+    ...JobFields
+    deliverable
+    error
+    startedAt
+    attachments {
+      ...AttachmentFields
+    }
+    bot {
+      ...BotFields
+    }
+  }
+}
+
+mutation CreateJob($input: CreateJobInput!) {
+  createJob(input: $input) {
+    ...JobFields
+  }
+}
+
+mutation DeleteJob($id: ID!) {
+  deleteJob(id: $id)
+}
