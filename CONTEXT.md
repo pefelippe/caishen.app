@@ -31,10 +31,24 @@ uma Entrega. Está na fila, trabalhando, pronto ou falhou. Um Trabalho
 interrompido termina como falho e precisa ser pedido de novo.
 _Avoid_: tarefa, pedido (como entidade)
 
+**Rotina** (`Routine`):
+O mesmo Trabalho pedido a um Bot de novo toda semana ou todo mês, com os dados
+do dia. A primeira Entrega sai na hora; parar a Rotina não apaga os Trabalhos
+que ela já pediu. Uma Rotina pausada não roda até ser retomada.
+_Avoid_: agendamento, recorrência, cron
+
 **Entrega** (`Deliverable`):
 O resultado pronto de um Trabalho: um texto para usar como está (um plano, uma
 análise, um resumo).
 _Avoid_: resposta, relatório, output
+
+**Aviso** (`Alert`):
+Algo que um Bot aponta sozinho, sem que ninguém peça: uma Parcela em atraso, o
+que vence nos próximos 7 dias, uma Fatura que usa 80% ou mais do limite, uma
+taxa bem acima da Taxa Média de Mercado, uma Avaliação com mais de 30 dias, uma
+Rotina que falhou na última semana. É
+calculado a partir dos dados, não escrito por um Modelo.
+_Avoid_: notificação, alerta (como termo do código em pt-BR), Insight
 
 **Conversa** (`Conversation`):
 Uma troca salva de Mensagens entre o Usuário e um Bot.
@@ -47,16 +61,17 @@ Uma fala do Usuário ou do Bot dentro de uma Conversa.
 O modelo de linguagem que um Bot usa.
 _Avoid_: IA (como sinônimo de modelo), LLM
 
-### Conexões
+### Integrações
 
-**Conexão** (`Connection`):
+**Integração** (`Connection`):
 O vínculo, autorizado pelo Usuário, com uma ferramenta de fora em que os Bots
-entram por ele. Cada Conexão é de uma categoria: IA (de onde vêm os Modelos,
-hoje o OpenRouter) ou Arquivos (Google Drive). Os Bots só leem por uma Conexão.
-_Avoid_: integração, plugin, Fonte (essa é financeira)
+entram por ele. Cada Integração é de uma categoria: Provedores de IA (de onde vêm
+os Modelos, hoje o OpenRouter), Armazenamento de arquivos (Google Drive),
+E-mail, Agenda ou Bancos. Os Bots só leem por uma Integração.
+_Avoid_: conexão, plugin, Fonte (essa é financeira)
 
 **Anexo** (`Attachment`):
-Um arquivo de uma Conexão entregue a um Bot junto com um Trabalho.
+Um arquivo de uma Integração entregue a um Bot junto com um Trabalho.
 _Avoid_: documento, link
 
 ### Acesso
@@ -137,6 +152,12 @@ _Avoid_: conta, boleto
 Um pagamento fora do cronograma que reduz o Saldo Devedor de uma Operação de
 Crédito.
 _Avoid_: antecipação, quitação parcial
+
+**Plano de Quitação** (`PayoffPlan`):
+Uma simulação de quanto antes o Titular fica sem dívidas pondo um valor fixo por
+mês, como Amortização Extraordinária, sempre na Operação de Crédito de maior
+taxa (método avalanche).
+_Avoid_: plano de pagamento, renegociação
 
 **Atraso** (`LatePayment`):
 Uma Parcela que não foi paga no vencimento. Está **em aberto** enquanto não tem

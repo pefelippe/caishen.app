@@ -11,10 +11,25 @@ O primeiro Bot é o **Caishen**, o assistente financeiro:
   taxa com a média de mercado do Bacen e gera uma Avaliação de crédito: um Score de 0 a 1000 nas
   faixas do SPC, com cada Operação no Estágio da Resolução CMN 4.966 (ADR 0005).
 - **Conversa**: o Caishen fica ao lado das telas de Finanças e responde sobre o que está nelas.
-- **Trabalhos**: você pede um plano ou uma análise, pode entregar arquivos do Google Drive, e ele
-  trabalha em segundo plano até a Entrega ficar pronta (ADR 0010).
+- **Trabalhos**: você pede um plano ou uma análise e pode entregar arquivos do Google Drive (Google
+  Docs, PDFs com texto, arquivos de texto). Ele trabalha em segundo plano, a Entrega aparece
+  enquanto é escrita, dá para cancelar no meio, e um Trabalho que falhou pode ser pedido de novo
+  (ADR 0010). Se o Modelo escolhido falhar do lado dele, o Trabalho tenta uma vez com o Modelo
+  padrão. Cada Organização tem no máximo 3 Trabalhos em andamento.
+- **Rotinas**: o mesmo Trabalho toda semana ou todo mês, com os dados do dia; podem ser pausadas.
+- **Avisos**: o que está em atraso, o que vence em 7 dias, Cartão perto do limite, taxas bem acima
+  do mercado e Avaliação desatualizada, calculados sem IA.
+- **Simulação**: na tela de cada Operação, quanto uma Amortização Extraordinária economiza em juros
+  e Parcelas.
+- **Plano de Quitação**: com um valor fixo por mês sempre na Operação de maior taxa, quando você
+  fica sem dívidas e quanto economiza.
 
-A página **Equipe** lista os Bots e o Modelo de cada um.
+O Caishen recebe os números já calculados (juros que faltam, efeito de uma Amortização
+Extraordinária, comparação com a Taxa Média de Mercado, Faturas, Indicadores e variação do Score,
+Plano de Quitação e os próprios Avisos) e
+lembra das últimas Entregas que fez.
+
+A página **Equipe** lista os Bots, os Avisos, os últimos Trabalhos e o Modelo de cada um.
 
 Glossário em [`CONTEXT.md`](./CONTEXT.md), decisões em [`docs/adr/`](./docs/adr).
 
@@ -79,6 +94,5 @@ dados de demonstração: `docker compose exec server pnpm db:seed`.
 - Compras parceladas no Cartão.
 - Operações pós-fixadas (IPCA/TR) e CET.
 - Conexões com Gmail e Open Finance, para o Caishen ler extratos e faturas sozinho (só leitura).
-- Ler PDFs entregues num Trabalho (hoje só Google Docs e arquivos de texto).
 - Uma fila de Trabalhos fora do processo do servidor, quando eles ficarem longos (ADR 0010).
 - Os próximos Bots do catálogo.

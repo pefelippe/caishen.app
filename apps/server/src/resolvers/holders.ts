@@ -4,7 +4,12 @@ import type { Resolvers } from '@zapbots/graphql/server';
 import { desc, eq } from 'drizzle-orm';
 
 import { marketIndicators } from '../services/bacen';
-import { computeAssessment, monthlyIncome, upcomingDues } from '../services/obligations';
+import {
+  computeAssessment,
+  monthlyIncome,
+  payoffPlanFor,
+  upcomingDues,
+} from '../services/obligations';
 import { viewerHolder } from '../services/viewerHolder';
 import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
@@ -14,6 +19,12 @@ export const holderResolvers: Resolvers = {
     indicators: assessment => assessment.indicators as never,
   },
   Holder: {
+    payoffPlan: (holder, { monthlyExtraCents }) => {
+      if (!Number.isInteger(monthlyExtraCents) || monthlyExtraCents <= 0) {
+        badInput('Informe um valor mensal maior que zero');
+      }
+      return payoffPlanFor(holder.id, monthlyExtraCents);
+    },
     assessments: holder =>
       db
         .select()

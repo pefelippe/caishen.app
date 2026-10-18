@@ -10,18 +10,22 @@ import {
   addMonths,
   amortizationSchedule,
   assess,
+  avalanchePlan,
+  payoffOutlook,
   dateInMonth,
   dueWithin,
   outstandingBalance,
   today,
   type Installment,
   type LatePaymentFact,
+  type ScheduleInput,
 } from '@zapbots/finance';
 import { and, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm';
 
 import { latestScrSummary } from './scr';
 
-export async function scheduleFor(operation: CreditOperationRow): Promise<Installment[]> {
+/** What the schedule of a Credit Operation is computed from, its Extra Amortizations included. */
+export async function scheduleInputFor(operation: CreditOperationRow): Promise<ScheduleInput> {
   const extras = await db
     .select({
       amountCents: schema.extraAmortization.amountCents,
@@ -29,14 +33,18 @@ export async function scheduleFor(operation: CreditOperationRow): Promise<Instal
     })
     .from(schema.extraAmortization)
     .where(eq(schema.extraAmortization.creditOperationId, operation.id));
-  return amortizationSchedule({
+  return {
     extraAmortizations: extras,
     firstDueDate: operation.firstDueDate,
     monthlyRate: operation.monthlyRate,
     principalCents: operation.principalCents,
     system: operation.system,
     termMonths: operation.termMonths,
-  });
+  };
+}
+
+export async function scheduleFor(operation: CreditOperationRow): Promise<Installment[]> {
+  return amortizationSchedule(await scheduleInputFor(operation));
 }
 
 export function statementDueDate(card: Pick<CreditCardRow, 'dueDay'>, referenceMonth: string) {
@@ -189,4 +197,35 @@ export async function computeAssessment(holderId: string) {
     monthlyIncomeCents: await monthlyIncome(holderId, asOf),
     scr: await latestScrSummary(holderId),
   });
+}
+
+/**
+ * Plano de Quitação of a Holder: `monthlyExtraCents` a month to the dearest Credit Operation first.
+ * Each payoff carries the Operation's name for display.
+ */
+export async function payoffPlanFor(holderId: string, monthlyExtraCents: number, asOf = today()) {
+  const operations = await db
+    .select()
+    .from(schema.creditOperation)
+    .where(eq(schema.creditOperation.holderId, holderId));
+  const all = await Promise.all(
+    operations.map(async operation => ({
+      id: operation.id,
+      input: await scheduleInputFor(operation),
+    }))
+  );
+  // Operations already paid off have nothing left to plan.
+  const debts = all.filter(
+    debt => payoffOutlook(amortizationSchedule(debt.input), asOf).remainingInstallments > 0
+  );
+  const plan = avalanchePlan(debts, asOf, monthlyExtraCents);
+  const names = new Map(operations.map(operation => [operation.id, operation.name]));
+  return {
+    ...plan,
+    payoffs: plan.payoffs.map(payoff => ({
+      creditOperationId: payoff.id,
+      name: names.get(payoff.id) ?? '',
+      paidOffOn: payoff.paidOffOn,
+    })),
+  };
 }

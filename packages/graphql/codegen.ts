@@ -23,6 +23,7 @@ const config: CodegenConfig = {
           Bot: '@zapbots/database#BotRow',
           Conversation: '@zapbots/database#ConversationRow',
           Job: '@zapbots/database#JobRow',
+          Routine: '@zapbots/database#RoutineRow',
           Message: '@zapbots/database#MessageRow',
           CreditCard: '@zapbots/database#CreditCardRow',
           CreditOperation: '@zapbots/database#CreditOperationRow',

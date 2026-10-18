@@ -95,3 +95,13 @@ mutation RemoveExtraAmortization($id: ID!) {
     id
   }
 }
+
+query PrepaymentSimulation($id: ID!, $amountCents: Cents!) {
+  creditOperation(id: $id) {
+    id
+    prepayment(amountCents: $amountCents) {
+      interestSavedCents
+      installmentsSaved
+    }
+  }
+}

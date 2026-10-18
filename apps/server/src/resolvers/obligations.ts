@@ -7,6 +7,7 @@ import {
   monthlyToAnnualRate,
   outstandingBalance,
   overdueCents,
+  prepaymentEffect,
   stageOf,
   today,
 } from '@zapbots/finance';
@@ -19,6 +20,7 @@ import {
   lateFacts,
   latePaymentRows,
   scheduleFor,
+  scheduleInputFor,
   statementDueDate,
 } from '../services/obligations';
 import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
@@ -84,6 +86,12 @@ export const obligationResolvers: Resolvers = {
     paidInstallments: async operation =>
       (await scheduleFor(operation)).filter(row => row.dueDate <= today()).length,
     latePayments: operation => latePaymentRows(operation.id),
+    prepayment: async (operation, { amountCents }) => {
+      if (!Number.isInteger(amountCents) || amountCents <= 0) {
+        badInput('Informe um valor maior que zero');
+      }
+      return prepaymentEffect(await scheduleInputFor(operation), today(), amountCents);
+    },
     overdueCents: async operation =>
       overdueCents(
         lateFacts(await latePaymentRows(operation.id), await scheduleFor(operation)),

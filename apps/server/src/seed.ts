@@ -9,6 +9,7 @@ import { addDays, addMonths, dateInMonth, today } from '@zapbots/finance';
 import { eq } from 'drizzle-orm';
 
 import { ensureBots } from './services/bots/catalog';
+import { nextRunAfter } from './services/bots/routines';
 import { computeAssessment } from './services/obligations';
 import { viewerHolder } from './services/viewerHolder';
 
@@ -162,12 +163,45 @@ await db.insert(schema.job).values({
     '3. Cartão: pague a Fatura inteira todo mês para não entrar no rotativo.',
     '',
     'Próximo passo',
-    'Use o aluguel da kitnet para uma Amortização Extra mensal no empréstimo pessoal e ponha a Parcela em débito automático para não atrasar de novo.',
+    'Use o aluguel da kitnet para uma Amortização Extraordinária mensal no empréstimo pessoal e ponha a Parcela em débito automático para não atrasar de novo.',
   ].join('\n'),
   finishedAt,
+  createdAt: new Date(finishedAt.getTime() - 40_000),
   instructions: 'Monte um plano para eu quitar minhas dívidas, começando pela mais cara.',
   organizationId,
   startedAt: new Date(finishedAt.getTime() - 40_000),
+  status: 'DONE',
+});
+
+// A monthly Routine that already delivered once, nine days ago.
+const ranAt = new Date(Date.now() - 9 * 86_400_000);
+const [routine] = await db
+  .insert(schema.routine)
+  .values({
+    botId: caishen!.id,
+    cadence: 'MONTHLY',
+    createdById: userId,
+    instructions: 'Resuma meu mês: o que venceu, o que vem por aí e como está meu Score.',
+    nextRunAt: nextRunAfter('MONTHLY', ranAt),
+    organizationId,
+  })
+  .returning();
+await db.insert(schema.job).values({
+  botId: caishen!.id,
+  createdById: userId,
+  deliverable: [
+    'Resumo do mês',
+    '',
+    'Venceram as Parcelas do carro e do empréstimo pessoal e a Fatura do Itaú; nenhuma em atraso.',
+    'Nos próximos 30 dias vêm a Fatura do Itaú e as próximas Parcelas.',
+    'O Score ficou na faixa de risco médio. O que mais pesa é a Utilização de Limite dos Cartões.',
+  ].join('\n'),
+  createdAt: ranAt,
+  finishedAt: new Date(ranAt.getTime() + 30_000),
+  instructions: routine!.instructions,
+  organizationId,
+  routineId: routine!.id,
+  startedAt: ranAt,
   status: 'DONE',
 });
 

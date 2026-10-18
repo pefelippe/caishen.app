@@ -1,13 +1,14 @@
-import { useMutation, useQuery } from '@apollo/client/react';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react';
 import {
   AddExtraAmortizationDocument,
   CreditOperationDocument,
   DeleteCreditOperationDocument,
+  PrepaymentSimulationDocument,
   RemoveExtraAmortizationDocument,
   type CreditOperationQuery,
 } from '@zapbots/graphql/client';
 import { XIcon } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -47,13 +48,13 @@ export function CreditOperationPage() {
 
   const onDelete = async () => {
     await remove({ variables: { id: operation.id } });
-    navigate('/caishen');
+    navigate('/caishen/financas');
   };
 
   return (
     <div className="flex flex-col gap-8" data-bot="FINANCE">
       <div>
-        <BackLink to="/caishen">Finanças</BackLink>
+        <BackLink to="/caishen/financas">Finanças</BackLink>
         <h1>{operation.name}</h1>
         <p className="text-muted-foreground">
           {operation.modalityLabel}
@@ -164,6 +165,10 @@ function ExtraAmortizations({ operation }: { operation: Operation }) {
   const refetchQueries = [CreditOperationDocument];
   const [add, { error }] = useMutation(AddExtraAmortizationDocument, { refetchQueries });
   const [remove] = useMutation(RemoveExtraAmortizationDocument, { refetchQueries });
+  const [simulate, simulation] = useLazyQuery(PrepaymentSimulationDocument);
+  const [amount, setAmount] = useState('');
+  const amountCents = parseCents(amount);
+  const effect = simulation.data?.creditOperation?.prepayment;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -178,7 +183,10 @@ function ExtraAmortizations({ operation }: { operation: Operation }) {
         date: String(values.get('date') || localToday()),
       },
     })
-      .then(() => form.reset())
+      .then(() => {
+        form.reset();
+        setAmount('');
+      })
       .catch(() => undefined);
   };
 
@@ -226,11 +234,43 @@ function ExtraAmortizations({ operation }: { operation: Operation }) {
             name="date"
             type="date"
           />
-          <Input className="w-44 bg-card" name="amount" placeholder="Valor (R$)" required />
+          <Input
+            className="w-44 bg-card"
+            name="amount"
+            onChange={event => setAmount(event.target.value)}
+            placeholder="Valor (R$)"
+            required
+            value={amount}
+          />
+          <Button
+            disabled={amountCents == null || amountCents <= 0}
+            onClick={() =>
+              void simulate({ variables: { amountCents: amountCents!, id: operation.id } })
+            }
+            type="button"
+            variant="ghost"
+          >
+            Simular
+          </Button>
           <Button type="submit" variant="outline">
             Amortizar
           </Button>
         </form>
+        {effect && (
+          <p className="text-muted-foreground">
+            Pagando{' '}
+            <span className="text-foreground tabular-nums">
+              {formatCents(simulation.variables?.amountCents)}
+            </span>{' '}
+            amanhã, você economiza{' '}
+            <span className="text-foreground tabular-nums">
+              {formatCents(effect.interestSavedCents)}
+            </span>{' '}
+            de juros e {effect.installmentsSaved}{' '}
+            {effect.installmentsSaved === 1 ? 'Parcela' : 'Parcelas'}.
+          </p>
+        )}
+        {simulation.error && <FormError message={simulation.error.message} />}
         {error && <FormError message={error.message} />}
       </CardContent>
     </Card>

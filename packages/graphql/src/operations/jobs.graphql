@@ -20,14 +20,48 @@ query Jobs($botId: ID!) {
   }
 }
 
+fragment RoutineFields on Routine {
+  id
+  instructions
+  cadence
+  nextRunAt
+  paused
+}
+
+query Routines($botId: ID!) {
+  routines(botId: $botId) {
+    ...RoutineFields
+  }
+}
+
+mutation CreateRoutine($input: CreateRoutineInput!) {
+  createRoutine(input: $input) {
+    ...RoutineFields
+  }
+}
+
+mutation SetRoutinePaused($id: ID!, $paused: Boolean!) {
+  setRoutinePaused(id: $id, paused: $paused) {
+    ...RoutineFields
+  }
+}
+
+mutation DeleteRoutine($id: ID!) {
+  deleteRoutine(id: $id)
+}
+
 query Job($id: ID!) {
   job(id: $id) {
     ...JobFields
     deliverable
     error
+    model
     startedAt
     attachments {
       ...AttachmentFields
+    }
+    routine {
+      ...RoutineFields
     }
     bot {
       ...BotFields
@@ -38,6 +72,21 @@ query Job($id: ID!) {
 mutation CreateJob($input: CreateJobInput!) {
   createJob(input: $input) {
     ...JobFields
+  }
+}
+
+mutation RetryJob($id: ID!) {
+  retryJob(id: $id) {
+    ...JobFields
+  }
+}
+
+mutation CancelJob($id: ID!) {
+  cancelJob(id: $id) {
+    id
+    status
+    error
+    deliverable
   }
 }
 

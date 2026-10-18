@@ -1,0 +1,1 @@
+ALTER TABLE "routine" ADD COLUMN "paused_at" timestamp with time zone;

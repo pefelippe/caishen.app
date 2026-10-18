@@ -1,12 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '@fontsource-variable/newsreader';
-@import '@fontsource-variable/newsreader/wght-italic.css';
-@import '@fontsource/ibm-plex-sans/400.css';
-@import '@fontsource/ibm-plex-sans/500.css';
-@import '@fontsource/ibm-plex-sans/600.css';
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource-variable/inter';
 
 /* Nothing sets `.dark`: this keeps shadcn's `dark:` classes from following the OS setting. */
 @custom-variant dark (&:is(.dark *));
@@ -17,45 +11,54 @@
  */
 :root {
   --radius: 0.25rem;
-  --background: oklch(0.975 0.008 85);
-  --foreground: oklch(0.24 0.015 60);
-  --card: oklch(0.99 0.005 85);
-  --card-foreground: oklch(0.24 0.015 60);
-  --popover: oklch(0.99 0.005 85);
-  --popover-foreground: oklch(0.24 0.015 60);
-  --primary: oklch(0.27 0.02 60);
-  --primary-foreground: oklch(0.975 0.008 85);
-  --secondary: oklch(0.935 0.012 85);
-  --secondary-foreground: oklch(0.27 0.02 60);
-  --muted: oklch(0.945 0.01 85);
-  --muted-foreground: oklch(0.48 0.015 60);
-  --accent: oklch(0.935 0.012 85);
-  --accent-foreground: oklch(0.27 0.02 60);
+  /* The two colors of the original Caishen: warm paper and near-black ink. */
+  --paper: #fffaf4;
+  --ink-black: #1e1a17;
+
+  --background: var(--paper);
+  --foreground: var(--ink-black);
+  --card: #fffdf9;
+  --card-foreground: var(--ink-black);
+  --popover: #fffdf9;
+  --popover-foreground: var(--ink-black);
+  --primary: var(--ink-black);
+  --primary-foreground: var(--paper);
+  --secondary: #f3ece2;
+  --secondary-foreground: var(--ink-black);
+  --muted: #f5efe6;
+  --muted-foreground: #6f665d;
+  --accent: #f0e8dc;
+  --accent-foreground: var(--ink-black);
   --destructive: oklch(0.5 0.17 28);
   --success: oklch(0.46 0.1 150);
   --warning: oklch(0.52 0.12 65);
-  --border: oklch(0.87 0.012 80);
-  --input: oklch(0.82 0.014 80);
-  --ring: oklch(0.6 0.02 60);
+  --border: #e6ddd0;
+  --input: #d9cfc1;
+  --ring: #8c8277;
 
-  --sidebar: oklch(0.955 0.011 85);
-  --sidebar-foreground: oklch(0.3 0.015 60);
-  --sidebar-primary: oklch(0.27 0.02 60);
-  --sidebar-primary-foreground: oklch(0.975 0.008 85);
-  --sidebar-accent: oklch(0.915 0.014 85);
-  --sidebar-accent-foreground: oklch(0.24 0.015 60);
-  --sidebar-border: oklch(0.87 0.012 80);
-  --sidebar-ring: oklch(0.6 0.02 60);
+  --sidebar: #f7f0e6;
+  --sidebar-foreground: var(--ink-black);
+  --sidebar-primary: var(--ink-black);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: #efe6d9;
+  --sidebar-accent-foreground: var(--ink-black);
+  --sidebar-border: #e6ddd0;
+  --sidebar-ring: #8c8277;
+
+  /* The icon rail on the left: darker than the ink, for contrast with the paper. */
+  --rail: #12100e;
+  --rail-foreground: #cfc6bb;
 
   /* One ink per Bot, and a neutral one outside them. */
-  --ink-neutral: oklch(0.36 0.012 60);
-  --bot-finance: oklch(0.42 0.08 160);
+  --ink-neutral: var(--ink-black);
+  --bot-finance: var(--ink-black);
 }
 
 @theme inline {
-  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Newsreader Variable', ui-serif, Georgia, serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  /* One face for everything; titles stand out by weight, figures by tabular digits. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
@@ -88,6 +91,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-rail: var(--rail);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-paper: var(--paper);
   /* The ink of the Bot on screen; set by `data-bot` on a wrapper. */
   --color-ink: var(--ink, var(--ink-neutral));
 }
@@ -100,16 +106,40 @@
     @apply bg-background font-sans text-sm text-foreground antialiased;
   }
   h1 {
-    @apply font-serif text-4xl leading-tight font-normal tracking-tight;
+    @apply text-3xl leading-tight font-semibold tracking-tight;
   }
   [data-bot='FINANCE'] {
     --ink: var(--bot-finance);
   }
 }
 
-/* Amounts, dates and counts are set in the mono face so columns line up like a ledger. */
+/* Amounts, dates and counts use tabular digits so columns line up like a ledger. */
 .tabular-nums {
-  font-family: var(--font-mono);
-  font-size: 0.94em;
-  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons and menu entries show they can be clicked. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
+/* Each page opens with a light fade, sliding down a little. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.page-enter {
+  animation: page-enter 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
 }

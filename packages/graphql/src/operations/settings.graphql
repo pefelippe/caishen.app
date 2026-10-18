@@ -1,0 +1,24 @@
+query Organization {
+  organization {
+    id
+    name
+    createdAt
+    members {
+      id
+      name
+      email
+      role
+      joinedAt
+    }
+  }
+}
+
+query Usage {
+  usage {
+    month
+    jobs
+    routineJobs
+    conversations
+    messages
+  }
+}

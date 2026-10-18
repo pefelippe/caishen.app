@@ -19,7 +19,9 @@ Turborepo + pnpm (hoisted `node_modules`), mirroring `www/monorepo`.
 - `packages/graphql`: SDL schema, client operations (`src/operations/*.graphql`), codegen output (`src/generated`, gitignored).
 - `packages/client`: React + Vite + Apollo Client 4. Vite proxies `/api` and `/graphql` so every request shares one origin and one session cookie.
   - UI is shadcn/ui on Tailwind v4. Every control or surface (button, input, select, table, card, alert…) is a shadcn component from `src/components/ui`. Add missing ones with `pnpm dlx shadcn@latest add <name>` from `packages/client`, then point their `cn` import at `@/lib/utils`. Never use raw `<button>`/`<input>`/`<select>`/`<table>`.
-  - Every screen of a Bot is wrapped in `BotPage`, which puts the Bot's chat (`BotPanel`) beside the content and sets `data-bot`, the attribute that picks the Bot's ink (`text-ink`, `bg-ink`, `border-ink`). Caishen's screens live under `/caishen`.
+  - Layout as a messaging app (`Layout`): a dark rail on the left (`Rail`: "+" opens `NewChatMenu` with the team, Chats, one entry per Bot, then the profile menu with Configurações and Sair), the screen filling the rest. Chats (`/`, `/c/:id?bot=`) is the list of Conversations (`ConversationList`) beside the open one (`ChatView`) or `Welcome`.
+  - Each working Bot has a page (`BotLayout`, e.g. `/caishen`) with tabs from `BOT_SECTIONS` in `lib/bots.ts` (Finanças, Trabalhos… what its field needs); the chat is not a tab but a "Conversar" button and the floating `ChatDock` that every tab gets through `BotPage`. `data-bot` picks the Bot's ink (`text-ink`, `bg-ink`, `border-ink`). Bots still to come are entries of `TEAM` with no `key`, shown as "em breve" (`/bots/:slug`).
+  - Settings live on `/configuracoes` with their own menu: Integrações (by category), Modelos, Conta. Colors are the original Caishen's paper `#fffaf4` and ink `#1e1a17` (`styles.css`).
   - The look is "papel e tinta" (`src/styles.css`): off-white paper, serif titles, mono figures, ruled sections instead of boxes. `Card` is a ruled section, not a box. There is no dark theme.
   - Sign-in is Google only (`authClient.signIn.social`). Needs `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. The Google Drive Connection asks for the `drive.file` scope later, on the Conexões page, and its file picker needs `VITE_GOOGLE_API_KEY`/`VITE_GOOGLE_APP_ID`.
   - `DEMO_MODE=true` adds a shared mocked demo User (`packages/auth/src/demo.ts`, a Better Auth plugin: `GET /api/auth/demo`, `POST /api/auth/demo/sign-in`). Dev/demo only.
@@ -33,7 +35,8 @@ Workspace packages have no build step: `main` points at `src/index.ts`; apps run
 - Every query or mutation scopes by `viewer.organizationId`: build the filter with `owned(table, viewer, id?)` from `resolvers/guards.ts`, never by hand, and load a Holder through `findHolder`. The Organization is personal and hidden, and Finanças uses the `viewerHolder` (ADR 0007).
 - Bots only read (ADR 0009): no Model tools, nothing written outside zapbots, no money moved. They reach outside tools only through Connections (OAuth), never with stored passwords. Give Models money already formatted.
 - A Bot is an entry in `CATALOG` (`services/bots/catalog.ts`) with its name and personality fixed in its package; the `bot` table only stores which Organization has it and its Model (ADR 0010).
-- A Job runs in the server process; `createJob` starts it and the client polls `job`. On boot, unfinished Jobs are marked failed.
+- A Job runs in the server process; `createJob` starts it and the client polls `job`. On boot, unfinished Jobs are marked failed. Hand Jobs over only through `handOverJob` (`services/bots/jobs.ts`); requests from Users also pass `requireRoom` (at most 3 Jobs in progress per Organization).
+- A Routine hands the same Job over every week or month; `startRoutineClock` checks once a minute in the server process (ADR 0010).
 - A Connection is an entry in `services/connections.ts` (kind, category, status) plus its copy on the Conexões page.
 - Changing the GraphQL schema or operations: run `pnpm codegen`.
 - Changing the Drizzle schema: run `pnpm db:generate`, then `pnpm db:migrate`.

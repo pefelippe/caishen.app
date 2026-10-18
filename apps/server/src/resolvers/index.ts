@@ -6,6 +6,7 @@ import { holderResolvers } from './holders';
 import { obligationResolvers } from './obligations';
 import { scalars } from './scalars';
 import { scrResolvers } from './scr';
+import { settingsResolvers } from './settings';
 
 const modules: Resolvers[] = [
   holderResolvers,
@@ -13,6 +14,7 @@ const modules: Resolvers[] = [
   scrResolvers,
   botResolvers,
   connectionResolvers,
+  settingsResolvers,
 ];
 
 /** Merges per type, so several modules can each add fields to the same type (e.g. Holder). */

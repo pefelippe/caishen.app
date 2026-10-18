@@ -167,3 +167,19 @@ mutation CreateScrSnapshot($input: CreateScrSnapshotInput!) {
 mutation DeleteScrSnapshot($id: ID!) {
   deleteScrSnapshot(id: $id)
 }
+
+query PayoffPlan($id: ID!, $monthlyExtraCents: Cents!) {
+  holder(id: $id) {
+    id
+    payoffPlan(monthlyExtraCents: $monthlyExtraCents) {
+      debtFreeOn
+      debtFreeWithoutPlanOn
+      interestSavedCents
+      payoffs {
+        creditOperationId
+        name
+        paidOffOn
+      }
+    }
+  }
+}

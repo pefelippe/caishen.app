@@ -16,3 +16,4 @@ export type BotRow = typeof schema.bot.$inferSelect;
 export type ConversationRow = typeof schema.conversation.$inferSelect;
 export type JobRow = typeof schema.job.$inferSelect;
 export type MessageRow = typeof schema.message.$inferSelect;
+export type RoutineRow = typeof schema.routine.$inferSelect;

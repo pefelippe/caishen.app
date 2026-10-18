@@ -140,6 +140,7 @@ export const statement = pgTable(
 export const botKey = pgEnum('bot_key', ['FINANCE']);
 export const messageRole = pgEnum('message_role', ['USER', 'BOT']);
 export const jobStatus = pgEnum('job_status', ['QUEUED', 'RUNNING', 'DONE', 'FAILED']);
+export const routineCadence = pgEnum('routine_cadence', ['WEEKLY', 'MONTHLY']);
 
 /**
  * A Bot an Organization has on its team. Name and personality come from the catalog in code; only
@@ -188,6 +189,27 @@ export const message = pgTable(
   table => [index('message_conversation_idx').on(table.conversationId, table.createdAt)]
 );
 
+/** Routine: the same Job handed to a Bot again every week or month (docs/adr/0010). */
+export const routine = pgTable(
+  'routine',
+  {
+    botId: uuid('bot_id')
+      .notNull()
+      .references(() => bot.id, { onDelete: 'cascade' }),
+    cadence: routineCadence('cadence').notNull(),
+    /** The User the Jobs run as, for their Connections; the Routine stops without one. */
+    createdById: text('created_by_id').references(() => user.id, { onDelete: 'set null' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    instructions: text('instructions').notNull(),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull(),
+    organizationId: organizationId(),
+    /** Set while the Routine is paused: the clock skips it until it is resumed. */
+    pausedAt: timestamp('paused_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  table => [index('routine_next_run_idx').on(table.nextRunAt)]
+);
+
 /** Job: work handed to a Bot, done in the background and finished with a Deliverable. */
 export const job = pgTable(
   'job',
@@ -203,7 +225,11 @@ export const job = pgTable(
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     id: uuid('id').primaryKey().defaultRandom(),
     instructions: text('instructions').notNull(),
+    /** OpenRouter id of the Model that wrote the Deliverable. */
+    model: text('model'),
     organizationId: organizationId(),
+    /** The Routine that handed this Job over, if any. */
+    routineId: uuid('routine_id').references(() => routine.id, { onDelete: 'set null' }),
     startedAt: timestamp('started_at', { withTimezone: true }),
     status: jobStatus('status').notNull().default('QUEUED'),
     ...timestamps,

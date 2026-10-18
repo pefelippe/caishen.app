@@ -1,6 +1,7 @@
 import { useApolloClient, useQuery } from '@apollo/client/react';
 import {
   ConversationDocument,
+  ConversationsDocument,
   type BotFieldsFragment,
   type MessageFieldsFragment,
 } from '@zapbots/graphql/client';
@@ -82,6 +83,8 @@ export function ChatThread({
         query: ConversationDocument,
         variables: { id },
       });
+      // The list of Conversations shows the latest Message; bring it up to date.
+      await apollo.refetchQueries({ include: [ConversationsDocument] });
     } catch {
       setError('Não foi possível falar com o Bot.');
     }

@@ -1,9 +1,54 @@
 import type { Viewer } from '@zapbots/auth';
-import type { BotRow } from '@zapbots/database';
-import { today } from '@zapbots/finance';
+import { db, schema, type BotRow } from '@zapbots/database';
+import { dateOf, today } from '@zapbots/finance';
+import { and, desc, eq } from 'drizzle-orm';
 
+import { botAlerts } from './alerts';
 import { CATALOG } from './catalog';
 import { botContext } from './context';
+
+const RECENT_DELIVERABLES = 3;
+const DELIVERABLE_CHARS = 800;
+
+/**
+ * The Bot's latest Deliverables, so a Conversation can pick up where a Job left off. They were
+ * written by a Model, so the prompt says the data above wins over any number in them.
+ */
+async function recentDeliverables(bot: BotRow): Promise<string> {
+  const jobs = await db
+    .select()
+    .from(schema.job)
+    .where(and(eq(schema.job.botId, bot.id), eq(schema.job.status, 'DONE')))
+    .orderBy(desc(schema.job.finishedAt))
+    .limit(RECENT_DELIVERABLES);
+  if (!jobs.length) return '';
+  const blocks = jobs.map(job => {
+    const text = job.deliverable ?? '';
+    const body =
+      text.length > DELIVERABLE_CHARS ? `${text.slice(0, DELIVERABLE_CHARS)}… (cortado)` : text;
+    const day = dateOf(job.finishedAt ?? job.createdAt)
+      .split('-')
+      .reverse()
+      .join('/');
+    return `### ${day}: ${job.instructions}\n${body}`;
+  });
+  return [
+    '## Entregas anteriores',
+    'Escritas por você em Trabalhos já concluídos. Se algum número delas divergir dos dados acima, valem os dados acima.',
+    ...blocks,
+  ].join('\n');
+}
+
+/** The Bot's Alerts, so it brings up what is urgent before anything else. */
+async function alertSection(viewer: Viewer, bot: BotRow): Promise<string> {
+  const alerts = await botAlerts(viewer, bot.key);
+  if (!alerts.length) return '';
+  return [
+    '## Avisos',
+    'O que merece atenção agora, do mais urgente ao menos. Mencione quando for relevante para o pedido.',
+    ...alerts.map(alert => `- ${alert.message}`),
+  ].join('\n');
+}
 
 const MODE = {
   chat: 'Responda de forma curta e direta.',
@@ -32,6 +77,10 @@ export async function botPrompt(
     options.screen ? `A pessoa está na tela ${options.screen}.` : '',
     '',
     await botContext(viewer, bot.key),
+    '',
+    await alertSection(viewer, bot),
+    '',
+    await recentDeliverables(bot),
   ]
     .filter(line => line !== '')
     .join('\n');

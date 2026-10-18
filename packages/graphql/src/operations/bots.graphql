@@ -7,6 +7,21 @@ fragment BotFields on Bot {
   model
 }
 
+fragment AlertFields on Alert {
+  kind
+  message
+  href
+}
+
+query BotAlerts($key: BotKey!) {
+  bot(key: $key) {
+    id
+    alerts {
+      ...AlertFields
+    }
+  }
+}
+
 fragment MessageFields on Message {
   id
   role
@@ -21,6 +36,12 @@ query Bots {
   }
   bots {
     ...BotFields
+    recentJobs(limit: 3) {
+      ...JobFields
+    }
+    alerts {
+      ...AlertFields
+    }
   }
 }
 
@@ -41,11 +62,20 @@ query BotPanel($key: BotKey!) {
   }
 }
 
-query Conversations($botId: ID!) {
+query Conversations($botId: ID) {
   conversations(botId: $botId) {
     id
     title
     updatedAt
+    bot {
+      id
+      key
+      name
+    }
+    lastMessage {
+      role
+      content
+    }
   }
 }
 

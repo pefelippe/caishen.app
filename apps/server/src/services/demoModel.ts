@@ -13,19 +13,32 @@ export const DEMO_MODEL: Model = {
 
 const WORD_DELAY_MS = 12;
 
-/** The data lines of the system prompt, i.e. everything from the first `## ` heading on. */
-function dataOf(messages: ChatMessage[]): string {
+/** The `## ` sections of the system prompt, by heading, each with its lines. */
+function sectionsOf(messages: ChatMessage[]): Map<string, string[]> {
   const system = messages.find(message => message.role === 'system')?.content ?? '';
-  const start = system.indexOf('## ');
-  return start < 0 ? '' : system.slice(start);
+  const sections = new Map<string, string[]>();
+  let current: string[] | null = null;
+  for (const line of system.split('\n')) {
+    if (line.startsWith('## ')) sections.set(line.slice(3), (current = []));
+    else if (current && line.trim()) current.push(line);
+  }
+  return sections;
 }
 
+const DATA_LINES = 12;
+
+/** The Bot's Alerts first, what is urgent; then the start of its data. */
 function answer(messages: ChatMessage[]): string {
-  const data = dataOf(messages).split('\n').slice(0, 14).join('\n');
+  const sections = sectionsOf(messages);
+  const alerts = (sections.get('Avisos') ?? []).filter(line => line.startsWith('- '));
+  const [heading, lines] = [...sections].find(([name]) => name !== 'Avisos') ?? [];
   return [
     'Este é o Modelo de demonstração: não há IA respondendo, só um resumo dos seus dados.',
+    ...(alerts.length ? ['', 'O que merece atenção agora:', ...alerts] : []),
     '',
-    data || 'Ainda não há dados.',
+    ...(heading && lines?.length
+      ? [`${heading}:`, ...lines.slice(0, DATA_LINES)]
+      : ['Ainda não há dados.']),
   ].join('\n');
 }
 

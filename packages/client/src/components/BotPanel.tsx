@@ -5,11 +5,18 @@ import {
   StartConversationDocument,
   type BotKey,
 } from '@zapbots/graphql/client';
-import { PlusIcon } from 'lucide-react';
-import { useState } from 'react';
+import { HistoryIcon, PlusIcon } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -17,13 +24,15 @@ import { BotGlyph } from './BotGlyph';
 import { ChatThread } from './ChatThread';
 
 interface Props {
+  /** Extra buttons at the end of the header, e.g. to collapse a floating panel. */
+  actions?: ReactNode;
   bot: BotKey;
   className?: string;
   suggestions?: string[];
 }
 
 /** A Bot with its latest Conversation, ready to talk about what is on screen. */
-export function BotPanel({ bot: key, className, suggestions }: Props) {
+export function BotPanel({ actions, bot: key, className, suggestions }: Props) {
   const { data } = useQuery(BotPanelDocument, { variables: { key } });
   const bot = data?.bot;
   const { data: list } = useQuery(ConversationsDocument, {
@@ -59,6 +68,35 @@ export function BotPanel({ bot: key, className, suggestions }: Props) {
           <div className="font-serif text-xl">{bot.name}</div>
           <div className="text-xs text-muted-foreground">Converse sobre o que está na tela</div>
         </div>
+        {Boolean(list?.conversations.length) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                aria-label="Conversas anteriores"
+                size="icon-sm"
+                title="Conversas anteriores"
+                variant="ghost"
+              >
+                <HistoryIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>Conversas anteriores</DropdownMenuLabel>
+              {list!.conversations.slice(0, 15).map(conversation => (
+                <DropdownMenuItem
+                  className={cn(conversation.id === conversationId && 'font-medium')}
+                  key={conversation.id}
+                  onSelect={() => {
+                    setChosen(conversation.id);
+                    setThread(current => current + 1);
+                  }}
+                >
+                  <span className="truncate">{conversation.title}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <Button
           aria-label="Nova conversa"
           onClick={() => {
@@ -71,6 +109,7 @@ export function BotPanel({ bot: key, className, suggestions }: Props) {
         >
           <PlusIcon />
         </Button>
+        {actions}
       </header>
       {!data.aiStatus.configured ? (
         <Alert>

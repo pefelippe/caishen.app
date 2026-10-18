@@ -20,7 +20,7 @@ export const pickerConfigured = () => Boolean(API_KEY && APP_ID);
 /** Sends the User to Google to grant the Drive scope, then back to the Connections page. */
 export async function connectDrive(): Promise<string | null> {
   const result = await authClient.linkSocial({
-    callbackURL: `${window.location.origin}/conexoes`,
+    callbackURL: `${window.location.origin}/configuracoes`,
     provider: 'google',
     scopes: [DRIVE_SCOPE],
   });

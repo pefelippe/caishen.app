@@ -70,6 +70,11 @@ enum MessageRole {
   BOT
 }
 
+enum RoutineCadence {
+  WEEKLY
+  MONTHLY
+}
+
 enum JobStatus {
   QUEUED
   RUNNING
@@ -98,12 +103,19 @@ type Query {
   "Models available to Bots; empty when the server has no OpenRouter key."
   models: [Model!]!
   aiStatus: AiStatus!
-  conversations(botId: ID!): [Conversation!]!
+  "Newest first. Without `botId`, the Conversations with every Bot of the team."
+  conversations(botId: ID): [Conversation!]!
   conversation(id: ID!): Conversation
   "Newest first."
   jobs(botId: ID!): [Job!]!
+  "Oldest first."
+  routines(botId: ID!): [Routine!]!
   job(id: ID!): Job
   connections: [Connection!]!
+  "The Viewer's Organization, with its Members."
+  organization: Organization!
+  "What the Organization used this month (São Paulo calendar)."
+  usage: Usage!
   holders: [Holder!]!
   holder(id: ID!): Holder
   creditOperation(id: ID!): CreditOperation
@@ -117,6 +129,16 @@ type Mutation {
   deleteConversation(id: ID!): Boolean!
   "Hands work to a Bot. It runs in the background; poll `job` for the Deliverable."
   createJob(input: CreateJobInput!): Job!
+  "Hands a failed Job over again as a new Job, with the same instructions and files."
+  retryJob(id: ID!): Job!
+  "Stops a Job in the queue or running; it ends as FAILED, cancelled by the User."
+  cancelJob(id: ID!): Job!
+  "Sets up a Routine and hands its first Job over right away."
+  createRoutine(input: CreateRoutineInput!): Routine!
+  "Stops a Routine; the Jobs it already handed over stay."
+  deleteRoutine(id: ID!): Boolean!
+  "Pauses a Routine, or resumes it. A run missed while paused happens once, at the next minute."
+  setRoutinePaused(id: ID!, paused: Boolean!): Routine!
   deleteJob(id: ID!): Boolean!
   createHolder(input: CreateHolderInput!): Holder!
   "A payment outside the schedule that reduces the Outstanding Balance from `date` on."
@@ -167,6 +189,23 @@ type Holder {
   consents: [Consent!]!
   "Installments and Statements due in the next 30 days, soonest first."
   upcomingDues: [UpcomingDue!]!
+  "Plano de Quitação: `monthlyExtraCents` a month, from tomorrow, to the dearest Credit Operation first."
+  payoffPlan(monthlyExtraCents: Cents!): PayoffPlan!
+}
+
+type PayoffPlan {
+  "When the last Operation ends with the plan; null without Operations."
+  debtFreeOn: Date
+  debtFreeWithoutPlanOn: Date
+  interestSavedCents: Cents!
+  "In the order the Operations are paid off."
+  payoffs: [PlannedPayoff!]!
+}
+
+type PlannedPayoff {
+  creditOperationId: ID!
+  name: String!
+  paidOffOn: Date!
 }
 
 type UpcomingDue {
@@ -184,6 +223,27 @@ type Bot {
   personality: String!
   "OpenRouter model id in use (own choice or the server default)."
   model: String!
+  "The Bot's latest Jobs, newest first; at most 20."
+  recentJobs(limit: Int = 3): [Job!]!
+  "What the Bot points out on its own, most urgent first; computed, no Model involved."
+  alerts: [Alert!]!
+}
+
+enum AlertKind {
+  OVERDUE
+  DUE_SOON
+  HIGH_UTILIZATION
+  ABOVE_MARKET
+  STALE_ASSESSMENT
+  ROUTINE_FAILED
+}
+
+type Alert {
+  kind: AlertKind!
+  "In pt-BR, amounts already formatted."
+  message: String!
+  "Where to look, inside the app."
+  href: String
 }
 
 type Model {
@@ -204,6 +264,8 @@ type Conversation {
   title: String!
   bot: Bot!
   messages: [Message!]!
+  "The latest Message, for the list of Conversations."
+  lastMessage: Message
   updatedAt: DateTime!
 }
 
@@ -220,15 +282,58 @@ type Job {
   bot: Bot!
   instructions: String!
   status: JobStatus!
-  "The finished work, in plain text; set when `DONE`."
+  "The finished work, in plain text, when `DONE`; while `RUNNING`, the part written so far."
   deliverable: String
   "Why the Job failed, in pt-BR; set when `FAILED`."
   error: String
+  "OpenRouter id of the Model that wrote the Deliverable."
+  model: String
   "Files from a Connection the Bot reads for this Job."
   attachments: [Attachment!]!
+  "The Routine that handed this Job over, if it still exists."
+  routine: Routine
   createdAt: DateTime!
   startedAt: DateTime
   finishedAt: DateTime
+}
+
+"The same Job handed to a Bot again every week or month."
+type Routine {
+  id: ID!
+  instructions: String!
+  cadence: RoutineCadence!
+  nextRunAt: DateTime!
+  paused: Boolean!
+  createdAt: DateTime!
+}
+
+"The space that isolates the data; personal and created on the first sign-in (docs/adr/0007)."
+type Organization {
+  id: ID!
+  name: String!
+  createdAt: DateTime!
+  "Oldest first."
+  members: [Member!]!
+}
+
+type Member {
+  id: ID!
+  name: String!
+  email: String!
+  "`owner`, `admin` or `member`."
+  role: String!
+  joinedAt: DateTime!
+}
+
+type Usage {
+  "`YYYY-MM`."
+  month: String!
+  jobs: Int!
+  "Jobs handed over by Routines, included in `jobs`."
+  routineJobs: Int!
+  conversations: Int!
+  "Messages from the User; each one asked a Bot for an answer."
+  messages: Int!
 }
 
 type Connection {
@@ -288,6 +393,13 @@ type CreditOperation {
   collateralValueCents: Cents
   schedule: [Installment!]!
   marketRate: MarketRate
+  "What an Extra Amortization of `amountCents` paid tomorrow would save."
+  prepayment(amountCents: Cents!): PrepaymentEffect!
+}
+
+type PrepaymentEffect {
+  interestSavedCents: Cents!
+  installmentsSaved: Int!
 }
 
 type ExtraAmortization {
@@ -515,4 +627,10 @@ input CreateJobInput {
   botId: ID!
   instructions: String!
   attachments: [AttachmentInput!]
+}
+
+input CreateRoutineInput {
+  botId: ID!
+  instructions: String!
+  cadence: RoutineCadence!
 }

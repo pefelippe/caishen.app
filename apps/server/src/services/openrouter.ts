@@ -26,7 +26,20 @@ export type ChatMessage =
   | { content: string; role: 'tool'; tool_call_id: string };
 
 /** An OpenRouter failure with a message fit to show the User, in pt-BR. */
-export class OpenRouterError extends Error {}
+export class OpenRouterError extends Error {
+  constructor(
+    message: string,
+    /** HTTP status of the failure, when there was one. */
+    readonly status?: number
+  ) {
+    super(message);
+  }
+
+  /** True when another Model could still answer: out of credits, rate-limited or a server error. */
+  get modelSpecific(): boolean {
+    return this.status === 402 || this.status === 429 || (this.status ?? 0) >= 500;
+  }
+}
 
 export const aiConfigured = () => Boolean(process.env.OPENROUTER_API_KEY);
 
@@ -79,18 +92,23 @@ export async function defaultModel(): Promise<string> {
 function failure(status: number, detail: string): OpenRouterError {
   if (status === 429) {
     return new OpenRouterError(
-      'O Modelo atingiu o limite de uso por agora. Modelos gratuitos têm limite diário; tente mais tarde ou escolha outro Modelo na página Equipe.'
+      'O Modelo atingiu o limite de uso por agora. Modelos gratuitos têm limite diário; tente mais tarde ou escolha outro Modelo na página Equipe.',
+      status
     );
   }
   if (status === 401 || status === 403) {
-    return new OpenRouterError('A chave do OpenRouter foi recusada. Confira OPENROUTER_API_KEY.');
+    return new OpenRouterError(
+      'A chave do OpenRouter foi recusada. Confira OPENROUTER_API_KEY.',
+      status
+    );
   }
   if (status === 402) {
     return new OpenRouterError(
-      'Este Modelo é pago e a conta do OpenRouter está sem créditos. Escolha um Modelo gratuito.'
+      'Este Modelo é pago e a conta do OpenRouter está sem créditos. Escolha um Modelo gratuito.',
+      status
     );
   }
-  return new OpenRouterError(`O Modelo não respondeu (${status}). ${detail}`.trim());
+  return new OpenRouterError(`O Modelo não respondeu (${status}). ${detail}`.trim(), status);
 }
 
 interface StreamDelta {

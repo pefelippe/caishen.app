@@ -9,6 +9,7 @@ import express from 'express';
 import { resolvers } from './resolvers';
 import { ChatError, replyInConversation, type ChatEvent } from './services/bots/chat';
 import { failInterruptedJobs } from './services/bots/jobs';
+import { startRoutineClock } from './services/bots/routines';
 import { ModelError } from './services/models';
 
 const port = Number(process.env.SERVER_PORT ?? 4000);
@@ -58,6 +59,7 @@ app.post('/api/chat/:conversationId', express.json(), async (req, res) => {
 });
 
 await failInterruptedJobs();
+startRoutineClock();
 
 const apollo = new ApolloServer<Context>({ resolvers, typeDefs });
 await apollo.start();

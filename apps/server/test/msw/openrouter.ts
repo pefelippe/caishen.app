@@ -35,13 +35,32 @@ export interface CompletionRequest {
   tools?: { function: { name: string } }[];
 }
 
-/** What a faked completion answers: text, a tool call, or an HTTP failure. */
+/** What a faked completion answers: text, text arriving slowly, a tool call, or an HTTP failure. */
 export type Completion =
   | { text: string }
+  | { delayMs: number; pieces: string[] }
   | { arguments: Record<string, unknown>; tool: string }
   | { status: number };
 
-function stream(completion: Exclude<Completion, { status: number }>): Response {
+/** Text sent one piece at a time, `delayMs` apart, like a Model writing a long answer. */
+function slowStream(pieces: string[], delayMs: number): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      for (const [index, content] of pieces.entries()) {
+        if (index > 0) await new Promise(resolve => setTimeout(resolve, delayMs));
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`)
+        );
+      }
+      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      controller.close();
+    },
+  });
+  return new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } });
+}
+
+function stream(completion: Extract<Completion, { text: string } | { tool: string }>): Response {
   const deltas =
     'text' in completion
       ? // Split so the text arrives in more than one event, as it does for real.
@@ -81,6 +100,7 @@ export function completionHandler(completions: Completion[]): {
     if (!completion)
       return HttpResponse.json({ error: { message: 'unscripted' } }, { status: 500 });
     if ('status' in completion) return HttpResponse.json({}, { status: completion.status });
+    if ('pieces' in completion) return slowStream(completion.pieces, completion.delayMs);
     return stream(completion);
   });
   return { handler, log };

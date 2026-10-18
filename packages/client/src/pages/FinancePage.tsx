@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@apollo/client/react';
 import {
   AddIncomeSourceDocument,
+  BotAlertsDocument,
   CreateCreditCardDocument,
   CreateCreditOperationDocument,
   HolderDocument,
@@ -34,10 +35,12 @@ import {
 } from '@/components/ui/table';
 
 import { BotPage } from '../components/BotPage';
+import { AlertList } from '../components/AlertList';
 import { AssessmentPanel } from '../components/AssessmentPanel';
 import { ConsentBanner } from '../components/ConsentBanner';
 import { FormError } from '../components/FormError';
 import { PageSkeleton } from '../components/PageSkeleton';
+import { PayoffPlanPanel } from '../components/PayoffPlanPanel';
 import { ScrPanel } from '../components/ScrPanel';
 import { formatCents, formatDate, formatPercent, parseCents, parsePercent } from '../lib/format';
 
@@ -47,6 +50,7 @@ type Holder = NonNullable<HolderQuery['holder']>;
 const text = (values: FormData, key: string) => String(values.get(key) ?? '').trim() || null;
 
 const SUGGESTIONS = [
+  'O que merece minha atenção agora?',
   'O que vence nos próximos 30 dias?',
   'Qual das minhas Operações de Crédito tem a taxa mais alta?',
   'Como está minha última Avaliação?',
@@ -58,6 +62,10 @@ export function FinancePage() {
   const id = viewer?.viewerHolder.id;
   const { data, loading } = useQuery(HolderDocument, { skip: !id, variables: { id: id! } });
   const { data: market } = useQuery(MarketIndicatorsDocument);
+  const { data: alerts } = useQuery(BotAlertsDocument, {
+    fetchPolicy: 'cache-and-network',
+    variables: { key: 'FINANCE' },
+  });
 
   const holder = data?.holder;
   if (!holder) {
@@ -67,11 +75,6 @@ export function FinancePage() {
 
   return (
     <BotPage
-      actions={
-        <Button asChild variant="outline">
-          <Link to="/caishen/trabalhos">Trabalhos</Link>
-        </Button>
-      }
       bot="FINANCE"
       description={
         <>
@@ -89,16 +92,25 @@ export function FinancePage() {
         </>
       }
       suggestions={SUGGESTIONS}
-      eyebrow={
-        <span className="text-xs font-medium tracking-[0.14em] text-ink uppercase">Caishen</span>
-      }
       title="Finanças"
     >
+      {Boolean(alerts?.bot.alerts.length) && (
+        <Card className="border-ink">
+          <CardHeader>
+            <CardTitle>Avisos</CardTitle>
+            <CardDescription>O que merece atenção agora, do mais urgente ao menos.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertList alerts={alerts!.bot.alerts} />
+          </CardContent>
+        </Card>
+      )}
       <ConsentBanner holder={holder} />
       <AssessmentPanel holder={holder} />
       <ScrPanel holder={holder} />
       <IncomeSection holder={holder} />
       <OperationsSection holder={holder} />
+      {holder.creditOperations.length > 1 && <PayoffPlanPanel holderId={holder.id} />}
       <CardsSection holder={holder} />
     </BotPage>
   );

@@ -19,7 +19,10 @@ export function parseCents(input: string): number | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
   const normalized = trimmed.includes(',') ? trimmed.replace(/\./g, '').replace(',', '.') : trimmed;
-  const value = Number(normalized.replace(/[^\d.-]/g, ''));
+  const digits = normalized.replace(/[^\d.-]/g, '');
+  // Text with no digits is no amount at all, not zero.
+  if (!/\d/.test(digits)) return null;
+  const value = Number(digits);
   return Number.isFinite(value) ? Math.round(value * 100) : null;
 }
 
