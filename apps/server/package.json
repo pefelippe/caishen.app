@@ -9,7 +9,7 @@
     "lint:tsc": "tsc",
     "usage-code": "tsx --env-file-if-exists=../../.env src/scripts/usageCode.ts",
     "start": "tsx --env-file-if-exists=../../.env src/index.ts",
-    "test:unit": "vitest --run"
+    "test:unit": "vitest --run --passWithNoTests"
   },
   "dependencies": {
     "@apollo/server": "5.5.0",

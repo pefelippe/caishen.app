@@ -9,7 +9,7 @@
     "dev": "vite",
     "lint:tsc": "tsc",
     "preview": "vite preview",
-    "test:unit": "vitest --run"
+    "test:unit": "vitest --run --passWithNoTests"
   },
   "dependencies": {
     "@apollo/client": "4.0.9",
