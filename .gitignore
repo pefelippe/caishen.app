@@ -14,3 +14,4 @@
 .vscode/*
 !.vscode/extensions.json
 **/generated/**
+.taste-skill
