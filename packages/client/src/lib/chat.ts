@@ -19,7 +19,7 @@ export async function streamChat(options: {
     method: 'POST',
   });
   if (!response.ok || !response.body) {
-    options.onEvent({ message: 'Não foi possível falar com o Bot.', type: 'error' });
+    options.onEvent({ message: 'Não foi possível falar com o Caishen.', type: 'error' });
     return;
   }
 

@@ -60,7 +60,10 @@ export function DriveFiles({ files, onChange }: Props) {
           Anexar do Drive
         </Button>
       ) : (
-        <Link className="text-muted-foreground underline-offset-4 hover:underline" to="/conexoes">
+        <Link
+          className="text-muted-foreground underline-offset-4 hover:underline"
+          to="/integrations/files"
+        >
           Conecte o Google Drive para entregar arquivos
         </Link>
       )}

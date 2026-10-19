@@ -47,6 +47,8 @@
 
   /* The icon rail on the left: darker than the ink, for contrast with the paper. */
   --rail: #12100e;
+  /* Around the app's frame on large screens. */
+  --frame: #ece4d8;
   --rail-foreground: #cfc6bb;
 
   /* One ink per Bot, and a neutral one outside them. */
@@ -94,6 +96,7 @@
   --color-rail: var(--rail);
   --color-rail-foreground: var(--rail-foreground);
   --color-paper: var(--paper);
+  --color-frame: var(--frame);
   /* The ink of the Bot on screen; set by `data-bot` on a wrapper. */
   --color-ink: var(--ink, var(--ink-neutral));
 }
@@ -142,4 +145,39 @@
   .page-enter {
     animation: none;
   }
+}
+
+/* A Deliverable open as a document (DocumentPage): the editor's text set like a page. */
+.doc-page .ProseMirror {
+  @apply min-h-[60vh] text-[15px] leading-7 outline-none;
+}
+.doc-page .ProseMirror > * + * {
+  @apply mt-3;
+}
+.doc-page .ProseMirror h1 {
+  @apply mt-8 text-2xl font-semibold first:mt-0;
+}
+.doc-page .ProseMirror h2 {
+  @apply mt-6 text-lg font-semibold first:mt-0;
+}
+.doc-page .ProseMirror h3 {
+  @apply mt-5 font-semibold;
+}
+.doc-page .ProseMirror ul {
+  @apply list-disc pl-6;
+}
+.doc-page .ProseMirror ol {
+  @apply list-decimal pl-6;
+}
+.doc-page .ProseMirror li > p {
+  @apply my-0.5;
+}
+.doc-page .ProseMirror strong {
+  @apply font-semibold;
+}
+.doc-page .ProseMirror blockquote {
+  @apply border-l-2 pl-4 text-muted-foreground;
+}
+.doc-page .ProseMirror code {
+  @apply rounded bg-muted px-1 text-[13px];
 }

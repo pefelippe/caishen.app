@@ -2,6 +2,7 @@ import type { Viewer } from '@zapbots/auth';
 import { db, schema, type MessageRow } from '@zapbots/database';
 import { and, asc, eq } from 'drizzle-orm';
 
+import { PlanLimitError, requireWithinLimit } from '../billing/billing';
 import {
   aiConfigured,
   defaultModel,
@@ -41,6 +42,12 @@ export async function replyInConversation(options: {
   if (!content) throw new ChatError('Escreva uma mensagem.');
   if (!aiConfigured()) {
     throw new ChatError('Os Bots ainda não estão ligados: falta OPENROUTER_API_KEY no servidor.');
+  }
+  try {
+    await requireWithinLimit(viewer, 'messages');
+  } catch (error) {
+    if (error instanceof PlanLimitError) throw new ChatError(error.message);
+    throw error;
   }
 
   const [row] = await db

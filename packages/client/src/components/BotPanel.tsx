@@ -28,11 +28,13 @@ interface Props {
   actions?: ReactNode;
   bot: BotKey;
   className?: string;
+  /** Opens on a blank Conversation instead of the latest one. */
+  startBlank?: boolean;
   suggestions?: string[];
 }
 
 /** A Bot with its latest Conversation, ready to talk about what is on screen. */
-export function BotPanel({ actions, bot: key, className, suggestions }: Props) {
+export function BotPanel({ actions, bot: key, className, startBlank, suggestions }: Props) {
   const { data } = useQuery(BotPanelDocument, { variables: { key } });
   const bot = data?.bot;
   const { data: list } = useQuery(ConversationsDocument, {
@@ -43,7 +45,7 @@ export function BotPanel({ actions, bot: key, className, suggestions }: Props) {
     refetchQueries: [ConversationsDocument],
   });
   // `undefined` follows the latest Conversation; `null` is a blank one not yet saved.
-  const [chosen, setChosen] = useState<string | null | undefined>(undefined);
+  const [chosen, setChosen] = useState<string | null | undefined>(startBlank ? null : undefined);
   // Remounts the thread only when the User asks for a blank Conversation. Saving the first Message
   // also changes `conversationId`, and a remount there would drop the reply being streamed.
   const [thread, setThread] = useState(0);
@@ -115,7 +117,7 @@ export function BotPanel({ actions, bot: key, className, suggestions }: Props) {
         <Alert>
           <AlertTitle>{bot.name} ainda está dormindo</AlertTitle>
           <AlertDescription>
-            Falta a chave do OpenRouter no servidor (OPENROUTER_API_KEY). Com ela no .env, os Bots
+            Falta a chave do OpenRouter no servidor (OPENROUTER_API_KEY). Com ela no .env, o Caishen
             passam a responder.
           </AlertDescription>
         </Alert>

@@ -127,7 +127,7 @@ export async function runJob(viewer: Viewer, jobId: string): Promise<void> {
     // A Model chosen for the Bot that fails on its side gets one retry with the server default.
     const models = [...new Set([bot.model ?? fallback, fallback].filter(Boolean))];
     if (!models.length) {
-      await finish(jobId, { error: 'Nenhum Modelo disponível para fazer o Trabalho.' });
+      await finish(jobId, { error: 'Nenhum Modelo disponível para fazer o Workflow.' });
       return;
     }
     const files = await filesOf(viewer, jobId);
@@ -185,7 +185,7 @@ export async function runJob(viewer: Viewer, jobId: string): Promise<void> {
     if (!(error instanceof ModelError) && !abort.signal.aborted)
       console.error('job failed:', error);
     await finish(jobId, {
-      error: error instanceof ModelError ? error.message : 'O Trabalho falhou no servidor.',
+      error: error instanceof ModelError ? error.message : 'O Workflow falhou no servidor.',
     }).catch(() => undefined);
   } finally {
     running.delete(jobId);

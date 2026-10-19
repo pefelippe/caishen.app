@@ -1,5 +1,13 @@
 import type { BotKey } from '@zapbots/graphql/client';
-import { CoinsIcon, type LucideIcon } from 'lucide-react';
+import {
+  CoinsIcon,
+  HandCoinsIcon,
+  LayoutGridIcon,
+  WalletIcon,
+  type LucideIcon,
+} from 'lucide-react';
+
+import type { SectionGroup } from '../components/SectionLayout';
 
 /** A Bot on the team as the app shows it. */
 export interface TeamBot {
@@ -25,14 +33,19 @@ export const TEAM: TeamBot[] = [
   },
 ];
 
-/**
- * The tabs of each Bot's page: what its field needs (reports, sheets, Jobs…). The chat is not a
- * tab; it opens from the page header or the floating button.
- */
-export const BOT_SECTIONS: Record<BotKey, { label: string; to: string }[]> = {
+/** The sections of each Bot's page, in its white menu: what its field needs. */
+export const BOT_SECTIONS: Record<BotKey, SectionGroup[]> = {
   FINANCE: [
-    { label: 'Finanças', to: '/caishen/financas' },
-    { label: 'Trabalhos', to: '/caishen/trabalhos' },
+    {
+      links: [{ icon: LayoutGridIcon, label: 'Visão geral', to: '/caishen/overview' }],
+    },
+    {
+      label: 'Finanças',
+      links: [
+        { icon: WalletIcon, label: 'Renda', to: '/caishen/income' },
+        { icon: HandCoinsIcon, label: 'Obrigações', to: '/caishen/obligations' },
+      ],
+    },
   ],
 };
 

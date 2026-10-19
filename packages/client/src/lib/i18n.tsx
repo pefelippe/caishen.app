@@ -1,6 +1,8 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export type Language = 'en' | 'pt';
+
+export const isLanguage = (value: unknown): value is Language => value === 'en' || value === 'pt';
 
 export const LANGUAGES: { label: string; value: Language }[] = [
   { label: 'Português (Brasil)', value: 'pt' },
@@ -8,15 +10,15 @@ export const LANGUAGES: { label: string; value: Language }[] = [
 ];
 
 /**
- * Every translated string, keyed by its Portuguese text's meaning. Portuguese is the source; a key
- * missing in English falls back to it, so a screen not translated yet still reads.
+ * Every translated string, in both languages. Screens not moved here yet stay in Portuguese
+ * whatever the choice.
  */
 const STRINGS = {
   'account.email': { en: 'E-mail', pt: 'E-mail' },
   'account.language': { en: 'Language', pt: 'Idioma' },
   'account.languageHint': {
-    en: 'The language of the app. The Bots keep answering in Portuguese for now.',
-    pt: 'O idioma do app. Os Bots continuam respondendo em português por enquanto.',
+    en: 'The language of the app. The Caishen keeps answering in Portuguese for now.',
+    pt: 'O idioma do app. O Caishen continua respondendo em português por enquanto.',
   },
   'account.name': { en: 'Name', pt: 'Nome' },
   'account.subtitle': {
@@ -24,76 +26,92 @@ const STRINGS = {
     pt: 'Seus dados de acesso, que vêm da sua conta Google.',
   },
   'account.title': { en: 'Profile', pt: 'Perfil' },
-  'apiKeys.create': { en: 'Create key', pt: 'Criar chave' },
-  'apiKeys.empty': {
-    en: 'No keys yet. The public API is coming soon.',
-    pt: 'Nenhuma chave ainda. A API pública chega em breve.',
+  'billing.code': { en: 'Usage code', pt: 'Código de uso' },
+  'billing.codes': { en: 'Usage codes', pt: 'Códigos de uso' },
+  'billing.codesText': {
+    en: 'A code adds Workflows and Messages to this month’s Limit. Each Organization redeems a code once.',
+    pt: 'Um código soma Workflows e Mensagens ao Limite deste mês. Cada Organização resgata um código uma vez.',
   },
-  'apiKeys.subtitle': {
-    en: 'To use the Bots from outside zapbots, from your own systems.',
-    pt: 'Para usar os Bots de fora do zapbots, a partir dos seus próprios sistemas.',
+  'billing.credits': {
+    en: 'Includes {jobs} Workflows and {messages} Messages from Usage codes this month.',
+    pt: 'Inclui {jobs} Workflows e {messages} Mensagens de Códigos de uso neste mês.',
   },
-  'apiKeys.title': { en: 'API keys', pt: 'Chaves de API' },
-  'billing.change': { en: 'Change plan', pt: 'Mudar de plano' },
   'billing.current': { en: 'current', pt: 'atual' },
-  'billing.free': { en: 'Free plan', pt: 'Plano Gratuito' },
-  'billing.freeText': {
-    en: 'Caishen and every Bot to come, with the free Models on OpenRouter. Paid plans, with larger Models and more Jobs, are coming soon.',
-    pt: 'O Caishen e todos os Bots que chegarem, com os Modelos gratuitos do OpenRouter. Planos pagos, com Modelos maiores e mais Trabalhos, chegam em breve.',
+  'billing.currentPlan': { en: 'Current plan', pt: 'Plano atual' },
+  'billing.endsOn': {
+    en: 'Cancelled: Pro lasts until {date}.',
+    pt: 'Cancelado: o Pro vale até {date}.',
   },
+  'billing.freeModels': { en: 'Every Model on OpenRouter', pt: 'Todos os Modelos do OpenRouter' },
+  'billing.freePrice': { en: 'Free', pt: 'Grátis' },
+  'billing.jobsPerMonth': { en: '{count} Workflows a month', pt: '{count} Workflows por mês' },
+  'billing.manage': { en: 'Manage subscription', pt: 'Gerenciar assinatura' },
+  'billing.messagesPerMonth': { en: '{count} Messages a month', pt: '{count} Mensagens por mês' },
+  'billing.notConfigured': { en: 'Billing is not set up', pt: 'A cobrança não está configurada' },
+  'billing.notConfiguredText': {
+    en: 'The server is missing the Stripe keys (STRIPE_SECRET_KEY and STRIPE_PRICE_PRO in .env). The free Plan keeps working.',
+    pt: 'Faltam as chaves do Stripe no servidor (STRIPE_SECRET_KEY e STRIPE_PRICE_PRO no .env). O Plano Gratuito continua funcionando.',
+  },
+  'billing.pastDue': {
+    en: 'The last payment failed. Update the card to keep Pro.',
+    pt: 'O último pagamento falhou. Atualize o cartão para manter o Pro.',
+  },
+  'billing.pastDueBadge': { en: 'payment due', pt: 'pagamento pendente' },
+  'billing.perMonth': { en: '/ month', pt: '/ mês' },
+  'billing.plans': { en: 'Plans', pt: 'Planos' },
+  'billing.proModels': {
+    en: 'Room for daily Routines and long chats',
+    pt: 'Espaço para Rotinas diárias e conversas longas',
+  },
+  'billing.redeem': { en: 'Redeem', pt: 'Resgatar' },
+  'billing.redeemed': {
+    en: 'Code {code} redeemed: the Limit grew this month.',
+    pt: 'Código {code} resgatado: o Limite aumentou neste mês.',
+  },
+  'billing.renewsOn': { en: 'Renews on {date}.', pt: 'Renova em {date}.' },
   'billing.subtitle': {
-    en: 'The Organization’s plan and how it is billed.',
-    pt: 'O plano da Organização e como ele é cobrado.',
+    en: 'The Organization’s Plan, its monthly Limits and how it is paid, through Stripe.',
+    pt: 'O Plano da Organização, seus Limites do mês e como ele é pago, pelo Stripe.',
   },
-  'billing.title': { en: 'Billing', pt: 'Faturamento' },
-  'bot.chatWith': { en: 'Chat with {name}', pt: 'Conversar com {name}' },
-  'bot.soon': { en: 'coming soon', pt: 'em breve' },
-  'chat.back': { en: 'Back to chats', pt: 'Voltar às conversas' },
-  'chat.delete': { en: 'Delete chat', pt: 'Excluir conversa' },
-  'chat.new': { en: 'New chat', pt: 'Nova conversa' },
-  'chat.newWith': { en: 'New chat with…', pt: 'Nova conversa com…' },
-  'chats.all': { en: 'All', pt: 'Tudo' },
-  'chats.empty': { en: 'No chats yet.', pt: 'Nenhuma conversa ainda.' },
-  'chats.none': { en: 'No chats found.', pt: 'Nenhuma conversa encontrada.' },
-  'chats.noMessages': { en: 'No messages yet', pt: 'Sem mensagens ainda' },
-  'chats.search': { en: 'Search chats', pt: 'Pesquisar conversas' },
-  'chats.title': { en: 'Chats', pt: 'Chats' },
+  'billing.thanks': { en: 'Welcome to Pro', pt: 'Bem-vindo ao Pro' },
+  'billing.thanksText': {
+    en: 'Stripe confirmed the payment. The new Limits show up as soon as it notifies us.',
+    pt: 'O Stripe confirmou o pagamento. Os novos Limites aparecem assim que ele nos avisar.',
+  },
+  'billing.upgrade': { en: 'Upgrade to Pro', pt: 'Assinar o Pro' },
+  'chat.close': { en: 'Close chat', pt: 'Fechar conversa' },
+  'chat.panel': { en: 'Chat with the Caishen', pt: 'Conversa com o Caishen' },
+  'chat.toggle': { en: 'Open or close the chat', pt: 'Abrir ou fechar a conversa' },
   'integrations.title': { en: 'Integrations', pt: 'Integrações' },
-  'menu.agents': { en: 'Agents', pt: 'Agentes' },
-  'menu.billing': { en: 'Billing', pt: 'Faturamento' },
-  'menu.general': { en: 'General', pt: 'Geral' },
-  'menu.models': { en: 'Models', pt: 'Modelos' },
-  'menu.organization': { en: 'Organization', pt: 'Organização' },
   'menu.plan': { en: 'Plan', pt: 'Plano' },
   'menu.profile': { en: 'Profile', pt: 'Perfil' },
-  'menu.tools': { en: 'Tools', pt: 'Ferramentas' },
   'menu.usage': { en: 'Usage', pt: 'Uso' },
-  'menu.users': { en: 'Users', pt: 'Usuários' },
   'models.onlyFree': { en: 'Show only free Models', pt: 'Mostrar só Modelos gratuitos' },
   'models.subtitle': {
-    en: 'The language model each Bot uses, through OpenRouter. If the chosen one fails, the Job retries once with the server default ({model}).',
-    pt: 'O modelo de linguagem que cada Bot usa, pelo OpenRouter. Se o escolhido falhar, o Trabalho tenta uma vez com o padrão do servidor ({model}).',
+    en: 'The language model the Caishen uses, through OpenRouter. If the chosen one fails, the Workflow retries once with the server default ({model}).',
+    pt: 'O modelo de linguagem que o Caishen usa, pelo OpenRouter. Se o escolhido falhar, o Workflow tenta uma vez com o padrão do servidor ({model}).',
   },
   'models.title': { en: 'Models', pt: 'Modelos' },
   'org.created': { en: 'Created on', pt: 'Criada em' },
   'org.name': { en: 'Name', pt: 'Nome' },
   'org.subtitle': {
-    en: 'The space where your data lives. For now it is personal: only you and your Bots work in it.',
-    pt: 'O espaço onde ficam seus dados. Por enquanto ele é pessoal: só você e seus Bots trabalham nele.',
+    en: 'The space where your data lives. For now it is personal: only you and the Caishen work in it.',
+    pt: 'O espaço onde ficam seus dados. Por enquanto ele é pessoal: só você e o Caishen trabalham nele.',
   },
   'org.title': { en: 'Organization', pt: 'Organização' },
-  'org.users': { en: 'Users', pt: 'Usuários' },
-  'profile.editProfile': { en: 'Edit profile', pt: 'Editar perfil' },
   'profile.label': { en: 'Profile', pt: 'Perfil' },
-  'profile.settings': { en: 'Settings', pt: 'Configurações' },
   'profile.signOut': { en: 'Sign out', pt: 'Sair' },
-  'rail.bots': { en: 'Bots', pt: 'Bots' },
-  'rail.chats': { en: 'Chats', pt: 'Chats' },
+  'rail.caishen': { en: 'Caishen', pt: 'Caishen' },
+  'rail.chat': { en: 'Chat', pt: 'Chat' },
   'rail.dashboard': { en: 'Dashboard', pt: 'Dashboard' },
   'rail.documents': { en: 'Documents', pt: 'Documentos' },
-  'settings.title': { en: 'Settings', pt: 'Configurações' },
+  'rail.workflows': { en: 'Workflows', pt: 'Workflows' },
+  'rail.integrations': { en: 'Integrations', pt: 'Integrações' },
+  'rail.models': { en: 'Models', pt: 'Modelos' },
+  'rail.organization': { en: 'Organization', pt: 'Organização' },
+  'rail.plan': { en: 'Plan', pt: 'Plano' },
   'usage.conversations': { en: 'Chats started', pt: 'Conversas iniciadas' },
-  'usage.jobs': { en: 'Jobs', pt: 'Trabalhos' },
+  'usage.jobs': { en: 'Workflows', pt: 'Workflows' },
   'usage.messages': { en: 'Messages sent', pt: 'Mensagens enviadas' },
   'usage.messagesNote': { en: 'each one asks for an answer', pt: 'cada uma pede uma resposta' },
   'usage.routineJobs': { en: '{count} from Routines', pt: '{count} de Rotinas' },
@@ -103,7 +121,6 @@ const STRINGS = {
   },
   'usage.title': { en: 'Usage', pt: 'Uso' },
   'users.email': { en: 'E-mail', pt: 'E-mail' },
-  'users.invite': { en: 'Invite user', pt: 'Convidar usuário' },
   'users.name': { en: 'Name', pt: 'Nome' },
   'users.role': { en: 'Role', pt: 'Papel' },
   'users.roleAdmin': { en: 'Admin', pt: 'Administrador' },
@@ -115,17 +132,117 @@ const STRINGS = {
     pt: 'Quem tem acesso a esta Organização. Convidar outras pessoas chega junto com as equipes.',
   },
   'users.title': { en: 'Users', pt: 'Usuários' },
-  'welcome.giveJob': { en: 'Give a Job', pt: 'Dar um Trabalho' },
+  'welcome.giveJob': { en: 'New workflow', pt: 'Novo Workflow' },
   'welcome.hello': { en: 'Hello, {name}', pt: 'Olá, {name}' },
-  'welcome.intro': {
-    en: 'Pick a chat on the left or ask the team for something. The Bots go into your tools, do the work and come back with it finished.',
-    pt: 'Escolha uma conversa à esquerda ou peça algo à equipe. Os Bots entram nas suas ferramentas, fazem o trabalho e voltam com a Entrega pronta.',
-  },
-  'welcome.alerts': { en: 'Caishen’s Alerts', pt: 'Avisos do Caishen' },
-  'welcome.models': { en: 'Set up Models', pt: 'Configurar Modelos' },
   'welcome.newChat': { en: 'New chat', pt: 'Nova conversa' },
-  'welcome.recentJobs': { en: 'Latest Jobs', pt: 'Últimos Trabalhos' },
+  'welcome.recentJobs': { en: 'Latest Workflows', pt: 'Últimos Workflows' },
   'welcome.seeFinance': { en: 'See Finances', pt: 'Ver Finanças' },
+  'account.emailHint': {
+    en: 'It comes from Google and cannot be changed here.',
+    pt: 'Vem do Google e não muda por aqui.',
+  },
+  'account.preferences': { en: 'Preferences', pt: 'Preferências' },
+  'common.loadFailed': { en: 'Could not load this page.', pt: 'Não foi possível carregar.' },
+  'common.save': { en: 'Save', pt: 'Salvar' },
+  'common.saveFailed': { en: 'Could not save.', pt: 'Não foi possível salvar.' },
+  'dashboard.alerts': { en: 'Alerts', pt: 'Avisos' },
+  'dashboard.dueNext30': { en: 'Due in 30 days', pt: 'A vencer em 30 dias' },
+  'dashboard.income': { en: 'Monthly income', pt: 'Renda mensal' },
+  'dashboard.jobsThisMonth': { en: 'Workflows this month', pt: 'Workflows no mês' },
+  'dashboard.noAlerts': { en: 'Nothing to point out today.', pt: 'Nada a apontar hoje.' },
+  'dashboard.noAssessment': { en: 'no Assessment yet', pt: 'sem Avaliação ainda' },
+  'dashboard.noJobs': {
+    en: 'No Workflows yet. Create one for the Caishen.',
+    pt: 'Nenhum Workflow ainda. Crie um para o Caishen.',
+  },
+  'dashboard.operations': { en: '{count} Credit Operations', pt: '{count} Operações de Crédito' },
+  'dashboard.outstanding': { en: 'Outstanding balance', pt: 'Saldo devedor' },
+  'dashboard.score': { en: 'Score', pt: 'Score' },
+  'dashboard.startIncome': {
+    en: 'Salary, owner’s draw, rent: what comes in each month.',
+    pt: 'Salário, pró-labore, aluguel: o que entra todo mês.',
+  },
+  'dashboard.startObligations': {
+    en: 'Loans, financing and credit cards, with what is left to pay.',
+    pt: 'Empréstimos, financiamentos e cartões, com o que falta pagar.',
+  },
+  'dashboard.startText': {
+    en: 'With your income and debts, the Caishen works out your Score, what falls due and how to pay it all off.',
+    pt: 'Com sua renda e suas dívidas, o Caishen calcula seu Score, o que vence e como quitar tudo.',
+  },
+  'dashboard.startTitle': { en: 'Add what you owe', pt: 'Cadastre o que você deve' },
+  'dashboard.usageLine': {
+    en: 'This month: {conversations} chats started and {messages} messages sent.',
+    pt: 'Este mês: {conversations} conversas iniciadas e {messages} mensagens enviadas.',
+  },
+  'document.back': { en: 'Documents', pt: 'Documentos' },
+  'document.bold': { en: 'Bold', pt: 'Negrito' },
+  'document.bulletList': { en: 'Bulleted list', pt: 'Lista' },
+  'document.edited': { en: 'edited by you', pt: 'editada por você' },
+  'document.heading': { en: 'Heading {level}', pt: 'Título {level}' },
+  'document.italic': { en: 'Italic', pt: 'Itálico' },
+  'document.notFound': {
+    en: 'This document does not exist or is not ready yet.',
+    pt: 'Este documento não existe ou ainda não está pronto.',
+  },
+  'document.orderedList': { en: 'Numbered list', pt: 'Lista numerada' },
+  'document.paragraph': { en: 'Text', pt: 'Texto' },
+  'document.redo': { en: 'Redo', pt: 'Refazer' },
+  'document.restore': { en: 'Restore original', pt: 'Restaurar original' },
+  'document.restoreHint': {
+    en: 'Brings back the text the Caishen wrote.',
+    pt: 'Volta ao texto que o Caishen escreveu.',
+  },
+  'document.saved': { en: 'Saved', pt: 'Salvo' },
+  'document.saveFailed': { en: 'Not saved', pt: 'Não salvo' },
+  'document.saving': { en: 'Saving…', pt: 'Salvando…' },
+  'document.toolbar': { en: 'Formatting', pt: 'Formatação' },
+  'document.undo': { en: 'Undo', pt: 'Desfazer' },
+  'documents.anyOrigin': { en: 'Any origin', pt: 'Qualquer origem' },
+  'documents.anyTime': { en: 'Any date', pt: 'Qualquer data' },
+  'documents.attachment': { en: 'Attachment', pt: 'Anexo' },
+  'documents.count': { en: '{count} documents', pt: '{count} documentos' },
+  'documents.created': { en: 'Created at', pt: 'Criado em' },
+  'documents.deliverable': { en: 'Deliverable', pt: 'Entrega' },
+  'documents.downloadSelected': {
+    en: 'Download {count} Deliverables',
+    pt: 'Baixar {count} Entregas',
+  },
+  'documents.empty': {
+    en: 'No documents yet. Every finished Workflow and every file handed to the Caishen lands here.',
+    pt: 'Nenhum documento ainda. Todo Workflow pronto e todo arquivo entregue ao Caishen chega aqui.',
+  },
+  'documents.fromJob': { en: 'Single Workflows', pt: 'Workflows avulsos' },
+  'documents.fromRoutine': { en: 'Routines', pt: 'Rotinas' },
+  'documents.lastDays': { en: 'Last {count} days', pt: 'Últimos {count} dias' },
+  'documents.name': { en: 'Name', pt: 'Nome' },
+  'documents.select': { en: 'Select {name}', pt: 'Selecionar {name}' },
+  'documents.selectAll': { en: 'Select all', pt: 'Selecionar todos' },
+  'documents.selected': { en: '{count} selected', pt: '{count} selecionados' },
+  'documents.type': { en: 'Type', pt: 'Tipo' },
+  'documents.allTypes': { en: 'All types', pt: 'Todos os tipos' },
+  'documents.download': { en: 'Download', pt: 'Baixar' },
+  'documents.noMatch': { en: 'Nothing matches the search.', pt: 'Nada bate com a pesquisa.' },
+  'documents.search': { en: 'Search documents', pt: 'Pesquisar documentos' },
+  'documents.subtitle': {
+    en: 'What the Caishen delivered and the files he was given, in one place.',
+    pt: 'O que o Caishen entregou e os arquivos que ele recebeu, num lugar só.',
+  },
+  'documents.title': { en: 'Documents', pt: 'Documentos' },
+  'integrations.all': { en: 'All', pt: 'Todas' },
+  'integrations.categories': { en: 'Categories', pt: 'Categorias' },
+  /** The locale dates and numbers are written in. */
+  locale: { en: 'en-US', pt: 'pt-BR' },
+  'models.free': { en: 'free', pt: 'gratuito' },
+  'models.none': { en: 'No Model available', pt: 'Nenhum Modelo disponível' },
+  'models.notConfigured': {
+    en: 'The Caishen is not working yet',
+    pt: 'O Caishen ainda não trabalha',
+  },
+  'models.notConfiguredText': {
+    en: 'The server is missing the OpenRouter key (OPENROUTER_API_KEY in .env). You can pick the Models now; they start working once the key exists.',
+    pt: 'Falta a chave do OpenRouter no servidor (OPENROUTER_API_KEY no .env). Você já pode escolher os Modelos; eles começam a trabalhar quando a chave existir.',
+  },
 } satisfies Record<string, Record<Language, string>>;
 
 export type StringKey = keyof typeof STRINGS;
@@ -135,11 +252,12 @@ const STORAGE_KEY = 'zapbots.language';
 function storedLanguage(): Language {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
-    if (value === 'en' || value === 'pt') return value;
+    if (isLanguage(value)) return value;
   } catch {
-    // Storage unavailable: fall back to the browser.
+    // Storage unavailable: the default below.
   }
-  return navigator.language.toLowerCase().startsWith('pt') ? 'pt' : 'en';
+  // Portuguese until the User picks otherwise on the Profile page.
+  return 'pt';
 }
 
 interface I18n {
@@ -151,13 +269,19 @@ interface I18n {
 
 const I18nContext = createContext<I18n | null>(null);
 
-/** The app's language, chosen on the Profile page and remembered in this browser. */
+/**
+ * The app's language. Signed in, it is the User's, chosen on the Profile page; this browser also
+ * remembers the last one, for the pages before signing in.
+ */
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setState] = useState<Language>(storedLanguage);
 
+  useEffect(() => {
+    document.documentElement.lang = language === 'pt' ? 'pt-BR' : 'en';
+  }, [language]);
+
   const setLanguage = useCallback((next: Language) => {
     setState(next);
-    document.documentElement.lang = next === 'pt' ? 'pt-BR' : 'en';
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {

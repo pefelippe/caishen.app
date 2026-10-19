@@ -1,15 +1,25 @@
-query Organization {
-  organization {
+fragment OrganizationFields on Organization {
+  id
+  name
+  createdAt
+  members {
     id
     name
-    createdAt
-    members {
-      id
-      name
-      email
-      role
-      joinedAt
-    }
+    email
+    role
+    joinedAt
+  }
+}
+
+query Organization {
+  organization {
+    ...OrganizationFields
+  }
+}
+
+mutation RenameOrganization($name: String!) {
+  renameOrganization(name: $name) {
+    ...OrganizationFields
   }
 }
 

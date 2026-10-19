@@ -127,18 +127,18 @@ export function JobsPage() {
     const result = await create({
       variables: { input: { attachments: files, botId: bot.id, instructions } },
     }).catch(() => null);
-    if (result?.data) navigate(`/caishen/trabalhos/${result.data.createJob.id}`);
+    if (result?.data) navigate(`/workflows/${result.data.createJob.id}`);
   };
 
   return (
     <BotPage
       bot="FINANCE"
       description={`Peça uma análise ou um plano. ${bot.name} trabalha sozinho e avisa aqui quando a Entrega estiver pronta.`}
-      title="Trabalhos"
+      title="Workflows"
     >
       <Card>
         <CardHeader>
-          <CardTitle>Novo Trabalho</CardTitle>
+          <CardTitle>Novo Workflow</CardTitle>
           <CardDescription>
             {bot.name} lê suas Finanças e os arquivos que você entregar. Ele não altera nada nem
             movimenta dinheiro.
@@ -158,7 +158,7 @@ export function JobsPage() {
                 <DriveFiles files={files} onChange={setFiles} />
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  A primeira Entrega sai agora; depois {bot.name} refaz o Trabalho{' '}
+                  A primeira Entrega sai agora; depois {bot.name} refaz o Workflow{' '}
                   {ROUTINE_CADENCE[cadence]} com os dados do dia. Rotinas não levam arquivos.
                 </p>
               )}
@@ -193,7 +193,7 @@ export function JobsPage() {
               </div>
               {full && (
                 <p className="text-xs text-muted-foreground">
-                  {bot.name} já está com {MAX_WORKING_JOBS} Trabalhos em andamento. Espere um
+                  {bot.name} já está com {MAX_WORKING_JOBS} Workflows em andamento. Espere um
                   terminar para pedir outro.
                 </p>
               )}
@@ -212,7 +212,7 @@ export function JobsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Rotinas</CardTitle>
-            <CardDescription>Trabalhos que {bot.name} refaz sozinho.</CardDescription>
+            <CardDescription>Workflows que {bot.name} refaz sozinho.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col divide-y">
@@ -265,7 +265,7 @@ export function JobsPage() {
                 <li className="flex items-baseline gap-3 py-2" key={job.id}>
                   <Link
                     className="min-w-0 flex-1 truncate underline-offset-4 hover:underline"
-                    to={`/caishen/trabalhos/${job.id}`}
+                    to={`/workflows/${job.id}`}
                   >
                     {job.instructions}
                   </Link>
@@ -279,7 +279,7 @@ export function JobsPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground">Nenhum Trabalho ainda.</p>
+            <p className="text-muted-foreground">Nenhum Workflow ainda.</p>
           )}
         </CardContent>
       </Card>

@@ -52,7 +52,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
     .where(eq(schema.creditOperation.holderId, holder.id));
   const markets = await marketRates(operations.map(operation => operation.modality));
   for (const operation of operations) {
-    const href = `/caishen/operacoes/${operation.id}`;
+    const href = `/caishen/operations/${operation.id}`;
     const overdue = overdueCents(
       lateFacts(await latePaymentRows(operation.id), await scheduleFor(operation)),
       asOf
@@ -79,7 +79,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
   for (const due of await upcomingDues(holder.id, asOf)) {
     if (due.dueDate > until) continue;
     alerts.push({
-      href: '/caishen/financas',
+      href: '/caishen/overview',
       kind: 'DUE_SOON',
       message: `${due.label} vence em ${day(due.dueDate)}: ${money(due.amountCents)}.`,
     });
@@ -102,7 +102,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
     const usage = new Decimal(latest.amountCents).div(card.limitCents);
     if (usage.gte(HIGH_UTILIZATION)) {
       alerts.push({
-        href: '/caishen/financas',
+        href: '/caishen/obligations',
         kind: 'HIGH_UTILIZATION',
         message: `A última Fatura do ${card.name} usa ${usage.times(100).toFixed(0)}% do limite: uma Utilização de Limite alta pesa no Score.`,
       });
@@ -119,7 +119,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
     const madeOn = assessment ? dateOf(assessment.createdAt) : null;
     if (!madeOn || madeOn < addDays(asOf, -STALE_ASSESSMENT_DAYS)) {
       alerts.push({
-        href: '/caishen/financas',
+        href: '/caishen/overview',
         kind: 'STALE_ASSESSMENT',
         message: madeOn
           ? `Sua última Avaliação é de ${day(madeOn)}. Gere uma nova para ver o Score com os dados de hoje.`
@@ -179,8 +179,8 @@ async function failedRoutineAlerts(viewer: Viewer, key: BotKey): Promise<BotAler
     .orderBy(desc(schema.job.finishedAt))
     .limit(3);
   return rows.map(row => ({
-    href: `/caishen/trabalhos/${row.id}`,
+    href: `/workflows/${row.id}`,
     kind: 'ROUTINE_FAILED' as const,
-    message: `A Rotina "${row.instructions}" falhou em ${day(dateOf(row.finishedAt!))}. Abra o Trabalho para pedir de novo.`,
+    message: `A Rotina "${row.instructions}" falhou em ${day(dateOf(row.finishedAt!))}. Abra o Workflow para pedir de novo.`,
   }));
 }

@@ -67,7 +67,7 @@ export function PayoffPlanPanel({ holderId }: { holderId: string }) {
                   <span className="w-5 text-muted-foreground tabular-nums">{index + 1}.</span>
                   <Link
                     className="min-w-0 flex-1 truncate underline-offset-4 hover:underline"
-                    to={`/caishen/operacoes/${payoff.creditOperationId}`}
+                    to={`/caishen/operations/${payoff.creditOperationId}`}
                   >
                     {payoff.name}
                   </Link>

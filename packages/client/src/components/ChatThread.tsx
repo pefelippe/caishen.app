@@ -86,7 +86,7 @@ export function ChatThread({
       // The list of Conversations shows the latest Message; bring it up to date.
       await apollo.refetchQueries({ include: [ConversationsDocument] });
     } catch {
-      setError('Não foi possível falar com o Bot.');
+      setError('Não foi possível falar com o Caishen.');
     }
     setPending(null);
   };

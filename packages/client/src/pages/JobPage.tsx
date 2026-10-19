@@ -21,9 +21,6 @@ import { PageSkeleton } from '../components/PageSkeleton';
 import { formatDate } from '../lib/format';
 import { JOB_STATUS, ROUTINE_CADENCE } from '../lib/jobs';
 
-/** The first words of a request, to quote it in a suggestion. */
-const short = (text: string) => (text.length > 60 ? `${text.slice(0, 60).trimEnd()}…` : text);
-
 /** Saves the Deliverable as a text file, with what was asked and when, to keep or share. */
 function download(job: { createdAt: string; deliverable?: string | null; instructions: string }) {
   const day = job.createdAt.slice(0, 10);
@@ -59,11 +56,11 @@ export function JobPage() {
   });
 
   if (loading && !data) return <PageSkeleton />;
-  if (!job) return <p>Trabalho não encontrado.</p>;
+  if (!job) return <p>Workflow não encontrado.</p>;
 
   const onRetry = async () => {
     const result = await retry({ variables: { id: job.id } }).catch(() => null);
-    if (result?.data) navigate(`/caishen/trabalhos/${result.data.retryJob.id}`);
+    if (result?.data) navigate(`/workflows/${result.data.retryJob.id}`);
   };
 
   const copy = async (text: string) => {
@@ -73,7 +70,7 @@ export function JobPage() {
 
   const onDelete = async () => {
     await remove({ variables: { id: job.id } });
-    navigate('/caishen/trabalhos');
+    navigate('/workflows');
   };
 
   return (
@@ -105,17 +102,8 @@ export function JobPage() {
           {job.model && ` com ${job.model}`}
         </>
       }
-      eyebrow={<BackLink to="/caishen/trabalhos">Trabalhos</BackLink>}
-      suggestions={
-        job.status === 'DONE'
-          ? [
-              `Explique com mais detalhe a Entrega "${short(job.instructions)}".`,
-              'Qual é o primeiro passo que devo dar agora?',
-              'Algum número dessa Entrega mudou desde que ela foi feita?',
-            ]
-          : undefined
-      }
-      title={`Trabalho para ${job.bot.name}`}
+      eyebrow={<BackLink to="/workflows">Workflows</BackLink>}
+      title={`Workflow para ${job.bot.name}`}
     >
       <Card>
         <CardHeader>

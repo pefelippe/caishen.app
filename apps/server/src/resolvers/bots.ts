@@ -2,7 +2,9 @@ import type { Viewer } from '@zapbots/auth';
 import { db, schema } from '@zapbots/database';
 import type { Resolvers } from '@zapbots/graphql/server';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { GraphQLError } from 'graphql';
 
+import { PlanLimitError, requireWithinLimit } from '../services/billing/billing';
 import { botAlerts } from '../services/bots/alerts';
 import { CATALOG, ensureBots } from '../services/bots/catalog';
 import { cancelJob, handOverJob, type JobFile } from '../services/bots/jobs';
@@ -12,6 +14,7 @@ import { badInput, notFound, owned, requireViewer } from './guards';
 
 const MAX_INSTRUCTIONS = 4000;
 const MAX_ATTACHMENTS = 5;
+const MAX_DELIVERABLE = 100_000;
 const MAX_RECENT_JOBS = 20;
 /** Jobs in the queue or running at once per Organization, to keep cost and the server in check. */
 const MAX_WORKING_JOBS = 3;
@@ -36,12 +39,11 @@ function validInstructions(raw: string): string {
   const instructions = raw.trim();
   if (!instructions) badInput('Diga o que precisa ser feito');
   if (instructions.length > MAX_INSTRUCTIONS) {
-    badInput(`Descreva o Trabalho em até ${MAX_INSTRUCTIONS} caracteres`);
+    badInput(`Descreva o Workflow em até ${MAX_INSTRUCTIONS} caracteres`);
   }
   return instructions;
 }
 
-/** Saves a Job and starts it; refused while the server has no Model provider. */
 /** Refuses new work while the Organization already has the most Jobs in progress. */
 async function requireRoom(viewer: Viewer) {
   const working = await db
@@ -50,14 +52,28 @@ async function requireRoom(viewer: Viewer) {
     .where(and(owned(schema.job, viewer), inArray(schema.job.status, ['QUEUED', 'RUNNING'])));
   if (working.length >= MAX_WORKING_JOBS) {
     badInput(
-      `Já há ${MAX_WORKING_JOBS} Trabalhos em andamento. Espere um terminar para pedir outro.`
+      `Já há ${MAX_WORKING_JOBS} Workflows em andamento. Espere um terminar para pedir outro.`
     );
   }
 }
 
+/** Refuses a Job past the month's Limit of the Organization's Plan (docs/adr/0011). */
+async function requireAllowance(viewer: Viewer) {
+  try {
+    await requireWithinLimit(viewer, 'jobs');
+  } catch (error) {
+    if (error instanceof PlanLimitError) {
+      throw new GraphQLError(error.message, { extensions: { code: 'PLAN_LIMIT' } });
+    }
+    throw error;
+  }
+}
+
+/** Saves a Job and starts it; refused while the server has no Model provider. */
 async function handOver(viewer: Viewer, botId: string, instructions: string, files: JobFile[]) {
   requireAi();
   await requireRoom(viewer);
+  await requireAllowance(viewer);
   return handOverJob(viewer, { botId, files, instructions });
 }
 
@@ -111,6 +127,9 @@ export const botResolvers: Resolvers = {
         .where(eq(schema.attachment.jobId, job.id))
         .orderBy(asc(schema.attachment.createdAt)),
     bot: job => botById(job.botId),
+    deliverable: job => job.editedDeliverable ?? job.deliverable,
+    edited: job => job.editedDeliverable !== null,
+    originalDeliverable: job => job.deliverable,
     routine: async job => {
       if (!job.routineId) return null;
       const [row] = await db
@@ -140,6 +159,7 @@ export const botResolvers: Resolvers = {
         .from(schema.routine)
         .where(owned(schema.routine, viewer));
       if (existing.length >= MAX_ROUTINES) badInput(`Mantenha até ${MAX_ROUTINES} Rotinas`);
+      await requireAllowance(viewer);
       const now = new Date();
       const [routine] = await db
         .insert(schema.routine)
@@ -169,9 +189,29 @@ export const botResolvers: Resolvers = {
         .select()
         .from(schema.job)
         .where(owned(schema.job, viewer, id));
-      if (!job) notFound('Trabalho');
-      if (!(await cancelJob(job.id))) badInput('Este Trabalho já terminou');
+      if (!job) notFound('Workflow');
+      if (!(await cancelJob(job.id))) badInput('Este Workflow já terminou');
       const [row] = await db.select().from(schema.job).where(eq(schema.job.id, job.id));
+      return row!;
+    },
+    editDeliverable: async (_, { id, text }, context) => {
+      const viewer = requireViewer(context);
+      const [job] = await db
+        .select()
+        .from(schema.job)
+        .where(owned(schema.job, viewer, id));
+      if (!job) notFound('Workflow');
+      if (job.status !== 'DONE') badInput('Só a Entrega de um Workflow pronto pode ser editada');
+      if (text != null && text.length > MAX_DELIVERABLE) {
+        badInput(`A Entrega cabe em até ${MAX_DELIVERABLE} caracteres`);
+      }
+      // Saving the Bot's own text again is the same as restoring it.
+      const edited = text == null || text === job.deliverable ? null : text;
+      const [row] = await db
+        .update(schema.job)
+        .set({ editedDeliverable: edited })
+        .where(owned(schema.job, viewer, id))
+        .returning();
       return row!;
     },
     retryJob: async (_, { id }, context) => {
@@ -180,8 +220,8 @@ export const botResolvers: Resolvers = {
         .select()
         .from(schema.job)
         .where(owned(schema.job, viewer, id));
-      if (!failed) notFound('Trabalho');
-      if (failed.status !== 'FAILED') badInput('Só um Trabalho que falhou pode ser pedido de novo');
+      if (!failed) notFound('Workflow');
+      if (failed.status !== 'FAILED') badInput('Só um Workflow que falhou pode ser pedido de novo');
       const files = await db
         .select()
         .from(schema.attachment)

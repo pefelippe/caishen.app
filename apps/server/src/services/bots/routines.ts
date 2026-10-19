@@ -1,6 +1,7 @@
 import { db, schema, type RoutineRow } from '@zapbots/database';
 import { and, eq, isNull, lte } from 'drizzle-orm';
 
+import { PlanLimitError, requireWithinLimit } from '../billing/billing';
 import { aiConfigured } from '../models';
 import { handOverJob } from './jobs';
 
@@ -55,10 +56,35 @@ export async function runDueRoutines(now = new Date()): Promise<number> {
         )
       );
     if (!member) continue;
-    await handOverJob(
-      { organizationId: routine.organizationId, role: member.role, userId: routine.createdById },
-      { botId: routine.botId, files: [], instructions: routine.instructions, routineId: routine.id }
-    );
+    const viewer = {
+      organizationId: routine.organizationId,
+      role: member.role,
+      userId: routine.createdById,
+    };
+    const job = {
+      botId: routine.botId,
+      files: [],
+      instructions: routine.instructions,
+      routineId: routine.id,
+    };
+    try {
+      await requireWithinLimit(viewer, 'jobs');
+    } catch (error) {
+      if (!(error instanceof PlanLimitError)) throw error;
+      // Past the Limit the run still shows up, as a failed Job, so the Routine raises an Alert.
+      await db.insert(schema.job).values({
+        botId: job.botId,
+        createdById: viewer.userId,
+        error: error.message,
+        finishedAt: now,
+        instructions: job.instructions,
+        organizationId: viewer.organizationId,
+        routineId: job.routineId,
+        status: 'FAILED',
+      });
+      continue;
+    }
+    await handOverJob(viewer, job);
     handed += 1;
   }
   return handed;

@@ -45,9 +45,9 @@ export interface IntegrationGroup {
 
 export const INTEGRATION_GROUPS: IntegrationGroup[] = [
   {
-    description: 'De onde vêm os Modelos de linguagem que os Bots usam.',
+    description: 'De onde vêm os Modelos de linguagem que o Caishen usa.',
     icon: SparklesIcon,
-    id: 'provedores-de-ia',
+    id: 'ai-providers',
     kinds: ['OPENROUTER'],
     title: 'Provedores de IA',
     upcoming: [
@@ -57,9 +57,9 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
     ],
   },
   {
-    description: 'Os arquivos que você entrega aos Bots junto com um Trabalho.',
+    description: 'Os arquivos que você entrega ao Caishen junto com um Workflow.',
     icon: ArchiveIcon,
-    id: 'arquivos',
+    id: 'files',
     kinds: ['GOOGLE_DRIVE'],
     title: 'Armazenamento de arquivos',
     upcoming: [
@@ -69,7 +69,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
     ],
   },
   {
-    description: 'Para os Bots lerem faturas, extratos e avisos que chegam por e-mail.',
+    description: 'Para o Caishen ler faturas, extratos e avisos que chegam por e-mail.',
     icon: MailIcon,
     id: 'email',
     kinds: [],
@@ -80,7 +80,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
     ],
   },
   {
-    description: 'Para os Bots acompanharem prazos e vencimentos.',
+    description: 'Para o Caishen acompanhar prazos e vencimentos.',
     icon: CalendarIcon,
     id: 'agenda',
     kinds: [],
@@ -112,12 +112,12 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
 const COPY: Record<ConnectionKind, { description: string; name: string }> = {
   GOOGLE_DRIVE: {
     description:
-      'O zapbots só enxerga os arquivos que você escolher no seletor do Google, e os Bots leem o texto dos que você entregar num Trabalho: Google Docs, PDFs com texto e arquivos de texto.',
+      'O Caishen só enxerga os arquivos que você escolher no seletor do Google e lê o texto dos que você entregar num Workflow: Google Docs, PDFs com texto e arquivos de texto.',
     name: 'Google Drive',
   },
   OPENROUTER: {
     description:
-      'Dá acesso a Modelos de vários fornecedores, inclusive gratuitos. A chave fica no servidor e vale para todos os Bots.',
+      'Dá acesso a Modelos de vários fornecedores, inclusive gratuitos. A chave fica no servidor e vale para todas as contas.',
     name: 'OpenRouter',
   },
 };
@@ -136,7 +136,7 @@ function Mark({ live, name }: { live: boolean; name: string }) {
     <span
       aria-hidden
       className={cn(
-        'grid size-10 shrink-0 place-items-center rounded-lg border font-serif text-lg',
+        'grid size-10 shrink-0 place-items-center rounded-lg border text-lg font-semibold',
         live ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
       )}
     >
@@ -148,14 +148,19 @@ function Mark({ live, name }: { live: boolean; name: string }) {
 const matches = (search: string, ...texts: string[]) =>
   !search || texts.some(text => text.toLocaleLowerCase('pt-BR').includes(search));
 
-/** Integrations with services outside zapbots, by kind of service, with a search on top. */
-export function ConnectionsSettings() {
+/**
+ * Integrations with services outside zapbots, by kind of service, with a search on top; `group`
+ * narrows it to one kind.
+ */
+export function ConnectionsSettings({ group: only }: { group?: string }) {
   const { data, loading } = useQuery(ConnectionsDocument, { fetchPolicy: 'cache-and-network' });
   const [error, setError] = useState<string | null>(null);
   const [term, setTerm] = useState('');
 
   if (loading && !data) return <PageSkeleton />;
   const search = term.trim().toLocaleLowerCase('pt-BR');
+  const groups = INTEGRATION_GROUPS.filter(group => !only || group.id === only);
+  const current = only ? groups[0] : undefined;
 
   const connect = async () => {
     setError(null);
@@ -164,12 +169,13 @@ export function ConnectionsSettings() {
   };
 
   return (
-    <section className="flex flex-col gap-8" id="integracoes">
+    <section className="flex flex-col gap-8">
       <header className="flex flex-col gap-4">
         <div>
-          <h2>Integrações</h2>
+          <h1>{current?.title ?? 'Integrações'}</h1>
           <p className="mt-1 max-w-prose text-muted-foreground">
-            As ferramentas em que os Bots entram por você. Eles só leem: nada é alterado lá fora.
+            {current?.description ??
+              'As ferramentas em que o Caishen entra por você. Ele só lê: nada é alterado lá fora.'}
           </p>
         </div>
         <div className="relative max-w-sm">
@@ -184,7 +190,7 @@ export function ConnectionsSettings() {
         </div>
       </header>
 
-      {INTEGRATION_GROUPS.map(group => {
+      {groups.map(group => {
         const live = group.kinds
           .map(kind => data?.connections.find(item => item.kind === kind))
           .filter((item): item is Connection => Boolean(item))
@@ -196,13 +202,15 @@ export function ConnectionsSettings() {
         const Icon = group.icon;
         return (
           <section className="flex scroll-mt-6 flex-col gap-3" id={group.id} key={group.id}>
-            <div>
-              <h3 className="flex items-center gap-2 font-serif text-2xl">
-                <Icon className="size-5" />
-                {group.title}
-              </h3>
-              <p className="text-muted-foreground">{group.description}</p>
-            </div>
+            {!current && (
+              <div>
+                <h3 className="flex items-center gap-2 text-lg font-semibold">
+                  <Icon className="size-5" />
+                  {group.title}
+                </h3>
+                <p className="text-muted-foreground">{group.description}</p>
+              </div>
+            )}
             {live.length > 0 && (
               <ul className="flex flex-col gap-3">
                 {live.map(connection => (
@@ -265,7 +273,7 @@ function Details({ connection }: { connection: Connection }): ReactNode {
       )}
       {drive && connection.connected && (
         <p className="text-xs text-muted-foreground">
-          Para desconectar, remova o acesso do zapbots em myaccount.google.com/permissions.
+          Para desconectar, remova o acesso do Caishen em myaccount.google.com/permissions.
         </p>
       )}
     </>
