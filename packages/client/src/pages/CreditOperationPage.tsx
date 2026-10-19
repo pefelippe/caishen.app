@@ -46,15 +46,19 @@ export function CreditOperationPage() {
   const market = operation.marketRate;
   const vsMarket = market ? operation.monthlyRate / market.monthlyRate - 1 : null;
 
+  // Back to the section the Operation is listed in.
+  const section = '/caishen/obligations';
+  const sectionLabel = 'Obrigações';
+
   const onDelete = async () => {
     await remove({ variables: { id: operation.id } });
-    navigate('/caishen/financas');
+    navigate(section);
   };
 
   return (
     <div className="flex flex-col gap-8" data-bot="FINANCE">
       <div>
-        <BackLink to="/caishen/financas">Finanças</BackLink>
+        <BackLink to={section}>{sectionLabel}</BackLink>
         <h1>{operation.name}</h1>
         <p className="text-muted-foreground">
           {operation.modalityLabel}

@@ -58,6 +58,7 @@ query Holder($id: ID!) {
       id
       name
       lender
+      modality
       modalityLabel
       principalCents
       monthlyRate

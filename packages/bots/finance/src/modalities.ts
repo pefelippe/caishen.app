@@ -42,3 +42,13 @@ export const MODALITIES = {
 export type Modality = keyof typeof MODALITIES;
 
 export const MODALITY_KEYS = Object.keys(MODALITIES) as [Modality, ...Modality[]];
+
+/** The Modalities that pay for a good (a vehicle, a home, other goods): the Financiamentos. */
+export const FINANCING_MODALITIES: readonly Modality[] = [
+  'GOODS_FINANCING',
+  'REAL_ESTATE_FINANCING',
+  'VEHICLE_FINANCING',
+];
+
+/** Whether an Operation is a Financiamento; every other one is an Empréstimo. */
+export const isFinancing = (modality: Modality): boolean => FINANCING_MODALITIES.includes(modality);
