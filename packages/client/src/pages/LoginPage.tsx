@@ -1,29 +1,71 @@
-import { useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-import { BotGlyph } from '../components/BotGlyph';
 import { FormError } from '../components/FormError';
 import { authClient } from '../lib/auth';
 
+/** Where the sign-in link goes: by email, back to this page (local server, no email set up) or
+ * only to the server console. */
+type Methods = { google: boolean; link: 'console' | 'email' | 'page' };
+
+/** Errors Better Auth puts in `?error=` when an email link cannot be used. */
+const LINK_ERRORS: Record<string, string> = {
+  EXPIRED_TOKEN: 'O link expirou. Peça um novo.',
+  INVALID_TOKEN: 'O link é inválido ou já foi usado. Peça um novo.',
+};
+
 /**
- * Google is the only way in; the first sign-in creates the User. When the server runs with
- * DEMO_MODE, a second button signs in as the shared, mocked demo User.
+ * Two ways in, no password: a sign-in link sent by email, and Google when the server has its
+ * OAuth client. The first sign-in creates the User.
  */
 export function LoginPage() {
-  const [error, setError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const linkError = searchParams.get('error');
+  const [error, setError] = useState<string | null>(
+    linkError ? (LINK_ERRORS[linkError] ?? 'Não foi possível entrar com o link.') : null
+  );
   const [pending, setPending] = useState(false);
-  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [methods, setMethods] = useState<Methods>({ google: false, link: 'email' });
+  const [email, setEmail] = useState('');
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [localLink, setLocalLink] = useState<string | null>(null);
 
   useEffect(() => {
     void authClient
-      .$fetch<{ enabled: boolean }>('/demo', { method: 'GET' })
-      .then(({ data }) => setDemoEnabled(Boolean(data?.enabled)));
+      .$fetch<Methods>('/sign-in-methods', { method: 'GET' })
+      .then(({ data }) => data && setMethods(data));
   }, []);
 
-  const signIn = async () => {
+  const sendLink = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+    const result = await authClient.signIn.magicLink({
+      callbackURL: window.location.origin,
+      email: email.trim(),
+      errorCallbackURL: `${window.location.origin}/sign-in`,
+    });
+    if (result.error) {
+      setError(result.error.message ?? 'Não foi possível enviar o link');
+      setPending(false);
+      return;
+    }
+    if (methods.link === 'page') {
+      const { data } = await authClient.$fetch<{ url: string | null }>('/sign-in/local-link', {
+        body: { email: email.trim() },
+        method: 'POST',
+      });
+      setLocalLink(data?.url ?? null);
+    }
+    setPending(false);
+    setSentTo(email.trim());
+  };
+
+  const signInWithGoogle = async () => {
     setError(null);
     setPending(true);
     const result = await authClient.signIn.social({
@@ -37,53 +79,85 @@ export function LoginPage() {
     }
   };
 
-  const signInAsDemo = async () => {
-    setError(null);
-    setPending(true);
-    const { error: demoError } = await authClient.$fetch('/demo/sign-in', { method: 'POST' });
-    if (demoError) {
-      setError(demoError.message ?? 'Não foi possível entrar na demo');
-      setPending(false);
-    } else window.location.reload();
-  };
-
   return (
-    <div className="grid min-h-svh place-items-center p-6">
-      <div className="flex w-full max-w-sm flex-col gap-8">
+    <main className="grid min-h-svh place-items-center px-4 py-12">
+      <div className="page-enter flex w-full max-w-md flex-col gap-12">
+        <h1 className="text-center font-serif text-[clamp(4.5rem,14vw,8.5rem)] leading-[0.9] font-normal tracking-[-0.04em] italic">
+          Caishen
+        </h1>
         <div className="flex flex-col gap-3">
-          <BotGlyph bot="FINANCE" size={40} />
-          <span className="font-serif text-6xl leading-none tracking-tight italic">zapbots</span>
-          <p className="text-base text-muted-foreground">
-            Bots que entram nas suas ferramentas e voltam com o trabalho pronto. O primeiro é o
-            Caishen, seu assistente financeiro.
-          </p>
-        </div>
-        <Card>
-          <CardContent className="flex flex-col gap-3">
-            <Button disabled={pending} onClick={() => void signIn()} size="lg" variant="outline">
-              <GoogleIcon />
-              {pending ? 'Redirecionando…' : 'Entrar com Google'}
-            </Button>
-            {demoEnabled && (
-              <>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Separator className="flex-1" />
-                  ou
-                  <Separator className="flex-1" />
-                </div>
-                <Button disabled={pending} onClick={() => void signInAsDemo()} size="lg">
-                  Entrar na demo
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Usuário de demonstração compartilhado, sem login com Google.
+          {sentTo ? (
+            <div className="flex flex-col gap-3 text-center">
+              {methods.link === 'email' ? (
+                <p className="text-base">
+                  Enviamos um link para <span className="font-medium">{sentTo}</span>. Abra o e-mail
+                  neste navegador para entrar; o link vale por 15 minutos.
                 </p>
-              </>
-            )}
-            {error && <FormError message={error} />}
-          </CardContent>
-        </Card>
+              ) : (
+                <p className="text-base">
+                  Este servidor não envia e-mails (falta <code>RESEND_API_KEY</code>). O link para{' '}
+                  <span className="font-medium">{sentTo}</span> está no terminal do servidor
+                  {localLink ? ', ou abra-o aqui.' : '.'}
+                </p>
+              )}
+              {localLink && (
+                <Button asChild className="h-12 text-base" size="lg">
+                  <a href={localLink}>Entrar como {sentTo}</a>
+                </Button>
+              )}
+              <Button
+                className="self-center px-0"
+                onClick={() => {
+                  setSentTo(null);
+                  setLocalLink(null);
+                }}
+                variant="link"
+              >
+                Usar outro e-mail
+              </Button>
+            </div>
+          ) : (
+            <form className="flex flex-col gap-3" onSubmit={event => void sendLink(event)}>
+              <div>
+                <Label className="sr-only" htmlFor="email">
+                  E-mail
+                </Label>
+                <Input
+                  autoComplete="email"
+                  autoFocus
+                  className="h-12 px-4 text-base shadow-none md:text-base"
+                  id="email"
+                  onChange={event => setEmail(event.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  type="email"
+                  value={email}
+                />
+              </div>
+              <Button className="h-12 text-base" disabled={pending} size="lg" type="submit">
+                {pending ? 'Enviando…' : 'Receber link de acesso'}
+              </Button>
+            </form>
+          )}
+          {methods.google && (
+            <>
+              <p className="text-center text-sm text-muted-foreground">ou</p>
+              <Button
+                className="h-12 text-base"
+                disabled={pending}
+                onClick={() => void signInWithGoogle()}
+                size="lg"
+                variant="secondary"
+              >
+                <GoogleIcon />
+                Entrar com Google
+              </Button>
+            </>
+          )}
+          {error && <FormError message={error} />}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
 

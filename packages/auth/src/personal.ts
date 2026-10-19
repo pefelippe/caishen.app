@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 
 /**
  * Gives a User their personal Organization (docs/adr/0007) unless they already belong to one.
- * Writes the rows directly, like `ensureDemoUser`: the organization plugin's API needs a session,
+ * Writes the rows directly: the organization plugin's API needs a session,
  * which does not exist yet when the User is being created.
  */
 export async function ensurePersonalOrganization(userId: string, name: string): Promise<void> {

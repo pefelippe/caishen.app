@@ -1,29 +1,9 @@
-import { demoEnabled } from '@zapbots/auth';
-
-import { DEMO_MODEL, streamDemoCompletion } from './demoModel';
-import * as openrouter from './openrouter';
-
-export { OpenRouterError as ModelError } from './openrouter';
+/** Where Bots get their Models: OpenRouter serves every one (docs/adr/0009). */
+export {
+  aiConfigured,
+  defaultModel,
+  listModels,
+  OpenRouterError as ModelError,
+  streamCompletion,
+} from './openrouter';
 export type { ChatMessage, Model, ToolCall, ToolDefinition } from './openrouter';
-
-/**
- * Where Bots get their Models. OpenRouter serves the real ones; in demo mode a local stand-in
- * is added, and it becomes the default while there is no OpenRouter key.
- */
-export const aiConfigured = () => openrouter.aiConfigured() || demoEnabled;
-
-export async function listModels() {
-  const models = await openrouter.listModels();
-  return demoEnabled ? [DEMO_MODEL, ...models] : models;
-}
-
-export async function defaultModel(): Promise<string> {
-  if (demoEnabled && !openrouter.aiConfigured()) return DEMO_MODEL.id;
-  return openrouter.defaultModel();
-}
-
-export function streamCompletion(options: Parameters<typeof openrouter.streamCompletion>[0]) {
-  return demoEnabled && options.model === DEMO_MODEL.id
-    ? streamDemoCompletion(options)
-    : openrouter.streamCompletion(options);
-}

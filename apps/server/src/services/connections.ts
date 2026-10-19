@@ -1,4 +1,4 @@
-import { demoEnabled, type Viewer } from '@zapbots/auth';
+import type { Viewer } from '@zapbots/auth';
 import { db, schema } from '@zapbots/database';
 import type { ConnectionCategory, ConnectionKind } from '@zapbots/graphql/server';
 import { and, eq } from 'drizzle-orm';
@@ -29,9 +29,7 @@ const openRouter: Provider = {
       return {
         available: true,
         connected: false,
-        detail: demoEnabled
-          ? 'No modo demo os Bots respondem com um substituto local, que não é IA.'
-          : null,
+        detail: null,
         unavailableReason: 'O servidor está sem a chave do OpenRouter (OPENROUTER_API_KEY).',
       };
     }
@@ -60,7 +58,7 @@ const googleDrive: Provider = {
     const unavailableReason = !googleConfigured()
       ? 'O servidor está sem as credenciais do Google (GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET).'
       : !google
-        ? 'Entre com sua conta Google para conectar o Drive. O usuário de demonstração não tem uma.'
+        ? 'Entre com sua conta Google para conectar o Drive.'
         : null;
     return {
       available: true,
