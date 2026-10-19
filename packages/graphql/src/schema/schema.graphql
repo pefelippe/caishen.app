@@ -116,6 +116,9 @@ type Query {
   organization: Organization!
   "What the Organization used this month (São Paulo calendar)."
   usage: Usage!
+  "The Organization's Plan, Limits and what it used this month (docs/adr/0011)."
+  billing: Billing!
+  plans: [Plan!]!
   holders: [Holder!]!
   holder(id: ID!): Holder
   creditOperation(id: ID!): CreditOperation
@@ -123,6 +126,14 @@ type Query {
 }
 
 type Mutation {
+  "A Stripe Checkout page for the Pro Plan; owners and admins only."
+  startCheckout: String!
+  "Stripe's portal to manage the Subscription; owners and admins only."
+  openBillingPortal: String!
+  "Adds a Usage code's Jobs and Messages to this month's Limit; owners and admins only."
+  redeemUsageCode(code: String!): Billing!
+  "Renames the Viewer's Organization; owners and admins only."
+  renameOrganization(name: String!): Organization!
   "Picks the Model a Bot uses; null goes back to the server default."
   setBotModel(id: ID!, model: String): Bot!
   startConversation(botId: ID!): Conversation!
@@ -633,4 +644,42 @@ input CreateRoutineInput {
   botId: ID!
   instructions: String!
   cadence: RoutineCadence!
+}
+
+enum PlanKey {
+  FREE
+  PRO
+}
+
+type Plan {
+  key: PlanKey!
+  name: String!
+  "Per month, for display; Stripe charges its own Price."
+  priceCents: Cents!
+  "Jobs per month."
+  jobs: Int!
+  "Messages per month."
+  messages: Int!
+}
+
+type Allowance {
+  jobs: Int!
+  messages: Int!
+}
+
+type Billing {
+  "False while the server has no Stripe keys: paid Plans cannot be bought."
+  configured: Boolean!
+  plan: Plan!
+  "Stripe's status of the Subscription, null if there never was one."
+  status: String
+  currentPeriodEnd: DateTime
+  cancelAtPeriodEnd: Boolean!
+  "Whether Stripe knows the Organization, so the portal can open."
+  hasCustomer: Boolean!
+  "Plan plus credits."
+  limits: Allowance!
+  "From Usage codes redeemed this month."
+  credits: Allowance!
+  used: Allowance!
 }

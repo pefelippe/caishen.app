@@ -2,6 +2,7 @@ import { MODALITY_KEYS } from '@zapbots/finance';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
   date,
   index,
   integer,
@@ -358,4 +359,60 @@ export const scrEntry = pgTable('scr_entry', {
   scrSnapshotId: uuid('scr_snapshot_id')
     .notNull()
     .references(() => scrSnapshot.id, { onDelete: 'cascade' }),
+});
+
+export const plan = pgEnum('plan', ['FREE', 'PRO']);
+
+/**
+ * Subscription: an Organization's paid Plan, as Stripe last reported it (docs/adr/0011). An
+ * Organization without one, or with one no longer active, is on the free Plan.
+ */
+export const subscription = pgTable('subscription', {
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+  currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: organizationId().unique(),
+  plan: plan('plan').notNull().default('FREE'),
+  /** Stripe's own status: `active`, `trialing`, `past_due`, `canceled`… */
+  status: text('status').notNull().default('incomplete'),
+  stripeCustomerId: text('stripe_customer_id').unique(),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  ...timestamps,
+});
+
+/** Usage code: adds Jobs and Messages to the Limit of the month it is redeemed in. */
+export const usageCode = pgTable('usage_code', {
+  /** Upper case, as typed. */
+  code: text('code').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobs: integer('jobs').notNull().default(0),
+  /** How many Organizations may redeem it; null for no cap. */
+  maxRedemptions: integer('max_redemptions'),
+  messages: integer('messages').notNull().default(0),
+  ...timestamps,
+});
+
+export const usageCodeRedemption = pgTable(
+  'usage_code_redemption',
+  {
+    codeId: uuid('code_id')
+      .notNull()
+      .references(() => usageCode.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: organizationId(),
+    redeemedAt: timestamp('redeemed_at', { withTimezone: true }).notNull().defaultNow(),
+    redeemedById: text('redeemed_by_id').references(() => user.id, { onDelete: 'set null' }),
+  },
+  table => [
+    unique('usage_code_redemption_once').on(table.codeId, table.organizationId),
+    index('usage_code_redemption_organization_idx').on(table.organizationId),
+  ]
+);
+
+/** Stripe events already handled, so a webhook delivered twice changes nothing the second time. */
+export const stripeEvent = pgTable('stripe_event', {
+  id: text('id').primaryKey(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  type: text('type').notNull(),
 });

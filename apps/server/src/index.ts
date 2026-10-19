@@ -7,6 +7,8 @@ import cors from 'cors';
 import express from 'express';
 
 import { resolvers } from './resolvers';
+import { handleStripeEvent } from './services/billing/billing';
+import { verifyWebhook } from './services/billing/stripe';
 import { ChatError, replyInConversation, type ChatEvent } from './services/bots/chat';
 import { failInterruptedJobs } from './services/bots/jobs';
 import { startRoutineClock } from './services/bots/routines';
@@ -20,6 +22,26 @@ app.use(cors({ credentials: true, origin: clientOrigin }));
 
 // Better Auth reads the raw body itself, so it must be mounted before express.json().
 app.all('/api/auth/*splat', toNodeHandler(auth));
+
+// Stripe signs the raw body, so the webhook reads it untouched (docs/adr/0011).
+app.post('/api/billing/webhook', express.text({ type: '*/*' }), async (req, res) => {
+  const event = verifyWebhook(
+    typeof req.body === 'string' ? req.body : '',
+    req.header('stripe-signature')
+  );
+  if (!event) {
+    res.status(400).json({ message: 'Assinatura inválida' });
+    return;
+  }
+  try {
+    await handleStripeEvent(event);
+    res.json({ received: true });
+  } catch (error) {
+    console.error('stripe webhook failed:', error);
+    // Stripe retries a failed delivery later.
+    res.status(500).json({ message: 'Falhou' });
+  }
+});
 
 app.get('/health', (_, res) => {
   res.json({ ok: true });
