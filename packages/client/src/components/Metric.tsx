@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 /** Grid that lays out Metrics side by side, wrapping on narrow screens. */
@@ -20,13 +19,13 @@ interface Props {
   valueClassName?: string;
 }
 
-/** A ledger entry: small label, the figure in the mono face, a rule on the left. */
+/** A ledger entry: the label, the figure in tabular digits under it, and an optional note. */
 export function Metric({ label, note, noteClassName, value, valueClassName }: Props) {
   return (
-    <Card className="gap-0.5 rounded-none border-0 border-l border-border bg-transparent py-0.5 pl-3">
-      <span className="text-xs tracking-wide text-muted-foreground uppercase">{label}</span>
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-sm text-muted-foreground">{label}</span>
       <strong className={cn('text-lg font-medium tabular-nums', valueClassName)}>{value}</strong>
-      {note && <span className={cn('text-xs text-muted-foreground', noteClassName)}>{note}</span>}
-    </Card>
+      {note && <span className={cn('text-sm text-muted-foreground', noteClassName)}>{note}</span>}
+    </div>
   );
 }
