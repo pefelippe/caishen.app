@@ -18,28 +18,29 @@ _Avoid_: Buddy, agente, assistente, teammate (só no marketing)
 
 **Caishen** (`FINANCE`, código `finance`):
 O Bot de finanças. Lê as Finanças do Titular e os arquivos que recebe, conversa
-e faz Trabalhos sobre elas.
+e faz Workflows sobre elas.
 _Avoid_: Cifra (o antigo Buddy de Finanças)
 
 **Equipe**:
 Os Bots que um Usuário tem. Hoje é o catálogo inteiro.
 _Avoid_: time, workspace
 
-**Trabalho** (`Job`):
+**Workflow** (`Job`):
 Um pedido feito a um Bot, que ele faz sozinho e em segundo plano até chegar a
-uma Entrega. Está na fila, trabalhando, pronto ou falhou. Um Trabalho
+uma Entrega. Está na fila, trabalhando, pronto ou falhou. Um Workflow
 interrompido termina como falho e precisa ser pedido de novo.
 _Avoid_: tarefa, pedido (como entidade)
 
 **Rotina** (`Routine`):
-O mesmo Trabalho pedido a um Bot de novo toda semana ou todo mês, com os dados
-do dia. A primeira Entrega sai na hora; parar a Rotina não apaga os Trabalhos
+O mesmo Workflow pedido a um Bot de novo toda semana ou todo mês, com os dados
+do dia. A primeira Entrega sai na hora; parar a Rotina não apaga os Workflows
 que ela já pediu. Uma Rotina pausada não roda até ser retomada.
 _Avoid_: agendamento, recorrência, cron
 
 **Entrega** (`Deliverable`):
-O resultado pronto de um Trabalho: um texto para usar como está (um plano, uma
-análise, um resumo).
+O resultado pronto de um Workflow: um texto (um plano, uma análise, um resumo).
+O Usuário pode ajustá-lo; a versão que o Bot escreveu fica guardada e pode ser
+restaurada. Seu nome é a primeira linha do texto.
 _Avoid_: resposta, relatório, output
 
 **Aviso** (`Alert`):
@@ -51,8 +52,9 @@ calculado a partir dos dados, não escrito por um Modelo.
 _Avoid_: notificação, alerta (como termo do código em pt-BR), Insight
 
 **Conversa** (`Conversation`):
-Uma troca salva de Mensagens entre o Usuário e um Bot.
-_Avoid_: chat (é a tela), thread
+Uma troca salva de Mensagens entre o Usuário e um Bot. Começa e é reaberta no
+chat: a página Chat ou o painel ao lado de qualquer tela.
+_Avoid_: chat (é a página e o painel), thread
 
 **Mensagem** (`Message`):
 Uma fala do Usuário ou do Bot dentro de uma Conversa.
@@ -71,15 +73,22 @@ E-mail, Agenda ou Bancos. Os Bots só leem por uma Integração.
 _Avoid_: conexão, plugin, Fonte (essa é financeira)
 
 **Anexo** (`Attachment`):
-Um arquivo de uma Integração entregue a um Bot junto com um Trabalho.
-_Avoid_: documento, link
+Um arquivo de uma Integração entregue a um Bot junto com um Workflow.
+_Avoid_: documento (como entidade), link
+
+**Documentos**:
+A biblioteca da Organização com as Entregas dos Workflows prontos e os Anexos
+que os Bots receberam. Não é uma entidade: é o lugar onde as duas aparecem
+juntas. Uma Entrega abre na sua própria página; um Anexo abre na Integração de
+onde veio.
+_Avoid_: arquivos, biblioteca (como nome da tela)
 
 ### Acesso
 
 **Organização** (`Organization`):
 O espaço que isola dados; todo registro pertence a exatamente uma Organização.
-Cada Usuário ganha uma Organização pessoal no primeiro login, e ela não aparece
-na interface.
+Cada Usuário ganha uma Organização pessoal no primeiro login. Tem página
+própria, com o nome e os Usuários; o Plano é dela, mas tem página à parte.
 _Avoid_: tenant, workspace, conta
 
 **Usuário** (`User`):
@@ -94,6 +103,28 @@ O nível de permissão de um Membro: `admin` (gerencia Membros e configurações
 `member` (uso normal). Quem cria a Organização é `owner`, um `admin` que não pode
 ser removido.
 _Avoid_: perfil, permissão
+
+### Plano
+
+**Plano** (`Plan`):
+O nível de uso que a Organização contrata: Gratuito ou Pro. Cada Plano tem um
+Limite mensal de Workflows e de Mensagens.
+_Avoid_: pacote, tier
+
+**Assinatura** (`Subscription`):
+O pagamento recorrente de um Plano pago, feito pelo Stripe. Sem Assinatura
+ativa, a Organização está no Gratuito.
+_Avoid_: mensalidade, cobrança (como entidade)
+
+**Limite** (`PlanLimit`):
+Quantos Workflows e Mensagens a Organização pode pedir num mês do calendário de
+São Paulo: o do Plano mais os Créditos de Códigos de uso do mês.
+_Avoid_: cota
+
+**Código de uso** (`UsageCode`):
+Um código que um administrador resgata para somar Workflows e Mensagens ao
+Limite do mês em que foi resgatado. Cada Organização resgata um código uma vez.
+_Avoid_: cupom (esse é desconto no Stripe), voucher
 
 ### Finanças
 
@@ -116,6 +147,8 @@ _Avoid_: empréstimo ou financiamento como entidade, contrato, loan
 **Modalidade** (`Modality`):
 A classificação de uma Operação de Crédito segundo a tabela do SCR (ex.: crédito
 pessoal, consignado, financiamento de veículo, imobiliário).
+As Modalidades que pagam um bem (veículo, imóvel, outros bens) formam os
+Financiamentos; as demais, os Empréstimos. São grupos, não entidades.
 _Avoid_: tipo, categoria
 
 **Bem** (`Collateral`):

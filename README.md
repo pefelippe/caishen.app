@@ -11,12 +11,12 @@ O primeiro Bot é o **Caishen**, o assistente financeiro:
   taxa com a média de mercado do Bacen e gera uma Avaliação de crédito: um Score de 0 a 1000 nas
   faixas do SPC, com cada Operação no Estágio da Resolução CMN 4.966 (ADR 0005).
 - **Conversa**: o Caishen fica ao lado das telas de Finanças e responde sobre o que está nelas.
-- **Trabalhos**: você pede um plano ou uma análise e pode entregar arquivos do Google Drive (Google
+- **Workflows**: você pede um plano ou uma análise e pode entregar arquivos do Google Drive (Google
   Docs, PDFs com texto, arquivos de texto). Ele trabalha em segundo plano, a Entrega aparece
-  enquanto é escrita, dá para cancelar no meio, e um Trabalho que falhou pode ser pedido de novo
-  (ADR 0010). Se o Modelo escolhido falhar do lado dele, o Trabalho tenta uma vez com o Modelo
-  padrão. Cada Organização tem no máximo 3 Trabalhos em andamento.
-- **Rotinas**: o mesmo Trabalho toda semana ou todo mês, com os dados do dia; podem ser pausadas.
+  enquanto é escrita, dá para cancelar no meio, e um Workflow que falhou pode ser pedido de novo
+  (ADR 0010). Se o Modelo escolhido falhar do lado dele, o Workflow tenta uma vez com o Modelo
+  padrão. Cada Organização tem no máximo 3 Workflows em andamento.
+- **Rotinas**: o mesmo Workflow toda semana ou todo mês, com os dados do dia; podem ser pausadas.
 - **Avisos**: o que está em atraso, o que vence em 7 dias, Cartão perto do limite, taxas bem acima
   do mercado e Avaliação desatualizada, calculados sem IA.
 - **Simulação**: na tela de cada Operação, quanto uma Amortização Extraordinária economiza em juros
@@ -29,7 +29,7 @@ Extraordinária, comparação com a Taxa Média de Mercado, Faturas, Indicadores
 Plano de Quitação e os próprios Avisos) e
 lembra das últimas Entregas que fez.
 
-A página **Equipe** lista os Bots, os Avisos, os últimos Trabalhos e o Modelo de cada um.
+A página **Equipe** lista os Bots, os Avisos, os últimos Workflows e o Modelo de cada um.
 
 Glossário em [`CONTEXT.md`](./CONTEXT.md), decisões em [`docs/adr/`](./docs/adr).
 
@@ -37,42 +37,47 @@ Glossário em [`CONTEXT.md`](./CONTEXT.md), decisões em [`docs/adr/`](./docs/ad
 
 Requisitos: Node 24.13, pnpm 11, Docker.
 
+O jeito rápido é `pnpm tui`: ele cria o `.env`, abre o Docker, instala, sobe o Postgres, migra e
+mostra server e client numa tela só. Detalhes em [`docs/local-development.md`](./docs/local-development.md).
+Na mão:
+
 ```sh
 cp .env.example .env
 pnpm install
 pnpm infra:up      # Postgres no Docker (porta 5433)
 pnpm db:migrate
-pnpm db:seed       # opcional: dados realistas para o usuário demo
 pnpm dev           # server :4000 · client http://localhost:5173
 ```
 
-O login é só com Google. Antes do primeiro `pnpm dev`, crie um OAuth Client do tipo "Web
-application" no [Google Cloud Console](https://console.cloud.google.com/apis/credentials) com a
+O login não tem senha: você informa o e-mail e recebe um link de acesso. Com `RESEND_API_KEY` no
+`.env` o link vai por e-mail (pelo [Resend](https://resend.com)); sem ela, aparece no terminal do
+servidor e, rodando em `localhost`, a própria tela de login oferece o botão para entrar.
+
+O login com Google é opcional. Para ligá-lo, crie um OAuth Client do tipo "Web application" no [Google Cloud Console](https://console.cloud.google.com/apis/credentials) com a
 origem `http://localhost:5173` e a redirect URI `http://localhost:5173/api/auth/callback/google`,
 e preencha `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no `.env`.
 
-Sem credenciais do Google, use o **modo demo**: com `DEMO_MODE=true` no `.env`, a tela de login
-mostra "Entrar na demo", que entra como um Usuário compartilhado (`demo@zapbots.local`, na
-"Organização Demo", criada no primeiro uso). O Postgres continua necessário. Nunca ative em produção.
-
 Os Bots usam o [OpenRouter](https://openrouter.ai/keys): uma chave em `OPENROUTER_API_KEY` dá
-acesso a Modelos de vários fornecedores, inclusive gratuitos, e o Modelo de cada Bot é escolhido na
-página Equipe. Sem a chave, no modo demo os Bots usam um Modelo de demonstração, sem IA: ele
-responde e entrega Trabalhos com um resumo dos dados. Fora do modo demo ficam em silêncio. Modelos
-gratuitos têm limite diário de uso.
+acesso a Modelos de vários fornecedores, inclusive gratuitos, e o Modelo de cada Bot é escolhido em
+Modelos. Sem a chave, os Bots ficam em silêncio e as telas explicam o que falta. Modelos gratuitos
+têm limite diário de uso.
 
-A Conexão com o Google Drive exige login com Google (não funciona no modo demo), a Google Drive API
+A Integração com o Google Drive exige login com Google, a Google Drive API
 e a Google Picker API habilitadas no projeto, e `VITE_GOOGLE_API_KEY` e `VITE_GOOGLE_APP_ID` no
 `.env`. O zapbots pede só o escopo `drive.file`: enxerga apenas os arquivos escolhidos no seletor.
 
-Para subir tudo em containers: `docker compose up --build` e acesse http://localhost:5173. Para os
-dados de demonstração: `docker compose exec server pnpm db:seed`.
+A cobrança do Plano Pro usa o [Stripe](https://dashboard.stripe.com/test/apikeys): preencha
+`STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO` (um Price mensal recorrente) e `STRIPE_WEBHOOK_SECRET`, e
+encaminhe os eventos com `stripe listen --forward-to localhost:4000/api/billing/webhook`. Sem as
+chaves, tudo roda no Plano Gratuito. Códigos de uso: `pnpm usage-code CODIGO --jobs 20 --messages 200`.
+
+Para subir tudo em containers: `docker compose up --build` e acesse http://localhost:5173.
 
 ## Estrutura
 
 | Pacote | O que é |
 | --- | --- |
-| `apps/server` | API GraphQL, autenticação (Better Auth), chat e Trabalhos dos Bots |
+| `apps/server` | API GraphQL, autenticação (Better Auth), chat e Workflows dos Bots |
 | `packages/client` | Web app React + shadcn/ui |
 | `packages/bots/finance` | O Caishen: entrada no catálogo e matemática financeira pura, com testes |
 | `packages/database` | Schema Drizzle e migrations |
@@ -94,5 +99,5 @@ dados de demonstração: `docker compose exec server pnpm db:seed`.
 - Compras parceladas no Cartão.
 - Operações pós-fixadas (IPCA/TR) e CET.
 - Conexões com Gmail e Open Finance, para o Caishen ler extratos e faturas sozinho (só leitura).
-- Uma fila de Trabalhos fora do processo do servidor, quando eles ficarem longos (ADR 0010).
+- Uma fila de Workflows fora do processo do servidor, quando eles ficarem longos (ADR 0010).
 - Os próximos Bots do catálogo.
