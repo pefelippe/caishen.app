@@ -1,7 +1,9 @@
 import type { Resolvers } from '@zapbots/graphql/server';
 
+import { billingResolvers } from './billing';
 import { botResolvers } from './bots';
 import { connectionResolvers } from './connections';
+import { documentResolvers } from './documents';
 import { holderResolvers } from './holders';
 import { obligationResolvers } from './obligations';
 import { scalars } from './scalars';
@@ -14,7 +16,9 @@ const modules: Resolvers[] = [
   scrResolvers,
   botResolvers,
   connectionResolvers,
+  documentResolvers,
   settingsResolvers,
+  billingResolvers,
 ];
 
 /** Merges per type, so several modules can each add fields to the same type (e.g. Holder). */

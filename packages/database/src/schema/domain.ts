@@ -219,8 +219,10 @@ export const job = pgTable(
       .notNull()
       .references(() => bot.id, { onDelete: 'cascade' }),
     createdById: text('created_by_id').references(() => user.id, { onDelete: 'set null' }),
-    /** The Deliverable, in plain text; set when `DONE`. */
+    /** The Deliverable as the Bot wrote it, in plain text; set when `DONE`. */
     deliverable: text('deliverable'),
+    /** The User's edit of the Deliverable, in Markdown; `null` keeps the Bot's. */
+    editedDeliverable: text('edited_deliverable'),
     /** Why the Job failed, in pt-BR; set when `FAILED`. */
     error: text('error'),
     finishedAt: timestamp('finished_at', { withTimezone: true }),

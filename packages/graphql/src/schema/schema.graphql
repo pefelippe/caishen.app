@@ -108,6 +108,8 @@ type Query {
   conversation(id: ID!): Conversation
   "Newest first."
   jobs(botId: ID!): [Job!]!
+  "Everything the team delivered and received: finished Deliverables and Attachments, newest first."
+  documents: Documents!
   "Oldest first."
   routines(botId: ID!): [Routine!]!
   job(id: ID!): Job
@@ -142,6 +144,8 @@ type Mutation {
   createJob(input: CreateJobInput!): Job!
   "Hands a failed Job over again as a new Job, with the same instructions and files."
   retryJob(id: ID!): Job!
+  "Saves the User's edit of a finished Job's Deliverable, in Markdown; `null` restores the Bot's text."
+  editDeliverable(id: ID!, text: String): Job!
   "Stops a Job in the queue or running; it ends as FAILED, cancelled by the User."
   cancelJob(id: ID!): Job!
   "Sets up a Routine and hands its first Job over right away."
@@ -293,8 +297,12 @@ type Job {
   bot: Bot!
   instructions: String!
   status: JobStatus!
-  "The finished work, in plain text, when `DONE`; while `RUNNING`, the part written so far."
+  "The finished work when `DONE`: the User's edit if there is one, else the Bot's text. While `RUNNING`, the part written so far."
   deliverable: String
+  "The Deliverable as the Bot wrote it, kept when the User edits it."
+  originalDeliverable: String
+  "Whether the User edited the Deliverable."
+  edited: Boolean!
   "Why the Job failed, in pt-BR; set when `FAILED`."
   error: String
   "OpenRouter id of the Model that wrote the Deliverable."
@@ -365,6 +373,17 @@ type Attachment {
   name: String!
   mimeType: String!
   url: String!
+  "The Job the file was handed over with."
+  jobId: ID!
+  createdAt: DateTime!
+}
+
+"The Documentos library: what the Bots delivered and the files they were given."
+type Documents {
+  "Jobs that are `DONE`, newest first, at most 100."
+  deliverables: [Job!]!
+  "Newest first, at most 100."
+  attachments: [Attachment!]!
 }
 
 type IncomeSource {

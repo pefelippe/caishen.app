@@ -54,6 +54,8 @@ query Job($id: ID!) {
   job(id: $id) {
     ...JobFields
     deliverable
+    originalDeliverable
+    edited
     error
     model
     startedAt
@@ -72,6 +74,15 @@ query Job($id: ID!) {
 mutation CreateJob($input: CreateJobInput!) {
   createJob(input: $input) {
     ...JobFields
+  }
+}
+
+mutation EditDeliverable($id: ID!, $text: String) {
+  editDeliverable(id: $id, text: $text) {
+    id
+    deliverable
+    originalDeliverable
+    edited
   }
 }
 
