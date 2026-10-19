@@ -1,0 +1,244 @@
+/* The landing page for visitors who are not signed in (LandingPage.tsx), scoped under .landing.
+   Two grounds only: the bone white and the pale gold. The ink is the only colour on actions. The
+   hero holds the app itself (LandingPreview.tsx), which keeps the app's own Tailwind look: these
+   tokens are prefixed so they never shadow the app's (`--muted`, `--ink`…), and the resets below
+   stop at `.preview`. The motion comes from `motion` in the component. */
+.landing {
+  --l-ground: #efeee9;
+  --l-gold-strong: #e8c96a;
+  --l-ink: #1e1a17;
+  --l-ink-soft: #3a332d;
+  --l-muted: #57504a;
+  --l-paper: #fffaf4;
+
+  --l-display: 'Libre Franklin', 'Helvetica Neue', Arial, sans-serif;
+
+  --step-small: 0.9375rem;
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  --step-title: clamp(2rem, 1.3rem + 2.2vw, 3.25rem);
+  --step-hero: clamp(2.125rem, 0.9rem + 6.4vw, 6.5rem);
+
+  /* one small side gutter, the same everywhere: content runs almost to the edges */
+  --g: clamp(16px, 1.5vw, 24px);
+  --bar: 88px;
+  --hero-pad: clamp(80px, 9vw, 152px);
+  --gap-s: 12px;
+  --gap-m: 24px;
+  --gap-l: clamp(48px, 6vw, 96px);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-ui: 200ms;
+
+  min-height: 100svh;
+  background: var(--l-ground);
+  color: var(--l-ink);
+  font: 400 var(--step-body) / 1.6 var(--l-display);
+  font-feature-settings: 'tnum' 1;
+  -webkit-font-smoothing: antialiased;
+}
+.landing img:where(:not(.preview *)) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.landing a:where(:not(.preview *)) {
+  color: inherit;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.18em;
+}
+.landing :is(h1, h2, h3, p, ul, dl, dd, figure):where(:not(.preview *)) {
+  margin: 0;
+}
+.landing ul:where(:not(.preview *)) {
+  padding: 0;
+  list-style: none;
+}
+.landing ::selection {
+  background: var(--l-ink);
+  color: var(--l-ground);
+}
+.landing :focus-visible:where(:not(.preview *)) {
+  outline: 3px solid var(--l-ink);
+  outline-offset: 3px;
+}
+.landing .skip {
+  position: absolute;
+  left: var(--g);
+  top: -100px;
+  z-index: 10;
+  padding: 8px 12px;
+  background: var(--l-ink);
+  color: var(--l-ground);
+}
+.landing .skip:focus {
+  top: var(--g);
+}
+
+/* ---------------------------------------------------------------- controls: round ink buttons */
+
+.landing .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  min-height: 52px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--l-ink);
+  color: var(--l-ground);
+  font: 700 var(--step-small) / 1 var(--l-display);
+  text-decoration: none;
+  transition:
+    transform var(--t-ui) var(--ease-out),
+    background-color var(--t-ui) ease;
+}
+.landing .button:hover {
+  transform: translateY(-2px);
+  background: var(--l-ink-soft);
+}
+.landing .button:active {
+  transform: translateY(0) scale(0.97);
+}
+.landing .button--large {
+  min-height: 64px;
+  padding: 0 40px;
+  font-size: 1.0625rem;
+}
+.landing .text-link {
+  font: 700 1.0625rem / 1.4 var(--l-display);
+  text-decoration: none;
+  transition: color var(--t-ui) ease;
+}
+.landing .text-link:hover {
+  color: var(--l-muted);
+}
+.landing .wordmark {
+  font: 700 1.5rem / 1 var(--l-display);
+  letter-spacing: -0.035em;
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------- bar */
+
+.landing .bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-m);
+  justify-content: space-between;
+  min-height: var(--bar);
+  padding: 0 var(--g);
+  background: var(--l-ground);
+}
+
+/* ---------------------------------------------------------------- hero: the words, the action, then the app */
+
+.landing .hero {
+  position: relative;
+  display: grid;
+  /* the app's tables must scroll inside it, never widen the page */
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: var(--gap-l);
+  padding: var(--hero-pad) var(--g) var(--g);
+  overflow: hidden;
+  text-align: center;
+}
+.landing .hero__copy {
+  display: grid;
+  justify-items: center;
+  max-width: 1100px;
+}
+.landing .hero__title {
+  font: 700 var(--step-hero) / 1 var(--l-display);
+  letter-spacing: -0.045em;
+}
+/* the turning words share one cell, so the one leaving and the one arriving never push the line */
+.landing .hero__topics {
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  height: 1.16em;
+  margin-top: 0.1em;
+  overflow: hidden;
+}
+/* the turning words sit on the gold, like a marker over the line */
+.landing .hero__topic {
+  grid-area: 1 / 1;
+  padding: 0 0.14em 0.04em;
+  border-radius: 0.12em;
+  background: var(--l-gold-strong);
+  line-height: 1.08;
+  white-space: nowrap;
+}
+.landing .hero__lead {
+  max-width: 30em;
+  margin-top: 36px;
+  color: var(--l-muted);
+  font: 400 var(--step-lead) / 1.4 var(--l-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.landing .hero__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-m) 32px;
+  margin-top: 48px;
+}
+.landing .hero__app {
+  width: 100%;
+  max-width: 1600px;
+  /* "Ver o app" lands here, clear of the sticky bar */
+  scroll-margin-top: calc(var(--bar) + var(--g));
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing) {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ---------------------------------------------------------------- the app to try (LandingPreview) */
+
+.landing .preview {
+  height: clamp(560px, 78svh, 820px);
+  overflow: hidden;
+  border-radius: 14px;
+  /* no frame: only the app's own edge, a step darker than the page */
+  box-shadow: 0 0 0 1px rgba(30, 26, 23, 0.1);
+  color: var(--foreground);
+  font: 400 0.875rem / 1.5 var(--font-sans);
+  letter-spacing: normal;
+  text-align: left;
+}
+
+/* ---------------------------------------------------------------- footer: only the name, centred */
+
+.landing .foot {
+  display: grid;
+  place-items: center;
+  padding: var(--gap-l) var(--g);
+}
+
+/* ---------------------------------------------------------------- phone */
+
+@media (max-width: 800px) {
+  .landing {
+    --bar: 72px;
+  }
+  .landing .hero__ctas {
+    width: 100%;
+  }
+  .landing .hero__ctas .button {
+    flex: 1 1 100%;
+  }
+  .landing .preview {
+    height: 600px;
+    border-radius: 10px;
+  }
+}
