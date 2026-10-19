@@ -9,7 +9,6 @@ export default defineConfig({
     env: {
       BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret',
       DATABASE_URL: databaseUrl,
-      DEMO_MODE: 'false',
       GOOGLE_CLIENT_ID: 'test-client-id',
       GOOGLE_CLIENT_SECRET: 'test-client-secret',
       OPENROUTER_API_KEY: 'test-key',
