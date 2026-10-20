@@ -103,6 +103,7 @@ const STRINGS = {
   'profile.signOut': { en: 'Sign out', pt: 'Sair' },
   'rail.caishen': { en: 'Caishen', pt: 'Caishen' },
   'rail.chat': { en: 'Chat', pt: 'Chat' },
+  'rail.finance': { en: 'Finance', pt: 'Financeiro' },
   'rail.dashboard': { en: 'Dashboard', pt: 'Dashboard' },
   'rail.documents': { en: 'Documents', pt: 'Documentos' },
   'rail.workflows': { en: 'Workflows', pt: 'Workflows' },

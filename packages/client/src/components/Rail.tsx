@@ -5,7 +5,6 @@ import {
   FileTextIcon,
   LayoutDashboardIcon,
   LogOutIcon,
-  MessageCircleIcon,
   PlugIcon,
   UserIcon,
   WorkflowIcon,
@@ -43,11 +42,9 @@ const ENTRIES: {
   to: string;
 }[] = [
   { icon: LayoutDashboardIcon, label: 'rail.dashboard', to: '/' },
-  { icon: MessageCircleIcon, label: 'rail.chat', to: '/chat' },
   { icon: WorkflowIcon, label: 'rail.workflows', to: '/workflows' },
   { icon: FileTextIcon, label: 'rail.documents', to: '/documents' },
-  { icon: CoinsIcon, label: 'rail.caishen', to: '/caishen' },
-  { icon: PlugIcon, label: 'rail.integrations', to: '/integrations' },
+  { icon: CoinsIcon, label: 'rail.finance', to: '/caishen' },
 ];
 
 /** The account's screens, in the avatar menu rather than on the rail. */
@@ -55,6 +52,7 @@ const ACCOUNT: { icon: LucideIcon; label: StringKey; to: string }[] = [
   { icon: UserIcon, label: 'menu.profile', to: '/profile' },
   { icon: CreditCardIcon, label: 'rail.plan', to: '/plan' },
   { icon: BuildingIcon, label: 'rail.organization', to: '/organization' },
+  { icon: PlugIcon, label: 'rail.integrations', to: '/integrations' },
 ];
 
 const lit = (to: string, path: string) =>
@@ -92,7 +90,7 @@ function RailLink({
 
 /**
  * The dark rail on the far left: the screens at the top, then the avatar at the bottom, with the
- * account's screens (Perfil, Plano, Organização) and signing out. The chat is not here: it opens from the top bar.
+ * account's screens (Perfil, Plano, Organização, Integrações) and signing out. The chat is not here: it opens from the top bar.
  */
 export function Rail({ user }: { user: { email: string; name: string } }) {
   const { pathname } = useLocation();

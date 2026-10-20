@@ -9,7 +9,7 @@ import { useChatPanel } from './ChatPanel';
 /** The name of each area, by the first part of its path. */
 const TITLES: Record<string, StringKey> = {
   '': 'rail.dashboard',
-  caishen: 'rail.caishen',
+  caishen: 'rail.finance',
   chat: 'rail.chat',
   documents: 'rail.documents',
   integrations: 'rail.integrations',
