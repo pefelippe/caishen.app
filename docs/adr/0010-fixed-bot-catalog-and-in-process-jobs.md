@@ -1,0 +1,9 @@
+# Catálogo fixo de Bots e Trabalhos rodando no processo do servidor
+
+O mny, um organizador pessoal com quatro Áreas e um Buddy em cada uma, virou o zapbots: uma equipe de Bots a quem se dá trabalho de verdade. O primeiro é o Caishen (código `finance`), que herdou Finanças. Anotações, Trabalho, Pomodoro, Fitness, Busca e o app `collab` saíram, e ficam só no histórico do git. A Organização continua pessoal e escondida (ADR 0007).
+
+Os Bots vêm de um catálogo no código (`CATALOG` em `services/bots/catalog.ts`, com cada Bot no seu pacote em `packages/bots`). Nome e personalidade são fixos, e a tabela `bot` guarda só qual Organização tem qual Bot e o Modelo escolhido. Os Buddies eram editáveis. Descartamos isso para que "o Caishen" seja sempre a mesma coisa nas telas, nos prompts e no suporte.
+
+Um Trabalho (`job`) roda em segundo plano dentro do processo do servidor, disparado pela mutation `createJob`. O client consulta o status até ele terminar. Não há fila nem worker separado: para um Bot e poucos Usuários, isso evita mais um serviço e mais um container. O custo é que um Trabalho morre se o servidor reiniciar. Por isso, ao subir, o servidor marca como falhos os que estavam na fila ou rodando (`failInterruptedJobs`). Quando os Trabalhos ficarem longos ou numerosos, o caminho é uma fila em Postgres com um worker à parte.
+
+As Rotinas seguem a mesma linha: um relógio no processo do servidor (`startRoutineClock`) confere a cada minuto as que venceram e entrega o Trabalho de cada uma em nome de quem a criou. Cada execução é reservada movendo `next_run_at` com um `UPDATE` condicional, para que dois relógios (dois processos, ou uma recarga do `tsx watch`) não repitam a mesma. Com o servidor parado nenhuma Rotina roda, e a que venceu nesse meio-tempo roda uma vez quando ele volta. Não há recuperação do que ficou para trás.

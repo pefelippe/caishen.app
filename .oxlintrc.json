@@ -1,6 +1,10 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "react", "import"],
+  "plugins": [
+    "typescript",
+    "react",
+    "import"
+  ],
   "categories": {
     "correctness": "error"
   },
@@ -14,5 +18,11 @@
     "typescript/no-explicit-any": "warn",
     "react/react-in-jsx-scope": "off"
   },
-  "ignorePatterns": ["**/generated/**", "**/drizzle/**", "**/dist/**"]
+  "ignorePatterns": [
+    "**/generated/**",
+    "**/drizzle/**",
+    "**/dist/**",
+    ".agents/**",
+    ".claude/**"
+  ]
 }

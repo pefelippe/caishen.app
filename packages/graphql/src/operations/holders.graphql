@@ -6,18 +6,9 @@ query Viewer {
   }
 }
 
-query Holders {
-  holders {
+query ViewerHolder {
+  viewerHolder {
     id
-    name
-    document
-    monthlyIncomeCents
-    assessments {
-      id
-      score
-      band
-      createdAt
-    }
   }
 }
 
@@ -44,6 +35,8 @@ fragment AssessmentFields on Assessment {
     overdueCents
     worstStage
     lateLast12Months
+    scrDebtCents
+    scrReferenceMonth
   }
 }
 
@@ -58,13 +51,24 @@ query Holder($id: ID!) {
       id
       description
       monthlyNetCents
+      paydays
       startsOn
       endsOn
+    }
+    taxes {
+      id
+      name
+      amountCents
+      frequency
+      installments
+      dueDay
+      dueMonth
     }
     creditOperations {
       id
       name
       lender
+      modality
       modalityLabel
       principalCents
       monthlyRate
@@ -92,6 +96,31 @@ query Holder($id: ID!) {
     assessments {
       ...AssessmentFields
     }
+    registeredDebtCents
+    scrSnapshots {
+      id
+      referenceMonth
+      imported
+      createdAt
+      totals {
+        dueCents
+        overdueCents
+        lossCents
+        limitCents
+        debtCents
+        stage
+      }
+      entries {
+        id
+        institution
+        modality
+        dueCents
+        overdueCents
+        overdueMaxDays
+        lossCents
+        limitCents
+      }
+    }
     reportedScores {
       id
       bureau
@@ -108,16 +137,20 @@ query Holder($id: ID!) {
   }
 }
 
-mutation CreateHolder($input: CreateHolderInput!) {
-  createHolder(input: $input) {
-    id
-  }
-}
-
 mutation AddIncomeSource($input: AddIncomeSourceInput!) {
   addIncomeSource(input: $input) {
     id
   }
+}
+
+mutation AddTax($input: AddTaxInput!) {
+  addTax(input: $input) {
+    id
+  }
+}
+
+mutation DeleteTax($id: ID!) {
+  deleteTax(id: $id)
 }
 
 mutation GenerateAssessment($holderId: ID!) {
@@ -143,5 +176,31 @@ query MarketIndicators {
 mutation AddReportedScore($input: AddReportedScoreInput!) {
   addReportedScore(input: $input) {
     id
+  }
+}
+
+mutation CreateScrSnapshot($input: CreateScrSnapshotInput!) {
+  createScrSnapshot(input: $input) {
+    id
+  }
+}
+
+mutation DeleteScrSnapshot($id: ID!) {
+  deleteScrSnapshot(id: $id)
+}
+
+query PayoffPlan($id: ID!, $monthlyExtraCents: Cents!) {
+  holder(id: $id) {
+    id
+    payoffPlan(monthlyExtraCents: $monthlyExtraCents) {
+      debtFreeOn
+      debtFreeWithoutPlanOn
+      interestSavedCents
+      payoffs {
+        creditOperationId
+        name
+        paidOffOn
+      }
+    }
   }
 }

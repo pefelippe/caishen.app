@@ -19,6 +19,11 @@ query CreditOperation($id: ID!) {
     overdueCents
     collateralDescription
     collateralValueCents
+    extraAmortizations {
+      id
+      date
+      amountCents
+    }
     holder {
       id
       name
@@ -77,4 +82,26 @@ mutation RecordLatePayment($creditOperationId: ID!, $installmentNumber: Int!, $p
 
 mutation ClearLatePayment($creditOperationId: ID!, $installmentNumber: Int!) {
   clearLatePayment(creditOperationId: $creditOperationId, installmentNumber: $installmentNumber)
+}
+
+mutation AddExtraAmortization($creditOperationId: ID!, $date: Date!, $amountCents: Cents!) {
+  addExtraAmortization(creditOperationId: $creditOperationId, date: $date, amountCents: $amountCents) {
+    id
+  }
+}
+
+mutation RemoveExtraAmortization($id: ID!) {
+  removeExtraAmortization(id: $id) {
+    id
+  }
+}
+
+query PrepaymentSimulation($id: ID!, $amountCents: Cents!) {
+  creditOperation(id: $id) {
+    id
+    prepayment(amountCents: $amountCents) {
+      interestSavedCents
+      installmentsSaved
+    }
+  }
 }

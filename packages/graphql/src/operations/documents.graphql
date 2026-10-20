@@ -1,0 +1,22 @@
+query Documents {
+  documents {
+    deliverables {
+      ...JobFields
+      deliverable
+      edited
+      routine {
+        id
+      }
+      bot {
+        id
+        key
+        name
+      }
+    }
+    attachments {
+      ...AttachmentFields
+      jobId
+      createdAt
+    }
+  }
+}

@@ -1,0 +1,53 @@
+fragment PlanFields on Plan {
+  key
+  name
+  priceCents
+  jobs
+  messages
+}
+
+fragment BillingFields on Billing {
+  configured
+  status
+  currentPeriodEnd
+  cancelAtPeriodEnd
+  hasCustomer
+  plan {
+    ...PlanFields
+  }
+  limits {
+    jobs
+    messages
+  }
+  credits {
+    jobs
+    messages
+  }
+  used {
+    jobs
+    messages
+  }
+}
+
+query Billing {
+  billing {
+    ...BillingFields
+  }
+  plans {
+    ...PlanFields
+  }
+}
+
+mutation StartCheckout {
+  startCheckout
+}
+
+mutation OpenBillingPortal {
+  openBillingPortal
+}
+
+mutation RedeemUsageCode($code: String!) {
+  redeemUsageCode(code: $code) {
+    ...BillingFields
+  }
+}

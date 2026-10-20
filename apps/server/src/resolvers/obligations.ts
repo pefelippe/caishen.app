@@ -1,4 +1,4 @@
-import { db, schema } from '@mny/database';
+import { db, schema } from '@zapbots/database';
 import {
   ImpliedRateError,
   MODALITIES,
@@ -7,10 +7,11 @@ import {
   monthlyToAnnualRate,
   outstandingBalance,
   overdueCents,
+  prepaymentEffect,
   stageOf,
   today,
-} from '@mny/finance';
-import type { Resolvers } from '@mny/graphql/server';
+} from '@zapbots/finance';
+import type { Resolvers } from '@zapbots/graphql/server';
 import { and, eq } from 'drizzle-orm';
 
 import { marketRate } from '../services/bacen';
@@ -19,9 +20,10 @@ import {
   lateFacts,
   latePaymentRows,
   scheduleFor,
+  scheduleInputFor,
   statementDueDate,
 } from '../services/obligations';
-import { badInput, findHolder, notFound, requireViewer } from './guards';
+import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
 async function operationById(id: string) {
   const [operation] = await db
@@ -61,6 +63,12 @@ export const obligationResolvers: Resolvers = {
         .orderBy(schema.statement.referenceMonth),
   },
   CreditOperation: {
+    extraAmortizations: operation =>
+      db
+        .select()
+        .from(schema.extraAmortization)
+        .where(eq(schema.extraAmortization.creditOperationId, operation.id))
+        .orderBy(schema.extraAmortization.date),
     annualRate: operation => monthlyToAnnualRate(operation.monthlyRate).toNumber(),
     holder: async operation => {
       const [holder] = await db
@@ -78,6 +86,12 @@ export const obligationResolvers: Resolvers = {
     paidInstallments: async operation =>
       (await scheduleFor(operation)).filter(row => row.dueDate <= today()).length,
     latePayments: operation => latePaymentRows(operation.id),
+    prepayment: async (operation, { amountCents }) => {
+      if (!Number.isInteger(amountCents) || amountCents <= 0) {
+        badInput('Informe um valor maior que zero');
+      }
+      return prepaymentEffect(await scheduleInputFor(operation), today(), amountCents);
+    },
     overdueCents: async operation =>
       overdueCents(
         lateFacts(await latePaymentRows(operation.id), await scheduleFor(operation)),
@@ -122,6 +136,41 @@ export const obligationResolvers: Resolvers = {
       installmentDueDate(await operationById(row.creditOperationId), row.installmentNumber),
   },
   Mutation: {
+    addExtraAmortization: async (_, { amountCents, creditOperationId, date }, context) => {
+      const operation = await findOperation(
+        requireViewer(context).organizationId,
+        creditOperationId
+      );
+      if (!Number.isInteger(amountCents) || amountCents <= 0) {
+        badInput('O valor da Amortização Extraordinária precisa ser maior que zero');
+      }
+      if (date < operation.firstDueDate) {
+        badInput('A Amortização Extraordinária não pode ser anterior à primeira Parcela');
+      }
+      const balance = outstandingBalance(
+        await scheduleFor(operation),
+        operation.principalCents,
+        date
+      );
+      if (amountCents > balance) {
+        badInput('O valor é maior que o Saldo Devedor nessa data');
+      }
+      await db.insert(schema.extraAmortization).values({ amountCents, creditOperationId, date });
+      return operation;
+    },
+    removeExtraAmortization: async (_, { id }, context) => {
+      const [row] = await db
+        .select()
+        .from(schema.extraAmortization)
+        .where(eq(schema.extraAmortization.id, id));
+      if (!row) notFound('Amortização Extraordinária');
+      const operation = await findOperation(
+        requireViewer(context).organizationId,
+        row.creditOperationId
+      );
+      await db.delete(schema.extraAmortization).where(eq(schema.extraAmortization.id, id));
+      return operation;
+    },
     clearLatePayment: async (_, { creditOperationId, installmentNumber }, context) => {
       await findOperation(requireViewer(context).organizationId, creditOperationId);
       const deleted = await db
@@ -220,12 +269,7 @@ export const obligationResolvers: Resolvers = {
       const viewer = requireViewer(context);
       const deleted = await db
         .delete(schema.creditOperation)
-        .where(
-          and(
-            eq(schema.creditOperation.id, id),
-            eq(schema.creditOperation.organizationId, viewer.organizationId)
-          )
-        )
+        .where(owned(schema.creditOperation, viewer, id))
         .returning({ id: schema.creditOperation.id });
       return deleted.length > 0;
     },
@@ -235,12 +279,7 @@ export const obligationResolvers: Resolvers = {
       const [card] = await db
         .select()
         .from(schema.creditCard)
-        .where(
-          and(
-            eq(schema.creditCard.id, input.creditCardId),
-            eq(schema.creditCard.organizationId, viewer.organizationId)
-          )
-        );
+        .where(owned(schema.creditCard, viewer, input.creditCardId));
       if (!card) notFound('Cartão');
       const [row] = await db
         .insert(schema.statement)
@@ -259,12 +298,7 @@ export const obligationResolvers: Resolvers = {
       const [row] = await db
         .select()
         .from(schema.creditOperation)
-        .where(
-          and(
-            eq(schema.creditOperation.id, id),
-            eq(schema.creditOperation.organizationId, viewer.organizationId)
-          )
-        );
+        .where(owned(schema.creditOperation, viewer, id));
       return row ?? null;
     },
   },

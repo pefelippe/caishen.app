@@ -18,13 +18,20 @@ export const formatDate = (iso: string | null | undefined) =>
 export function parseCents(input: string): number | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  const normalized = trimmed.includes(',') ? trimmed.replace(/\./g, '').replace(',', '.') : trimmed;
-  const value = Number(normalized.replace(/[^\d.-]/g, ''));
+  const bare = trimmed.replace(/[^\d.,-]/g, '');
+  // With a comma, dots group thousands ("1.234,56"). Without one they still do when every group
+  // after the first has three digits ("25.000"); otherwise the dot is a decimal point ("1234.56").
+  const groupsThousands = bare.includes(',') || /^-?\d{1,3}(\.\d{3})+$/.test(bare);
+  const digits = groupsThousands ? bare.replace(/\./g, '').replace(',', '.') : bare;
+  // Text with no digits is no amount at all, not zero.
+  if (!/\d/.test(digits)) return null;
+  const value = Number(digits);
   return Number.isFinite(value) ? Math.round(value * 100) : null;
 }
 
 /** Parses a pt-BR percentage ("1,89") into a fraction (0.0189). */
 export function parsePercent(input: string): number | null {
-  const value = Number(input.trim().replace(',', '.'));
-  return input.trim() && Number.isFinite(value) ? value / 100 : null;
+  const trimmed = input.replace(/[%\s]/g, '');
+  const value = Number(trimmed.replace(',', '.'));
+  return trimmed && Number.isFinite(value) ? value / 100 : null;
 }

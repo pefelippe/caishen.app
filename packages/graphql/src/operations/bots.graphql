@@ -1,0 +1,108 @@
+fragment BotFields on Bot {
+  id
+  key
+  name
+  description
+  personality
+  model
+}
+
+fragment AlertFields on Alert {
+  kind
+  message
+  href
+}
+
+query BotAlerts($key: BotKey!) {
+  bot(key: $key) {
+    id
+    alerts {
+      ...AlertFields
+    }
+  }
+}
+
+fragment MessageFields on Message {
+  id
+  role
+  content
+  createdAt
+}
+
+query Bots {
+  aiStatus {
+    configured
+    defaultModel
+  }
+  bots {
+    ...BotFields
+    recentJobs(limit: 3) {
+      ...JobFields
+    }
+    alerts {
+      ...AlertFields
+    }
+  }
+}
+
+query Models {
+  models {
+    id
+    name
+    free
+  }
+}
+
+query BotPanel($key: BotKey!) {
+  aiStatus {
+    configured
+  }
+  bot(key: $key) {
+    ...BotFields
+  }
+}
+
+query Conversations($botId: ID) {
+  conversations(botId: $botId) {
+    id
+    title
+    updatedAt
+    bot {
+      id
+      key
+      name
+    }
+    lastMessage {
+      role
+      content
+    }
+  }
+}
+
+query Conversation($id: ID!) {
+  conversation(id: $id) {
+    id
+    title
+    messages {
+      ...MessageFields
+    }
+  }
+}
+
+mutation SetBotModel($id: ID!, $model: String) {
+  setBotModel(id: $id, model: $model) {
+    ...BotFields
+  }
+}
+
+mutation StartConversation($botId: ID!) {
+  startConversation(botId: $botId) {
+    id
+    title
+    updatedAt
+  }
+}
+
+mutation DeleteConversation($id: ID!) {
+  deleteConversation(id: $id)
+}

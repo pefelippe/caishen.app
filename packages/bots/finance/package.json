@@ -1,0 +1,21 @@
+{
+  "name": "@zapbots/finance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Caishen, the finance Bot: its catalog entry and pure financial math (amortization, implied rates, assessments).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint:tsc": "tsc",
+    "test:unit": "vitest --run",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "decimal.js": "10.6.0"
+  },
+  "devDependencies": {
+    "@zapbots/typescript-config": "workspace:*",
+    "vitest": "4.1.10"
+  }
+}

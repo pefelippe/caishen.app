@@ -22,6 +22,83 @@
       "when": 1790445574182,
       "tag": "0002_assessment_score_band",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790449691253,
+      "tag": "0003_scr_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791749410663,
+      "tag": "0004_personal_organizer",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791767384590,
+      "tag": "0005_pomodoro",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792277302512,
+      "tag": "0006_drop_organizer",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792277320852,
+      "tag": "0007_bots_and_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792280443112,
+      "tag": "0008_routines",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792282108171,
+      "tag": "0009_job_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792284794273,
+      "tag": "0010_routine_pause",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792297008600,
+      "tag": "0011_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792360949130,
+      "tag": "0012_edited_deliverable_language",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792533479971,
+      "tag": "0013_paydays_and_taxes",
+      "breakpoints": true
     }
   ]
 }

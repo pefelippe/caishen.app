@@ -4,22 +4,28 @@ import {
   type LatePaymentRow,
   db,
   schema,
-} from '@mny/database';
+} from '@zapbots/database';
 import {
   addDays,
   addMonths,
   amortizationSchedule,
   assess,
+  avalanchePlan,
+  payoffOutlook,
   dateInMonth,
   dueWithin,
   outstandingBalance,
   today,
   type Installment,
   type LatePaymentFact,
-} from '@mny/finance';
+  type ScheduleInput,
+} from '@zapbots/finance';
 import { and, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm';
 
-export async function scheduleFor(operation: CreditOperationRow): Promise<Installment[]> {
+import { latestScrSummary } from './scr';
+
+/** What the schedule of a Credit Operation is computed from, its Extra Amortizations included. */
+export async function scheduleInputFor(operation: CreditOperationRow): Promise<ScheduleInput> {
   const extras = await db
     .select({
       amountCents: schema.extraAmortization.amountCents,
@@ -27,14 +33,18 @@ export async function scheduleFor(operation: CreditOperationRow): Promise<Instal
     })
     .from(schema.extraAmortization)
     .where(eq(schema.extraAmortization.creditOperationId, operation.id));
-  return amortizationSchedule({
+  return {
     extraAmortizations: extras,
     firstDueDate: operation.firstDueDate,
     monthlyRate: operation.monthlyRate,
     principalCents: operation.principalCents,
     system: operation.system,
     termMonths: operation.termMonths,
-  });
+  };
+}
+
+export async function scheduleFor(operation: CreditOperationRow): Promise<Installment[]> {
+  return amortizationSchedule(await scheduleInputFor(operation));
 }
 
 export function statementDueDate(card: Pick<CreditCardRow, 'dueDay'>, referenceMonth: string) {
@@ -71,7 +81,7 @@ export function latePaymentRows(creditOperationId: string) {
     .orderBy(schema.latePayment.installmentNumber);
 }
 
-/** Late Payments of an Operation as facts for `@mny/finance`, priced from its schedule. */
+/** Late Payments of an Operation as facts for `@zapbots/finance`, priced from its schedule. */
 export function lateFacts(rows: LatePaymentRow[], schedule: Installment[]): LatePaymentFact[] {
   return rows.flatMap(row => {
     const installment = schedule.find(item => item.number === row.installmentNumber);
@@ -87,10 +97,8 @@ export function lateFacts(rows: LatePaymentRow[], schedule: Installment[]): Late
   });
 }
 
-/** Gathers every Obligation of a Holder into Assessment inputs and scores them. */
-export async function computeAssessment(holderId: string) {
-  const asOf = today();
-
+/** Everything the Holder declared: Credit Operations, Late Payments, Cards and Statements. */
+export async function declaredObligations(holderId: string, asOf = today()) {
   const operations = await db
     .select()
     .from(schema.creditOperation)
@@ -129,13 +137,95 @@ export async function computeAssessment(holderId: string) {
     if (dueDate > asOf && dueDate <= in30Days) dueNext30DaysCents += item.amountCents;
   }
 
-  return assess({
-    asOf,
+  return {
     dueNext30DaysCents,
     latePayments,
-    monthlyIncomeCents: await monthlyIncome(holderId, asOf),
     openStatementsCents,
     outstandingDebtCents,
     totalCardLimitCents: cards.reduce((sum, card) => sum + card.limitCents, 0),
+  };
+}
+
+/** Installments and Statements due from `asOf` through the next 30 days, soonest first. */
+export async function upcomingDues(holderId: string, asOf = today()) {
+  const until = addDays(asOf, 30);
+  const inWindow = (dueDate: string) => dueDate >= asOf && dueDate <= until;
+  const dues: { amountCents: number; dueDate: string; label: string }[] = [];
+
+  const operations = await db
+    .select()
+    .from(schema.creditOperation)
+    .where(eq(schema.creditOperation.holderId, holderId));
+  for (const operation of operations) {
+    for (const installment of await scheduleFor(operation)) {
+      if (inWindow(installment.dueDate)) {
+        dues.push({
+          amountCents: installment.installmentCents,
+          dueDate: installment.dueDate,
+          label: `${operation.name} · Parcela ${installment.number}/${operation.termMonths}`,
+        });
+      }
+    }
+  }
+
+  const cards = await db
+    .select()
+    .from(schema.creditCard)
+    .where(eq(schema.creditCard.holderId, holderId));
+  for (const card of cards) {
+    const statements = await db
+      .select()
+      .from(schema.statement)
+      .where(eq(schema.statement.creditCardId, card.id));
+    for (const item of statements) {
+      const dueDate = statementDueDate(card, item.referenceMonth);
+      if (inWindow(dueDate)) {
+        dues.push({ amountCents: item.amountCents, dueDate, label: `${card.name} · Fatura` });
+      }
+    }
+  }
+
+  return dues.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/** Scores declared Obligations together with the latest SCR Snapshot, which prevails. */
+export async function computeAssessment(holderId: string) {
+  const asOf = today();
+  return assess({
+    ...(await declaredObligations(holderId, asOf)),
+    asOf,
+    monthlyIncomeCents: await monthlyIncome(holderId, asOf),
+    scr: await latestScrSummary(holderId),
   });
+}
+
+/**
+ * Plano de Quitação of a Holder: `monthlyExtraCents` a month to the dearest Credit Operation first.
+ * Each payoff carries the Operation's name for display.
+ */
+export async function payoffPlanFor(holderId: string, monthlyExtraCents: number, asOf = today()) {
+  const operations = await db
+    .select()
+    .from(schema.creditOperation)
+    .where(eq(schema.creditOperation.holderId, holderId));
+  const all = await Promise.all(
+    operations.map(async operation => ({
+      id: operation.id,
+      input: await scheduleInputFor(operation),
+    }))
+  );
+  // Operations already paid off have nothing left to plan.
+  const debts = all.filter(
+    debt => payoffOutlook(amortizationSchedule(debt.input), asOf).remainingInstallments > 0
+  );
+  const plan = avalanchePlan(debts, asOf, monthlyExtraCents);
+  const names = new Map(operations.map(operation => [operation.id, operation.name]));
+  return {
+    ...plan,
+    payoffs: plan.payoffs.map(payoff => ({
+      creditOperationId: payoff.id,
+      name: names.get(payoff.id) ?? '',
+      paidOffOn: payoff.paidOffOn,
+    })),
+  };
 }

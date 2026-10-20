@@ -3,23 +3,30 @@
  * - SGS time series (Selic, CDI, IPCA): https://api.bcb.gov.br/dados/serie
  * - Interest rates by modality and institution: https://olinda.bcb.gov.br/olinda/servico/taxaJuros
  */
-import { MODALITIES, addDays, today, type Modality } from '@mny/finance';
+import { MODALITIES, addDays, today, type Modality } from '@zapbots/finance';
 
 const SGS_SERIES = { cdi: 4389, ipca: 433, selic: 432 } as const;
 const OLINDA = 'https://olinda.bcb.gov.br/olinda/servico/taxaJuros/versao/v2/odata';
 const REAL_ESTATE_PREFIX = 'Financiamento imobiliário';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const FAILURE_TTL_MS = 5 * 60 * 1000;
 const TIMEOUT_MS = 20_000;
 
 const cache = new Map<string, { expiresAt: number; value: Promise<unknown> }>();
 
+/**
+ * Shares one load per key: concurrent callers wait on the same request. A failure is kept for a
+ * few minutes too, so a slow or unavailable Bacen costs one timeout, not one per caller.
+ */
 function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
   if (hit && hit.expiresAt > Date.now()) return hit.value as Promise<T>;
   const value = load().catch(error => {
-    cache.delete(key);
+    cache.set(key, { expiresAt: Date.now() + FAILURE_TTL_MS, value });
     throw error;
   });
+  // Rejections are handled by each caller; this keeps an unobserved one from crashing the process.
+  value.catch(() => undefined);
   cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, value });
   return value;
 }
@@ -121,4 +128,11 @@ export async function marketRate(modality: Modality) {
     console.warn(`[bacen] market rate for ${modality} unavailable`, error);
     return null;
   }
+}
+
+/** Market Rates of several Modalities at once, fetched in parallel; `null` where unavailable. */
+export async function marketRates(modalities: Modality[]) {
+  const distinct = [...new Set(modalities)];
+  const rates = await Promise.all(distinct.map(modality => marketRate(modality)));
+  return new Map(distinct.map((modality, index) => [modality, rates[index] ?? null]));
 }

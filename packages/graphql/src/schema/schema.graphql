@@ -33,6 +33,11 @@ enum RateSource {
   IMPLIED
 }
 
+enum TaxFrequency {
+  MONTHLY
+  YEARLY
+}
+
 "Risk of default a Score indicates, with SPC cut-offs (docs/adr/0005)."
 enum RiskBand {
   HIGH
@@ -60,32 +65,121 @@ enum DataSource {
   OPEN_FINANCE
 }
 
+"A Bot of the catalog, by its code name. `FINANCE` is Caishen."
+enum BotKey {
+  FINANCE
+}
+
+enum MessageRole {
+  USER
+  BOT
+}
+
+enum RoutineCadence {
+  WEEKLY
+  MONTHLY
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum ConnectionKind {
+  OPENROUTER
+  GOOGLE_DRIVE
+}
+
+"What a Connection is for; the Conexões page has one section per category."
+enum ConnectionCategory {
+  AI
+  FILE_STORAGE
+}
+
 type Query {
   viewer: Viewer
+  "The Holder the signed-in User is (docs/adr/0007); created or adopted on first use."
+  viewerHolder: Holder!
+  "The Organization's team: every Bot of the catalog."
+  bots: [Bot!]!
+  bot(key: BotKey!): Bot!
+  "Models available to Bots; empty when the server has no OpenRouter key."
+  models: [Model!]!
+  aiStatus: AiStatus!
+  "Newest first. Without `botId`, the Conversations with every Bot of the team."
+  conversations(botId: ID): [Conversation!]!
+  conversation(id: ID!): Conversation
+  "Newest first."
+  jobs(botId: ID!): [Job!]!
+  "Everything the team delivered and received: finished Deliverables and Attachments, newest first."
+  documents: Documents!
+  "Oldest first."
+  routines(botId: ID!): [Routine!]!
+  job(id: ID!): Job
+  connections: [Connection!]!
+  "The Viewer's Organization, with its Members."
+  organization: Organization!
+  "What the Organization used this month (São Paulo calendar)."
+  usage: Usage!
+  "The Organization's Plan, Limits and what it used this month (docs/adr/0011)."
+  billing: Billing!
+  plans: [Plan!]!
   holders: [Holder!]!
   holder(id: ID!): Holder
   creditOperation(id: ID!): CreditOperation
-  notes: [Note!]!
-  note(id: ID!): Note
   marketIndicators: MarketIndicators!
 }
 
 type Mutation {
+  "A Stripe Checkout page for the Pro Plan; owners and admins only."
+  startCheckout: String!
+  "Stripe's portal to manage the Subscription; owners and admins only."
+  openBillingPortal: String!
+  "Adds a Usage code's Jobs and Messages to this month's Limit; owners and admins only."
+  redeemUsageCode(code: String!): Billing!
+  "Renames the Viewer's Organization; owners and admins only."
+  renameOrganization(name: String!): Organization!
+  "Picks the Model a Bot uses; null goes back to the server default."
+  setBotModel(id: ID!, model: String): Bot!
+  startConversation(botId: ID!): Conversation!
+  deleteConversation(id: ID!): Boolean!
+  "Hands work to a Bot. It runs in the background; poll `job` for the Deliverable."
+  createJob(input: CreateJobInput!): Job!
+  "Hands a failed Job over again as a new Job, with the same instructions and files."
+  retryJob(id: ID!): Job!
+  "Saves the User's edit of a finished Job's Deliverable, in Markdown; `null` restores the Bot's text."
+  editDeliverable(id: ID!, text: String): Job!
+  "Stops a Job in the queue or running; it ends as FAILED, cancelled by the User."
+  cancelJob(id: ID!): Job!
+  "Sets up a Routine and hands its first Job over right away."
+  createRoutine(input: CreateRoutineInput!): Routine!
+  "Stops a Routine; the Jobs it already handed over stay."
+  deleteRoutine(id: ID!): Boolean!
+  "Pauses a Routine, or resumes it. A run missed while paused happens once, at the next minute."
+  setRoutinePaused(id: ID!, paused: Boolean!): Routine!
+  deleteJob(id: ID!): Boolean!
   createHolder(input: CreateHolderInput!): Holder!
+  "A payment outside the schedule that reduces the Outstanding Balance from `date` on."
+  addExtraAmortization(creditOperationId: ID!, date: Date!, amountCents: Cents!): CreditOperation!
+  removeExtraAmortization(id: ID!): CreditOperation!
   addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
+  addTax(input: AddTaxInput!): Tax!
+  deleteTax(id: ID!): Boolean!
   createCreditOperation(input: CreateCreditOperationInput!): CreditOperation!
   deleteCreditOperation(id: ID!): Boolean!
   createCreditCard(input: CreateCreditCardInput!): CreditCard!
   upsertStatement(input: UpsertStatementInput!): Statement!
-  createNote(input: CreateNoteInput!): Note!
-  renameNote(id: ID!, title: String!): Note!
-  deleteNote(id: ID!): Boolean!
   generateAssessment(holderId: ID!): Assessment!
   "Records that an installment was late; a null `paidOn` keeps it open."
   recordLatePayment(creditOperationId: ID!, installmentNumber: Int!, paidOn: Date): LatePayment!
   "Marks the installment as paid on time again."
   clearLatePayment(creditOperationId: ID!, installmentNumber: Int!): Boolean!
   addReportedScore(input: AddReportedScoreInput!): ReportedScore!
+  "Stores an SCR Snapshot typed from a Registrato report. Needs an active Registrato Consent."
+  createScrSnapshot(input: CreateScrSnapshotInput!): ScrSnapshot!
+  deleteScrSnapshot(id: ID!): Boolean!
   grantConsent(holderId: ID!, source: DataSource!): Consent!
   revokeConsent(id: ID!): Consent!
 }
@@ -106,19 +200,220 @@ type Holder {
   "Sum of Income Sources in force today."
   monthlyIncomeCents: Cents!
   incomeSources: [IncomeSource!]!
+  taxes: [Tax!]!
   creditOperations: [CreditOperation!]!
   creditCards: [CreditCard!]!
   assessments: [Assessment!]!
   reportedScores: [ReportedScore!]!
+  "Newest reference month first."
+  scrSnapshots: [ScrSnapshot!]!
+  "Outstanding Balance of Credit Operations plus open Statements, to reconcile with the SCR."
+  registeredDebtCents: Cents!
   consents: [Consent!]!
+  "Installments and Statements due in the next 30 days, soonest first."
+  upcomingDues: [UpcomingDue!]!
+  "Plano de Quitação: `monthlyExtraCents` a month, from tomorrow, to the dearest Credit Operation first."
+  payoffPlan(monthlyExtraCents: Cents!): PayoffPlan!
+}
+
+type PayoffPlan {
+  "When the last Operation ends with the plan; null without Operations."
+  debtFreeOn: Date
+  debtFreeWithoutPlanOn: Date
+  interestSavedCents: Cents!
+  "In the order the Operations are paid off."
+  payoffs: [PlannedPayoff!]!
+}
+
+type PlannedPayoff {
+  creditOperationId: ID!
+  name: String!
+  paidOffOn: Date!
+}
+
+type UpcomingDue {
+  label: String!
+  dueDate: Date!
+  amountCents: Cents!
+}
+
+type Bot {
+  id: ID!
+  key: BotKey!
+  name: String!
+  "One line on what the Bot does, in pt-BR."
+  description: String!
+  personality: String!
+  "OpenRouter model id in use (own choice or the server default)."
+  model: String!
+  "The Bot's latest Jobs, newest first; at most 20."
+  recentJobs(limit: Int = 3): [Job!]!
+  "What the Bot points out on its own, most urgent first; computed, no Model involved."
+  alerts: [Alert!]!
+}
+
+enum AlertKind {
+  OVERDUE
+  DUE_SOON
+  HIGH_UTILIZATION
+  ABOVE_MARKET
+  STALE_ASSESSMENT
+  ROUTINE_FAILED
+}
+
+type Alert {
+  kind: AlertKind!
+  "In pt-BR, amounts already formatted."
+  message: String!
+  "Where to look, inside the app."
+  href: String
+}
+
+type Model {
+  id: ID!
+  name: String!
+  free: Boolean!
+  supportsTools: Boolean!
+}
+
+type AiStatus {
+  "False when OPENROUTER_API_KEY is missing."
+  configured: Boolean!
+  defaultModel: String!
+}
+
+type Conversation {
+  id: ID!
+  title: String!
+  bot: Bot!
+  messages: [Message!]!
+  "The latest Message, for the list of Conversations."
+  lastMessage: Message
+  updatedAt: DateTime!
+}
+
+type Message {
+  id: ID!
+  role: MessageRole!
+  content: String!
+  createdAt: DateTime!
+}
+
+"Work handed to a Bot, done in the background and finished with a Deliverable."
+type Job {
+  id: ID!
+  bot: Bot!
+  instructions: String!
+  status: JobStatus!
+  "The finished work when `DONE`: the User's edit if there is one, else the Bot's text. While `RUNNING`, the part written so far."
+  deliverable: String
+  "The Deliverable as the Bot wrote it, kept when the User edits it."
+  originalDeliverable: String
+  "Whether the User edited the Deliverable."
+  edited: Boolean!
+  "Why the Job failed, in pt-BR; set when `FAILED`."
+  error: String
+  "OpenRouter id of the Model that wrote the Deliverable."
+  model: String
+  "Files from a Connection the Bot reads for this Job."
+  attachments: [Attachment!]!
+  "The Routine that handed this Job over, if it still exists."
+  routine: Routine
+  createdAt: DateTime!
+  startedAt: DateTime
+  finishedAt: DateTime
+}
+
+"The same Job handed to a Bot again every week or month."
+type Routine {
+  id: ID!
+  instructions: String!
+  cadence: RoutineCadence!
+  nextRunAt: DateTime!
+  paused: Boolean!
+  createdAt: DateTime!
+}
+
+"The space that isolates the data; personal and created on the first sign-in (docs/adr/0007)."
+type Organization {
+  id: ID!
+  name: String!
+  createdAt: DateTime!
+  "Oldest first."
+  members: [Member!]!
+}
+
+type Member {
+  id: ID!
+  name: String!
+  email: String!
+  "`owner`, `admin` or `member`."
+  role: String!
+  joinedAt: DateTime!
+}
+
+type Usage {
+  "`YYYY-MM`."
+  month: String!
+  jobs: Int!
+  "Jobs handed over by Routines, included in `jobs`."
+  routineJobs: Int!
+  conversations: Int!
+  "Messages from the User; each one asked a Bot for an answer."
+  messages: Int!
+}
+
+type Connection {
+  kind: ConnectionKind!
+  category: ConnectionCategory!
+  "What the Connection is doing right now, in pt-BR (e.g. the default Model)."
+  detail: String
+  "False for Connections that are not built yet."
+  available: Boolean!
+  connected: Boolean!
+  "Why it cannot be connected right now, in pt-BR."
+  unavailableReason: String
+}
+
+type Attachment {
+  id: ID!
+  fileId: String!
+  name: String!
+  mimeType: String!
+  url: String!
+  "The Job the file was handed over with."
+  jobId: ID!
+  createdAt: DateTime!
+}
+
+"The Documentos library: what the Bots delivered and the files they were given."
+type Documents {
+  "Jobs that are `DONE`, newest first, at most 100."
+  deliverables: [Job!]!
+  "Newest first, at most 100."
+  attachments: [Attachment!]!
 }
 
 type IncomeSource {
   id: ID!
   description: String!
   monthlyNetCents: Cents!
+  "Days of the month it is paid on; its length is how many times a month."
+  paydays: [Int!]!
   startsOn: Date!
   endsOn: Date
+}
+
+"An Imposto: paid every month, or once a year in `installments` from `dueMonth`."
+type Tax {
+  id: ID!
+  name: String!
+  "A month's amount when MONTHLY; the year's total when YEARLY."
+  amountCents: Cents!
+  frequency: TaxFrequency!
+  installments: Int!
+  dueDay: Int!
+  dueMonth: Int
 }
 
 type CreditOperation {
@@ -144,10 +439,25 @@ type CreditOperation {
   stage: Int!
   overdueCents: Cents!
   latePayments: [LatePayment!]!
+  "Oldest first."
+  extraAmortizations: [ExtraAmortization!]!
   collateralDescription: String
   collateralValueCents: Cents
   schedule: [Installment!]!
   marketRate: MarketRate
+  "What an Extra Amortization of `amountCents` paid tomorrow would save."
+  prepayment(amountCents: Cents!): PrepaymentEffect!
+}
+
+type PrepaymentEffect {
+  interestSavedCents: Cents!
+  installmentsSaved: Int!
+}
+
+type ExtraAmortization {
+  id: ID!
+  date: Date!
+  amountCents: Cents!
 }
 
 type Installment {
@@ -185,15 +495,6 @@ type Statement {
   referenceMonth: String!
   amountCents: Cents!
   dueDate: Date!
-}
-
-type Note {
-  id: ID!
-  title: String!
-  holder: Holder
-  creditOperation: CreditOperation
-  creditCard: CreditCard
-  updatedAt: DateTime!
 }
 
 type Assessment {
@@ -244,6 +545,41 @@ type AssessmentIndicators {
   overdueCents: Cents!
   worstStage: Int!
   lateLast12Months: Int!
+  scrDebtCents: Cents
+  scrReferenceMonth: String
+}
+
+"A Holder's debts in the Bacen SCR for one reference month, from a Registrato report."
+type ScrSnapshot {
+  id: ID!
+  "`YYYY-MM` data-base."
+  referenceMonth: String!
+  "True when extracted from a file, false when typed in."
+  imported: Boolean!
+  createdAt: DateTime!
+  entries: [ScrEntry!]!
+  totals: ScrTotals!
+}
+
+type ScrEntry {
+  id: ID!
+  institution: String!
+  modality: String!
+  dueCents: Cents!
+  overdueCents: Cents!
+  overdueMaxDays: Int
+  lossCents: Cents!
+  limitCents: Cents!
+}
+
+type ScrTotals {
+  dueCents: Cents!
+  overdueCents: Cents!
+  lossCents: Cents!
+  limitCents: Cents!
+  "due + overdue + loss"
+  debtCents: Cents!
+  stage: Int!
 }
 
 type Consent {
@@ -272,8 +608,19 @@ input AddIncomeSourceInput {
   holderId: ID!
   description: String!
   monthlyNetCents: Cents!
+  paydays: [Int!]
   startsOn: Date!
   endsOn: Date
+}
+
+input AddTaxInput {
+  holderId: ID!
+  name: String!
+  amountCents: Cents!
+  frequency: TaxFrequency!
+  installments: Int
+  dueDay: Int!
+  dueMonth: Int
 }
 
 "Provide `monthlyRate` or `installmentCents`; the other is derived."
@@ -308,16 +655,83 @@ input UpsertStatementInput {
   amountCents: Cents!
 }
 
-input CreateNoteInput {
-  title: String
-  holderId: ID
-  creditOperationId: ID
-  creditCardId: ID
-}
-
 input AddReportedScoreInput {
   holderId: ID!
   bureau: Bureau!
   score: Int!
   consultedOn: Date!
+}
+
+input ScrEntryInput {
+  institution: String!
+  modality: String!
+  dueCents: Cents!
+  overdueCents: Cents!
+  overdueMaxDays: Int
+  lossCents: Cents!
+  limitCents: Cents!
+}
+
+input CreateScrSnapshotInput {
+  holderId: ID!
+  referenceMonth: String!
+  entries: [ScrEntryInput!]!
+}
+
+"A file picked from a Connection (Google Drive)."
+input AttachmentInput {
+  fileId: String!
+  name: String!
+  mimeType: String!
+  url: String!
+}
+
+input CreateJobInput {
+  botId: ID!
+  instructions: String!
+  attachments: [AttachmentInput!]
+}
+
+input CreateRoutineInput {
+  botId: ID!
+  instructions: String!
+  cadence: RoutineCadence!
+}
+
+enum PlanKey {
+  FREE
+  PRO
+}
+
+type Plan {
+  key: PlanKey!
+  name: String!
+  "Per month, for display; Stripe charges its own Price."
+  priceCents: Cents!
+  "Jobs per month."
+  jobs: Int!
+  "Messages per month."
+  messages: Int!
+}
+
+type Allowance {
+  jobs: Int!
+  messages: Int!
+}
+
+type Billing {
+  "False while the server has no Stripe keys: paid Plans cannot be bought."
+  configured: Boolean!
+  plan: Plan!
+  "Stripe's status of the Subscription, null if there never was one."
+  status: String
+  currentPeriodEnd: DateTime
+  cancelAtPeriodEnd: Boolean!
+  "Whether Stripe knows the Organization, so the portal can open."
+  hasCustomer: Boolean!
+  "Plan plus credits."
+  limits: Allowance!
+  "From Usage codes redeemed this month."
+  credits: Allowance!
+  used: Allowance!
 }

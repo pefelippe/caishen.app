@@ -1,298 +1,223 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/inter';
+
+/* Nothing sets `.dark`: this keeps shadcn's `dark:` classes from following the OS setting. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * "Papel e tinta": warm off-white paper, dark ink, thin rules instead of boxes, and one ink colour
+ * per Bot. There is no dark theme.
+ */
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --border: #e3e6ea;
-  --text: #16191d;
-  --muted: #6b7280;
-  --accent: #1d4ed8;
-  --good: #15803d;
-  --warn: #b45309;
-  --bad: #b91c1c;
-  --banner: #fffbeb;
-  --banner-border: #fcd34d;
-  color-scheme: light;
+  --radius: 0.25rem;
+  /* The two colors of the original Caishen: warm paper and near-black ink. */
+  --paper: #fffaf4;
+  --ink-black: #1e1a17;
+
+  /* The open screen: a light gray, with white cards on it. */
+  --background: #f4f4f5;
+  --foreground: var(--ink-black);
+  --card: #ffffff;
+  --card-foreground: var(--ink-black);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink-black);
+  --primary: var(--ink-black);
+  --primary-foreground: var(--paper);
+  --secondary: #ebebed;
+  --secondary-foreground: var(--ink-black);
+  --muted: #ececee;
+  --muted-foreground: #66666e;
+  --accent: #e4e4e7;
+  --accent-foreground: var(--ink-black);
+  --destructive: oklch(0.5 0.17 28);
+  --success: oklch(0.46 0.1 150);
+  --warning: oklch(0.52 0.12 65);
+  --border: #e4e4e7;
+  --input: #d4d4d8;
+  --ring: #8c8277;
+
+  /* The menu on the left: a quiet gray; the open screen sits on it as a white pill. */
+  --sidebar: #e9e9eb;
+  --sidebar-foreground: #3d3935;
+  --sidebar-primary: var(--ink-black);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: var(--ink-black);
+  --sidebar-border: #e4e1dc;
+  --sidebar-ring: #8c8277;
+
+  /* The bar across the top: a deep navy from the original Caishen's #0B3D91, with its gold coin. */
+  --header: #0a1f44;
+  --header-foreground: #e7ecf5;
+  --header-muted: #1a3366;
+  --header-gradient: linear-gradient(100deg, #0a1f44 0%, #163a8a 55%, #2d5bd1 100%);
+  --gold: #c79a3a;
+
+  /* The dark rail of the landing page's app preview (LandingPreview). */
+  --rail: #12100e;
+  /* Around the app's frame on large screens. */
+  --frame: #ece4d8;
+  --rail-foreground: #cfc6bb;
+
+  /* One ink per Bot, and a neutral one outside them. */
+  --ink-neutral: var(--ink-black);
+  --bot-finance: var(--ink-black);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1115;
-    --surface: #171a20;
-    --border: #2a2f37;
-    --text: #e8eaed;
-    --muted: #9aa1ab;
-    --accent: #7aa2ff;
-    --good: #4ade80;
-    --warn: #fbbf24;
-    --bad: #f87171;
-    --banner: #2a2413;
-    --banner-border: #7c6418;
-    color-scheme: dark;
+@theme inline {
+  /* One face for everything; titles stand out by weight, figures by tabular digits. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-header-muted: var(--header-muted);
+  --color-gold: var(--gold);
+  --color-rail: var(--rail);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-paper: var(--paper);
+  --color-frame: var(--frame);
+  /* The ink of the Bot on screen; set by `data-bot` on a wrapper. */
+  --color-ink: var(--ink, var(--ink-neutral));
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-sm text-foreground antialiased;
+  }
+  h1 {
+    @apply text-3xl leading-tight font-semibold tracking-tight;
+  }
+  [data-bot='FINANCE'] {
+    --ink: var(--bot-finance);
   }
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font:
-    14px/1.5 system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
-}
-
-h1,
-h2 {
-  margin: 0;
-}
-h1 {
-  font-size: 1.6rem;
-}
-h2 {
-  font-size: 1.1rem;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-input,
-select,
-button {
-  font: inherit;
-  padding: 7px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-}
-
-button {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.6;
-}
-button.secondary {
-  background: transparent;
-  color: var(--accent);
-}
-button.danger {
-  background: transparent;
-  border-color: var(--bad);
-  color: var(--bad);
-  align-self: flex-start;
-}
-button.link {
-  background: none;
-  border: none;
-  color: var(--accent);
-  padding: 0;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th,
-td {
-  text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-}
-th {
-  color: var(--muted);
-  font-weight: 500;
-  font-size: 12px;
-}
-.num {
-  text-align: right;
+/* Amounts, dates and counts use tabular digits so columns line up like a ledger. */
+.tabular-nums {
   font-variant-numeric: tabular-nums;
 }
-tr.paid td {
-  color: var(--muted);
+
+/* Buttons and menu entries show they can be clicked. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
 }
 
-.shell {
-  min-height: 100vh;
-}
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 24px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-.topbar nav {
-  display: flex;
-  gap: 12px;
-}
-.topbar nav a.active {
-  font-weight: 600;
-}
-.brand {
-  font-size: 1.2rem;
-}
-.spacer {
-  flex: 1;
-}
-.content {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 24px 16px 64px;
+/* Each page opens with a light fade, sliding down a little. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  overflow-x: auto;
-}
-.subcard {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-}
-.banner {
-  background: var(--banner);
-  border: 1px solid var(--banner-border);
-  border-radius: 10px;
-  padding: 12px 16px;
-}
-.narrow {
-  width: min(380px, 100%);
+.page-enter {
+  animation: page-enter 220ms ease-out;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.row.between {
-  justify-content: space-between;
-}
-.grid-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
-}
-.centered {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 16px;
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
 }
 
-.muted {
-  color: var(--muted);
+/* A Deliverable open as a document (DocumentPage): the editor's text set like a page. */
+.doc-page .ProseMirror {
+  @apply min-h-[60vh] text-[15px] leading-7 outline-none;
 }
-.small {
-  font-size: 12px;
+.doc-page .ProseMirror > * + * {
+  @apply mt-3;
 }
-.error {
-  color: var(--bad);
-  margin: 0;
+.doc-page .ProseMirror h1 {
+  @apply mt-8 text-2xl font-semibold first:mt-0;
 }
-
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 10px;
+.doc-page .ProseMirror h2 {
+  @apply mt-6 text-lg font-semibold first:mt-0;
 }
-.metric {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
+.doc-page .ProseMirror h3 {
+  @apply mt-5 font-semibold;
 }
-.metric strong {
-  font-size: 1.15rem;
+.doc-page .ProseMirror ul {
+  @apply list-disc pl-6;
 }
-
-.score {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 3em;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--muted);
-  font-variant-numeric: tabular-nums;
+.doc-page .ProseMirror ol {
+  @apply list-decimal pl-6;
 }
-.score.good {
-  background: var(--good);
+.doc-page .ProseMirror li > p {
+  @apply my-0.5;
 }
-.score.warn {
-  background: var(--warn);
+.doc-page .ProseMirror strong {
+  @apply font-semibold;
 }
-.score.bad {
-  background: var(--bad);
+.doc-page .ProseMirror blockquote {
+  @apply border-l-2 pl-4 text-muted-foreground;
 }
-.score.large {
-  font-size: 2rem;
-  line-height: 1.1;
-  padding: 10px 18px;
-  border-radius: 10px;
-}
-.score small {
-  font-size: 11px;
-  font-weight: 500;
-}
-.warn-text {
-  color: var(--warn);
+.doc-page .ProseMirror code {
+  @apply rounded bg-muted px-1 text-[13px];
 }
 
-.title-input {
-  font-size: 1.4rem;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  flex: 1;
-  padding: 4px 0;
-}
-
-.editor .tiptap {
-  min-height: 320px;
-  outline: none;
-}
-.collaboration-carets__caret {
-  border-left: 1px solid;
-  border-right: 1px solid;
-  margin-left: -1px;
-  margin-right: -1px;
+/* The loading screen's bar, running under the mark (Splash; index.html repeats it). */
+.splash-track {
   position: relative;
-  word-break: normal;
+  display: block;
+  overflow: hidden;
+  width: 120px;
+  height: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--header) 12%, transparent);
 }
-.collaboration-carets__label {
-  border-radius: 3px 3px 3px 0;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  left: -1px;
-  padding: 1px 4px;
+.splash-bar {
   position: absolute;
-  top: -1.4em;
-  white-space: nowrap;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--header-gradient);
+  animation: splash-bar 1.1s ease-in-out infinite;
+}
+@keyframes splash-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
 }

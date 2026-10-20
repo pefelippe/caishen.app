@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'packages/bots/*'
   - 'configs/*'
 
 # Flat `node_modules` at repo root, same layout as the Aline monorepo.

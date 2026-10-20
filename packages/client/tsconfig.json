@@ -1,7 +1,8 @@
 {
-  "extends": "@mny/typescript-config/tsconfig.base.json",
+  "extends": "@zapbots/typescript-config/tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "paths": { "@/*": ["./src/*"] },
     "types": ["vite/client"]
   },
   "include": ["src/**/*", "vite.config.ts"]

@@ -1,8 +1,8 @@
 {
-  "name": "@mny/auth",
+  "name": "@zapbots/auth",
   "version": "0.0.0",
   "private": true,
-  "description": "Better Auth instance shared by the server and collab apps.",
+  "description": "Better Auth instance and viewer resolution for the server.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -10,11 +10,12 @@
     "lint:tsc": "tsc"
   },
   "dependencies": {
-    "@mny/database": "workspace:*",
+    "@zapbots/database": "workspace:*",
     "better-auth": "1.7.6",
-    "drizzle-orm": "0.45.2"
+    "drizzle-orm": "0.45.2",
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "@mny/typescript-config": "workspace:*"
+    "@zapbots/typescript-config": "workspace:*"
   }
 }

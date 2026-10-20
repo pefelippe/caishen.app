@@ -14,3 +14,7 @@
 .vscode/*
 !.vscode/extensions.json
 **/generated/**
+.taste-skill
+
+# Personal editor config
+config.yaml

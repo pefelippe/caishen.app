@@ -1,0 +1,5 @@
+# O Registrato vira Retrato SCR, não Operações de Crédito
+
+O relatório do Registrato traz saldos do SCR agregados por instituição e Modalidade (a vencer, vencido, prejuízo, limite), sem taxa, prazo nem valor original por contrato. Por isso a importação cria um **Retrato SCR** separado das Operações de Crédito que o Titular cadastra. Transformar as linhas em Operações "incompletas" quebraria o motor de amortização. O Retrato é usado para conciliar ("o SCR mostra mais dívida do que você cadastrou") e como fonte oficial na Avaliação: o que o banco reportou ao Bacen prevalece sobre o que foi declarado. Vencido define o Estágio pela faixa de dias, Prejuízo leva direto ao Estágio 3, e o endividamento usa o maior valor entre o cadastrado e o SCR.
+
+A importação exige um Consentimento ativo do Titular para a Fonte Registrato. Pela minimização da LGPD, o PDF é descartado depois da extração: guardamos só os dados extraídos e o hash do arquivo, que também impede importar o mesmo relatório duas vezes.

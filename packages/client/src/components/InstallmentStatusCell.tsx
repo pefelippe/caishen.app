@@ -5,8 +5,11 @@ import {
   HolderDocument,
   RecordLatePaymentDocument,
   type CreditOperationQuery,
-} from '@mny/graphql/client';
+} from '@zapbots/graphql/client';
 import { type FormEvent, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 import { formatDate } from '../lib/format';
 
@@ -28,7 +31,8 @@ export function InstallmentStatusCell({ operationId, row }: Props) {
   const [clear] = useMutation(ClearLatePaymentDocument, options);
   const variables = { creditOperationId: operationId, installmentNumber: row.number };
 
-  if (row.status === 'UPCOMING') return <span className="muted small">a vencer</span>;
+  if (row.status === 'UPCOMING')
+    return <span className="text-xs text-muted-foreground">a vencer</span>;
 
   if (editing) {
     const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -38,42 +42,47 @@ export function InstallmentStatusCell({ operationId, row }: Props) {
       setEditing(false);
     };
     return (
-      <form className="row" onSubmit={submit}>
-        <input
+      <form className="flex flex-wrap items-center gap-2" onSubmit={submit}>
+        <Input
+          className="h-8 w-auto"
           defaultValue={row.status === 'PAID_LATE' ? (row.paidOn ?? '') : ''}
           name="paidOn"
           title="Pago em (vazio = em aberto)"
           type="date"
         />
-        <button className="secondary" type="submit">
+        <Button size="sm" type="submit" variant="outline">
           Salvar
-        </button>
-        <button className="link" onClick={() => setEditing(false)} type="button">
+        </Button>
+        <Button onClick={() => setEditing(false)} size="sm" type="button" variant="link">
           cancelar
-        </button>
-        {error && <span className="error small">{error.message}</span>}
+        </Button>
+        {error && <span className="text-xs text-destructive">{error.message}</span>}
       </form>
     );
   }
 
   return (
-    <span className="row small">
-      {row.status === 'PAID' && <span className="muted">em dia</span>}
+    <span className="flex flex-wrap items-center gap-2 text-xs">
+      {row.status === 'PAID' && <span className="text-muted-foreground">em dia</span>}
       {row.status === 'PAID_LATE' && (
-        <span className="warn-text">
+        <span className="text-warning">
           pago em {formatDate(row.paidOn)} ({row.daysLate} dias de atraso)
         </span>
       )}
       {row.status === 'OPEN_LATE' && (
-        <span className="error">em aberto há {row.daysLate} dias</span>
+        <span className="text-destructive">em aberto há {row.daysLate} dias</span>
       )}
-      <button className="link" onClick={() => setEditing(true)} type="button">
+      <Button className="h-auto p-0 text-xs" onClick={() => setEditing(true)} variant="link">
         {row.status === 'PAID' ? 'registrar atraso' : 'editar'}
-      </button>
+      </Button>
       {row.status !== 'PAID' && (
-        <button className="link" onClick={() => void clear({ variables })} type="button">
+        <Button
+          className="h-auto p-0 text-xs"
+          onClick={() => void clear({ variables })}
+          variant="link"
+        >
           foi em dia
-        </button>
+        </Button>
       )}
     </span>
   );

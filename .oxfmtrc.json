@@ -36,6 +36,8 @@
     ".vscode/",
     ".editorconfig",
     ".localstack/volume",
-    "volume/**"
+    "volume/**",
+    ".agents/**",
+    ".claude/**"
   ]
 }

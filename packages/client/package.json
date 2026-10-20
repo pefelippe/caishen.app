@@ -1,5 +1,5 @@
 {
-  "name": "@mny/client",
+  "name": "@zapbots/client",
   "version": "0.0.0",
   "private": true,
   "description": "Web client.",
@@ -8,32 +8,41 @@
     "build": "vite build",
     "dev": "vite",
     "lint:tsc": "tsc",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:unit": "vitest --run --passWithNoTests"
   },
   "dependencies": {
     "@apollo/client": "4.0.9",
-    "@hocuspocus/provider": "3.4.3",
-    "@mny/finance": "workspace:*",
-    "@mny/graphql": "workspace:*",
-    "@tiptap/extension-collaboration": "3.31.3",
-    "@tiptap/extension-collaboration-caret": "3.31.3",
-    "@tiptap/pm": "3.31.3",
-    "@tiptap/react": "3.31.3",
-    "@tiptap/starter-kit": "3.31.3",
-    "@tiptap/y-tiptap": "3.0.9",
+    "@fontsource-variable/inter": "5.3.0",
+    "@tiptap/markdown": "3.31.0",
+    "@tiptap/pm": "3.31.0",
+    "@tiptap/react": "3.31.0",
+    "@tiptap/starter-kit": "3.31.0",
+    "@zapbots/finance": "workspace:*",
+    "@zapbots/graphql": "workspace:*",
     "better-auth": "1.7.6",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
     "graphql": "16.12.0",
+    "lucide-react": "1.48.0",
+    "motion": "14.3.0",
+    "radix-ui": "1.6.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "6.30.1",
     "rxjs": "7.8.2",
-    "yjs": "13.6.28"
+    "tailwind-merge": "3.7.0",
+    "tw-animate-css": "1.4.0"
   },
   "devDependencies": {
-    "@mny/typescript-config": "workspace:*",
+    "@tailwindcss/vite": "4.3.3",
     "@types/react": "19.2.3",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.1",
-    "vite": "8.2.1"
+    "@zapbots/typescript-config": "workspace:*",
+    "tailwindcss": "4.3.3",
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
   }
 }

@@ -17,6 +17,8 @@ export const user = pgTable('user', {
   emailVerified: boolean('email_verified').notNull().default(false),
   id: text('id').primaryKey(),
   image: text('image'),
+  /** The app's language for this User, `pt` or `en`; chosen on the Profile page. */
+  language: text('language').notNull().default('pt'),
   name: text('name').notNull(),
   updatedAt: updatedAt(),
 });
