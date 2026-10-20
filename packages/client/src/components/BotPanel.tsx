@@ -21,20 +21,29 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import { BotGlyph } from './BotGlyph';
-import { ChatThread } from './ChatThread';
+import { ChatThread, type Suggestion } from './ChatThread';
 
 interface Props {
   /** Extra buttons at the end of the header, e.g. to collapse a floating panel. */
   actions?: ReactNode;
   bot: BotKey;
   className?: string;
+  /** Sent as soon as the blank Conversation opens. */
+  firstMessage?: string;
   /** Opens on a blank Conversation instead of the latest one. */
   startBlank?: boolean;
-  suggestions?: string[];
+  suggestions?: Suggestion[];
 }
 
 /** A Bot with its latest Conversation, ready to talk about what is on screen. */
-export function BotPanel({ actions, bot: key, className, startBlank, suggestions }: Props) {
+export function BotPanel({
+  actions,
+  bot: key,
+  className,
+  firstMessage,
+  startBlank,
+  suggestions,
+}: Props) {
   const { data } = useQuery(BotPanelDocument, { variables: { key } });
   const bot = data?.bot;
   const { data: list } = useQuery(ConversationsDocument, {
@@ -127,6 +136,7 @@ export function BotPanel({ actions, bot: key, className, startBlank, suggestions
           className="flex-1"
           conversationId={conversationId}
           ensureConversation={ensureConversation}
+          firstMessage={thread === 0 ? firstMessage : undefined}
           key={thread}
           suggestions={suggestions}
         />

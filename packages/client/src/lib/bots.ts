@@ -3,6 +3,7 @@ import {
   CoinsIcon,
   HandCoinsIcon,
   LayoutGridIcon,
+  LandmarkIcon,
   WalletIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -42,7 +43,8 @@ export const BOT_SECTIONS: Record<BotKey, SectionGroup[]> = {
     {
       label: 'Finanças',
       links: [
-        { icon: WalletIcon, label: 'Renda', to: '/caishen/income' },
+        { icon: WalletIcon, label: 'Salário', to: '/caishen/income' },
+        { icon: LandmarkIcon, label: 'Impostos', to: '/caishen/taxes' },
         { icon: HandCoinsIcon, label: 'Obrigações', to: '/caishen/obligations' },
       ],
     },

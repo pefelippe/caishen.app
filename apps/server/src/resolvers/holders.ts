@@ -13,6 +13,8 @@ import {
 import { viewerHolder } from '../services/viewerHolder';
 import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
+const isDay = (day: number) => Number.isInteger(day) && day >= 1 && day <= 31;
+
 export const holderResolvers: Resolvers = {
   Assessment: {
     breakdown: assessment => assessment.breakdown as never,
@@ -43,6 +45,12 @@ export const holderResolvers: Resolvers = {
     incomeSources: holder =>
       db.select().from(schema.incomeSource).where(eq(schema.incomeSource.holderId, holder.id)),
     monthlyIncomeCents: holder => monthlyIncome(holder.id),
+    taxes: holder =>
+      db
+        .select()
+        .from(schema.tax)
+        .where(eq(schema.tax.holderId, holder.id))
+        .orderBy(schema.tax.createdAt),
     upcomingDues: holder => upcomingDues(holder.id),
     reportedScores: holder =>
       db
@@ -66,6 +74,8 @@ export const holderResolvers: Resolvers = {
     },
     addIncomeSource: async (_, { input }, context) => {
       await findHolder(requireViewer(context), input.holderId);
+      const paydays = [...new Set(input.paydays ?? [])].sort((a, b) => a - b);
+      if (paydays.some(day => !isDay(day))) badInput('Dias de pagamento vão de 1 a 31');
       const [row] = await db
         .insert(schema.incomeSource)
         .values({
@@ -73,10 +83,50 @@ export const holderResolvers: Resolvers = {
           endsOn: input.endsOn ?? null,
           holderId: input.holderId,
           monthlyNetCents: input.monthlyNetCents,
+          paydays,
           startsOn: input.startsOn,
         })
         .returning();
       return row!;
+    },
+    addTax: async (_, { input }, context) => {
+      const viewer = requireViewer(context);
+      await findHolder(viewer, input.holderId);
+      if (input.amountCents <= 0) badInput('Valor deve ser positivo');
+      if (!isDay(input.dueDay)) badInput('Dia de vencimento vai de 1 a 31');
+      const yearly = input.frequency === 'YEARLY';
+      const installments = yearly ? (input.installments ?? 1) : 1;
+      if (!Number.isInteger(installments) || installments < 1 || installments > 12) {
+        badInput('Parcelas vão de 1 a 12');
+      }
+      const dueMonth = yearly ? input.dueMonth : null;
+      if (
+        yearly &&
+        (dueMonth == null || !Number.isInteger(dueMonth) || dueMonth < 1 || dueMonth > 12)
+      ) {
+        badInput('Informe o mês do vencimento');
+      }
+      const [row] = await db
+        .insert(schema.tax)
+        .values({
+          amountCents: input.amountCents,
+          dueDay: input.dueDay,
+          dueMonth: dueMonth ?? null,
+          frequency: input.frequency,
+          holderId: input.holderId,
+          installments,
+          name: input.name,
+          organizationId: viewer.organizationId,
+        })
+        .returning();
+      return row!;
+    },
+    deleteTax: async (_, { id }, context) => {
+      const deleted = await db
+        .delete(schema.tax)
+        .where(owned(schema.tax, requireViewer(context), id))
+        .returning({ id: schema.tax.id });
+      return deleted.length > 0;
     },
     createHolder: async (_, { input }, context) => {
       const viewer = requireViewer(context);

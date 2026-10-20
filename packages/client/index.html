@@ -3,10 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <title>Caishen</title>
+    <!-- Shown until React mounts; `Splash` in src/components/Logo.tsx keeps the same look. -->
+    <style>
+      #boot {
+        display: grid;
+        min-height: 100svh;
+        place-items: center;
+        background: #f4f4f5;
+        color: #0a1f44;
+      }
+      #boot div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+      #boot span {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        width: 120px;
+        height: 3px;
+        border-radius: 3px;
+        background: rgb(10 31 68 / 0.12);
+      }
+      #boot span::after {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 40%;
+        border-radius: 3px;
+        background: linear-gradient(90deg, #0a1f44, #2d5bd1);
+        animation: boot-bar 1.1s ease-in-out infinite;
+      }
+      @keyframes boot-bar {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(250%);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot" role="status">
+        <div>
+          <svg width="56" height="56" viewBox="0 0 30 30" fill="none" aria-label="Caishen">
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M2 0L9.09 3.7V26.3L2 30V0ZM10.9 0H20.6L27.67 3.7V7.1H10.9V0ZM10.9 22.9H27.67V26.3L20.6 30H10.9V22.9Z"
+              fill="currentColor"
+            />
+          </svg>
+          <span></span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

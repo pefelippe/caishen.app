@@ -38,6 +38,7 @@ export const holderKind = pgEnum('holder_kind', ['PF', 'PJ']);
 export const modality = pgEnum('modality', MODALITY_KEYS);
 export const amortizationSystem = pgEnum('amortization_system', ['PRICE', 'SAC']);
 export const rateSource = pgEnum('rate_source', ['INFORMED', 'IMPLIED']);
+export const taxFrequency = pgEnum('tax_frequency', ['MONTHLY', 'YEARLY']);
 export const dataSource = pgEnum('data_source', ['BACEN_REGISTRATO', 'BUREAU', 'OPEN_FINANCE']);
 export const riskBand = pgEnum('risk_band', ['HIGH', 'MEDIUM', 'LOW']);
 export const bureau = pgEnum('bureau', ['SPC', 'SERASA', 'BOA_VISTA', 'QUOD']);
@@ -66,9 +67,36 @@ export const incomeSource = pgTable('income_source', {
     .references(() => holder.id, { onDelete: 'cascade' }),
   id: uuid('id').primaryKey().defaultRandom(),
   monthlyNetCents: cents('monthly_net_cents').notNull(),
+  /** Days of the month it is paid on, e.g. [15, 30]; its length is how many times a month. */
+  paydays: integer('paydays')
+    .array()
+    .notNull()
+    .default(sql`'{}'::integer[]`),
   startsOn: date('starts_on').notNull(),
   ...timestamps,
 });
+
+/** An Imposto: what a Holder pays to the government, monthly or once a year in installments. */
+export const tax = pgTable(
+  'tax',
+  {
+    /** A month's amount when MONTHLY; the year's total when YEARLY. */
+    amountCents: cents('amount_cents').notNull(),
+    dueDay: integer('due_day').notNull(),
+    /** YEARLY: the month of the first installment. */
+    dueMonth: integer('due_month'),
+    frequency: taxFrequency('frequency').notNull(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    installments: integer('installments').notNull().default(1),
+    name: text('name').notNull(),
+    organizationId: organizationId(),
+    ...timestamps,
+  },
+  table => [index('tax_holder_idx').on(table.holderId)]
+);
 
 export const creditOperation = pgTable(
   'credit_operation',

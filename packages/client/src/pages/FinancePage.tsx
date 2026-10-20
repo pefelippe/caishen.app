@@ -1,15 +1,18 @@
 import { useMutation, useQuery } from '@apollo/client/react';
 import {
   AddIncomeSourceDocument,
+  AddTaxDocument,
   BotAlertsDocument,
   CreateCreditCardDocument,
   CreateCreditOperationDocument,
+  DeleteTaxDocument,
   HolderDocument,
   MarketIndicatorsDocument,
   UpsertStatementDocument,
   ViewerHolderDocument,
   type HolderQuery,
   type Modality,
+  type TaxFrequency,
 } from '@zapbots/graphql/client';
 import {
   addMonths,
@@ -21,6 +24,7 @@ import {
   monthlyToAnnualRate,
   today,
 } from '@zapbots/finance';
+import { XIcon } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -170,13 +174,39 @@ export function FinanceOverviewPage() {
 /** Renda: the Holder's Income Sources. */
 export function IncomePage() {
   return (
-    <HolderSection
-      description={holder => `Renda mensal líquida ${formatCents(holder.monthlyIncomeCents)}`}
-      title="Renda"
-    >
-      {holder => <IncomeSection holder={holder} />}
-    </HolderSection>
+    <HolderSection title="Salário">{holder => <IncomeSection holder={holder} />}</HolderSection>
   );
+}
+
+/** Impostos: what the Holder pays the government, monthly or once a year. */
+export function TaxesPage() {
+  return (
+    <HolderSection title="Impostos">{holder => <TaxesSection holder={holder} />}</HolderSection>
+  );
+}
+
+/** The one white sheet a Salário or Impostos page holds. */
+const SHEET = 'gap-6 rounded-2xl border-0 bg-card p-6 md:p-8';
+
+const MONTHS = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
+
+/** "dias 15 e 30" */
+function daysLabel(days: number[]): string {
+  if (days.length === 1) return `dia ${days[0]}`;
+  return `dias ${days.slice(0, -1).join(', ')} e ${days.at(-1)}`;
 }
 
 /** Obrigações: every Credit Operation and card, and a form for a new one of any type. */
@@ -192,6 +222,7 @@ function IncomeSection({ holder }: { holder: Holder }) {
   const [addIncome, { error }] = useMutation(AddIncomeSourceDocument, {
     refetchQueries: [HolderDocument],
   });
+  const [times, setTimes] = useState(1);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -199,6 +230,9 @@ function IncomeSection({ holder }: { holder: Holder }) {
     const values = new FormData(form);
     const monthlyNetCents = parseCents(String(values.get('amount')));
     if (monthlyNetCents == null) return;
+    const paydays = Array.from({ length: times }, (_, index) =>
+      Number(values.get(`payday-${index}`))
+    );
     try {
       await addIncome({
         variables: {
@@ -206,41 +240,42 @@ function IncomeSection({ holder }: { holder: Holder }) {
             description: text(values, 'description')!,
             holderId: holder.id,
             monthlyNetCents,
+            paydays,
             startsOn: text(values, 'startsOn') ?? today(),
           },
         },
       });
       form.reset();
+      setTimes(1);
     } catch {
       // Shown by `error` under the form; the typed values stay.
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Fontes de Renda</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {holder.incomeSources.length > 0 && (
-          <Table>
-            <TableBody>
-              {holder.incomeSources.map(source => (
-                <TableRow key={source.id}>
-                  <TableCell>{source.description}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    desde {formatDate(source.startsOn)}
-                    {source.endsOn ? ` até ${formatDate(source.endsOn)}` : ''}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCents(source.monthlyNetCents)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-        <form className={FORM_GRID} onSubmit={submit}>
+    <Card className={SHEET}>
+      {holder.incomeSources.length > 0 && (
+        <ul className="flex flex-col divide-y">
+          {holder.incomeSources.map(source => (
+            <li
+              className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 first:pt-0"
+              key={source.id}
+            >
+              <span className="font-medium">{source.description}</span>
+              <span className="text-muted-foreground">
+                {source.paydays.length
+                  ? `${source.paydays.length}x por mês, ${daysLabel(source.paydays)}`
+                  : `desde ${formatDate(source.startsOn)}`}
+              </span>
+              <span className="ml-auto text-base font-semibold tabular-nums">
+                {formatCents(source.monthlyNetCents)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="flex flex-col gap-5" onSubmit={submit}>
+        <div className={FORM_GRID}>
           <Field id="income-description" label="Descrição">
             <Input
               id="income-description"
@@ -249,7 +284,11 @@ function IncomeSection({ holder }: { holder: Holder }) {
               required
             />
           </Field>
-          <Field id="income-amount" label="Valor líquido mensal (R$)">
+          <Field
+            hint="O total do mês, já com os descontos."
+            id="income-amount"
+            label="Valor líquido mensal (R$)"
+          >
             <Input
               id="income-amount"
               inputMode="decimal"
@@ -258,15 +297,212 @@ function IncomeSection({ holder }: { holder: Holder }) {
               required
             />
           </Field>
+          <Field id="income-times" label="Quantas vezes recebe por mês">
+            <Select onValueChange={value => setTimes(Number(value))} value={String(times)}>
+              <SelectTrigger className="w-full" id="income-times">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4].map(count => (
+                  <SelectItem key={count} value={String(count)}>
+                    {count === 1 ? '1 vez' : `${count} vezes`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {Array.from({ length: times }, (_, index) => (
+            <Field
+              id={`income-payday-${index}`}
+              key={index}
+              label={times === 1 ? 'Dia do pagamento' : `Dia do ${index + 1}º pagamento`}
+            >
+              <Input
+                id={`income-payday-${index}`}
+                inputMode="numeric"
+                max={31}
+                min={1}
+                name={`payday-${index}`}
+                placeholder={times === 1 ? '5' : String(Math.min(30, 15 * (index + 1)))}
+                required
+                type="number"
+              />
+            </Field>
+          ))}
           <Field hint="Vazio: hoje." id="income-starts" label="Desde">
             <Input id="income-starts" name="startsOn" type="date" />
           </Field>
-          <Button className="mt-5.5" type="submit">
-            Adicionar renda
-          </Button>
-        </form>
+        </div>
+        <Button className="self-start" type="submit">
+          Salvar salário
+        </Button>
         {error && <FormError message={error.message} />}
-      </CardContent>
+      </form>
+    </Card>
+  );
+}
+
+const FREQUENCIES: { label: string; value: TaxFrequency }[] = [
+  { label: 'Todo mês', value: 'MONTHLY' },
+  { label: 'Uma vez por ano', value: 'YEARLY' },
+];
+
+function taxLabel(tax: Holder['taxes'][number]): string {
+  if (tax.frequency === 'MONTHLY') return `todo mês, dia ${tax.dueDay}`;
+  const month = MONTHS[(tax.dueMonth ?? 1) - 1]!.toLowerCase();
+  const split = tax.installments === 1 ? 'à vista' : `em ${tax.installments}x`;
+  return `por ano, ${split}, a partir de ${tax.dueDay} de ${month}`;
+}
+
+function TaxesSection({ holder }: { holder: Holder }) {
+  const [addTax, { error }] = useMutation(AddTaxDocument, { refetchQueries: [HolderDocument] });
+  const [deleteTax] = useMutation(DeleteTaxDocument, { refetchQueries: [HolderDocument] });
+  const [frequency, setFrequency] = useState<TaxFrequency>('YEARLY');
+  const [installments, setInstallments] = useState(1);
+  const [dueMonth, setDueMonth] = useState(1);
+  const yearly = frequency === 'YEARLY';
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const amountCents = parseCents(String(values.get('amount')));
+    if (amountCents == null) return;
+    try {
+      await addTax({
+        variables: {
+          input: {
+            amountCents,
+            dueDay: Number(values.get('dueDay')),
+            dueMonth: yearly ? dueMonth : null,
+            frequency,
+            holderId: holder.id,
+            installments: yearly ? installments : 1,
+            name: text(values, 'name')!,
+          },
+        },
+      });
+      form.reset();
+      setInstallments(1);
+    } catch {
+      // Shown by `error` under the form; the typed values stay.
+    }
+  };
+
+  return (
+    <Card className={SHEET}>
+      {holder.taxes.length > 0 && (
+        <ul className="flex flex-col divide-y">
+          {holder.taxes.map(tax => (
+            <li
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 first:pt-0"
+              key={tax.id}
+            >
+              <span className="font-medium">{tax.name}</span>
+              <span className="text-muted-foreground">{taxLabel(tax)}</span>
+              <span className="ml-auto text-base font-semibold tabular-nums">
+                {formatCents(tax.amountCents)}
+              </span>
+              <Button
+                aria-label={`Remover ${tax.name}`}
+                onClick={() => void deleteTax({ variables: { id: tax.id } })}
+                size="icon-sm"
+                title="Remover"
+                variant="ghost"
+              >
+                <XIcon />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="flex flex-col gap-5" onSubmit={submit}>
+        <div className={FORM_GRID}>
+          <Field id="tax-name" label="Imposto">
+            <Input id="tax-name" name="name" placeholder="IPVA, IPTU, DAS…" required />
+          </Field>
+          <Field id="tax-frequency" label="Frequência">
+            <Select onValueChange={value => setFrequency(value as TaxFrequency)} value={frequency}>
+              <SelectTrigger className="w-full" id="tax-frequency">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FREQUENCIES.map(item => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field id="tax-amount" label={yearly ? 'Valor total no ano (R$)' : 'Valor mensal (R$)'}>
+            <Input
+              id="tax-amount"
+              inputMode="decimal"
+              name="amount"
+              placeholder={yearly ? '2.400,00' : '76,60'}
+              required
+            />
+          </Field>
+          {yearly && (
+            <>
+              <Field id="tax-installments" label="Parcelas">
+                <Select
+                  onValueChange={value => setInstallments(Number(value))}
+                  value={String(installments)}
+                >
+                  <SelectTrigger className="w-full" id="tax-installments">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, index) => index + 1).map(count => (
+                      <SelectItem key={count} value={String(count)}>
+                        {count === 1 ? 'À vista' : `${count}x`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field
+                id="tax-month"
+                label={installments === 1 ? 'Mês do vencimento' : 'Mês da 1ª parcela'}
+              >
+                <Select
+                  onValueChange={value => setDueMonth(Number(value))}
+                  value={String(dueMonth)}
+                >
+                  <SelectTrigger className="w-full" id="tax-month">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((month, index) => (
+                      <SelectItem key={month} value={String(index + 1)}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </>
+          )}
+          <Field id="tax-day" label="Dia do vencimento">
+            <Input
+              id="tax-day"
+              inputMode="numeric"
+              max={31}
+              min={1}
+              name="dueDay"
+              placeholder="10"
+              required
+              type="number"
+            />
+          </Field>
+        </div>
+        <Button className="self-start" type="submit">
+          Adicionar imposto
+        </Button>
+        {error && <FormError message={error.message} />}
+      </form>
     </Card>
   );
 }

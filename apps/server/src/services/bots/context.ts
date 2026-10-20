@@ -115,6 +115,11 @@ async function finance(viewer: Viewer): Promise<string> {
     .from(schema.creditOperation)
     .where(eq(schema.creditOperation.holderId, holder.id));
   const markets = await marketRates(operations.map(operation => operation.modality));
+  const incomeSources = await db
+    .select()
+    .from(schema.incomeSource)
+    .where(eq(schema.incomeSource.holderId, holder.id));
+  const taxes = await db.select().from(schema.tax).where(eq(schema.tax.holderId, holder.id));
   const operationLines: string[] = [];
   const prepaymentLines: string[] = [];
   for (const operation of operations) {
@@ -177,6 +182,29 @@ async function finance(viewer: Viewer): Promise<string> {
   return [
     '## Finanças',
     `Renda mensal líquida: ${money(await monthlyIncome(holder.id, asOf))}`,
+    'Fontes de Renda:',
+    list(
+      incomeSources.map(
+        source =>
+          `${source.description}: ${money(source.monthlyNetCents)} líquidos por mês` +
+          (source.paydays.length
+            ? `, recebidos ${source.paydays.length}x (dias ${source.paydays.join(', ')})`
+            : '') +
+          `, desde ${day(source.startsOn)}` +
+          (source.endsOn ? ` até ${day(source.endsOn)}` : '')
+      ),
+      'Nenhuma cadastrada.'
+    ),
+    'Impostos:',
+    list(
+      taxes.map(tax =>
+        tax.frequency === 'MONTHLY'
+          ? `${tax.name}: ${money(tax.amountCents)} por mês, vence dia ${tax.dueDay}`
+          : `${tax.name}: ${money(tax.amountCents)} por ano, em ${tax.installments} parcela(s)` +
+            `, a partir de ${String(tax.dueDay).padStart(2, '0')}/${String(tax.dueMonth).padStart(2, '0')}`
+      ),
+      'Nenhum cadastrado.'
+    ),
     assessment
       ? `Última Avaliação: Score ${assessment.score} de 1000 (${BAND[assessment.band]}), em ${day(dateOf(assessment.createdAt))}`
       : 'Ainda não há Avaliação gerada.',

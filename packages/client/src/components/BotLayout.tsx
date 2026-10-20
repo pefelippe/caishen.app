@@ -1,17 +1,18 @@
 import type { BotKey } from '@zapbots/graphql/client';
+import { Outlet } from 'react-router-dom';
 
-import { BOT_SECTIONS, teamBot } from '../lib/bots';
-import { SectionLayout } from './SectionLayout';
+import { Scrolling } from './Layout';
 
 /**
- * A Bot's page: the white menu of what its field needs (for the Caishen: the overview, income,
- * Obligations and Jobs), the open section beside it.
+ * A Bot's page: the open section of what its field needs (for the Caishen: the overview, income
+ * and Obligations). The sections themselves are listed in the menu on the left, under the Bot.
  */
 export function BotLayout({ bot }: { bot: BotKey }) {
-  const member = teamBot(bot);
   return (
     <div className="h-full min-h-0" data-bot={bot}>
-      <SectionLayout groups={BOT_SECTIONS[bot]} icon={member.icon} title={member.name} />
+      <Scrolling>
+        <Outlet />
+      </Scrolling>
     </div>
   );
 }

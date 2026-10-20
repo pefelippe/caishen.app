@@ -7,24 +7,27 @@ import {
 } from '@zapbots/graphql/client';
 import {
   ArrowRightIcon,
+  ArrowUpIcon,
   BellIcon,
   CalendarClockIcon,
   ChartNoAxesColumnIcon,
   GaugeIcon,
-  MessageCirclePlusIcon,
+  PlusIcon,
   WalletIcon,
   WorkflowIcon,
   type LucideIcon,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { AlertList } from '../components/AlertList';
 import { useChatPanel } from '../components/ChatPanel';
+import { Logo } from '../components/Logo';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { ScoreBadge } from '../components/ScoreBadge';
 import { BOT_SECTIONS } from '../lib/bots';
@@ -111,6 +114,62 @@ function MoreLink({ children, to }: { children: ReactNode; to: string }) {
   );
 }
 
+/** The greeting and one line to ask the Caishen; sending opens the chat panel on it. */
+function AskCaishen({ name }: { name: string }) {
+  const { t } = useI18n();
+  const { startNew } = useChatPanel();
+  const [draft, setDraft] = useState('');
+
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!draft.trim()) return;
+    startNew(draft.trim());
+    setDraft('');
+  };
+
+  return (
+    <section className="flex flex-col items-center gap-8 pt-6">
+      <h1 className="text-center text-3xl font-normal tracking-tight md:text-4xl">
+        {t('welcome.askHelp', { name })}
+      </h1>
+      <form
+        className="flex h-14 w-full max-w-3xl items-center gap-2 rounded-full bg-card pr-2 pl-5 shadow-[0_1px_4px_rgb(0_0_0/0.08)]"
+        onSubmit={onSubmit}
+      >
+        <Logo className="text-header" size={22} />
+        <Input
+          aria-label={t('welcome.ask')}
+          className="h-full flex-1 border-0 bg-transparent text-base shadow-none focus-visible:ring-0"
+          onChange={event => setDraft(event.target.value)}
+          placeholder={t('welcome.ask')}
+          value={draft}
+        />
+        <Button
+          aria-label={t('welcome.newChat')}
+          className="rounded-full"
+          onClick={() => startNew()}
+          size="icon"
+          title={t('welcome.newChat')}
+          type="button"
+          variant="ghost"
+        >
+          <PlusIcon />
+        </Button>
+        <Button
+          aria-label={t('welcome.send')}
+          className="size-10 rounded-full bg-(image:--header-gradient) text-white"
+          disabled={!draft.trim()}
+          size="icon"
+          title={t('welcome.send')}
+          type="submit"
+        >
+          <ArrowUpIcon />
+        </Button>
+      </form>
+    </section>
+  );
+}
+
 /** Where a new Holder adds their income and debts: the Caishen's Finanças tabs. */
 const FINANCE_LINKS = BOT_SECTIONS.FINANCE.find(group => group.label === 'Finanças')!.links;
 
@@ -121,12 +180,12 @@ const START_NOTES: Record<string, StringKey> = {
 };
 
 /**
- * The Dashboard: the day at a glance. The outstanding balance first, then the other figures,
+ * The Dashboard: the day at a glance. A line to ask the Caishen first, then the outstanding balance
+ * and the other figures,
  * what the team points out and the latest Workflows; with nothing registered yet, where to start.
  */
 export function DashboardPage({ user }: { user: { name: string } }) {
   const { t } = useI18n();
-  const { startNew } = useChatPanel();
   const { data: bots, loading } = useQuery(BotsDocument, { fetchPolicy: 'cache-and-network' });
   const { data: usage } = useQuery(UsageDocument, { fetchPolicy: 'cache-and-network' });
   const { data: viewer } = useQuery(ViewerHolderDocument);
@@ -157,32 +216,7 @@ export function DashboardPage({ user }: { user: { name: string } }) {
 
   return (
     <div className="flex flex-col gap-16">
-      <header className="flex flex-wrap items-end justify-between gap-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-5xl leading-none font-semibold tracking-[-0.03em]">
-            {t('welcome.hello', { name: user.name.split(' ')[0]! })}
-          </h1>
-          <p className="text-muted-foreground first-letter:uppercase">
-            {new Date().toLocaleDateString(t('locale'), {
-              day: 'numeric',
-              month: 'long',
-              weekday: 'long',
-            })}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="secondary">
-            <Link to="/workflows">
-              <WorkflowIcon />
-              {t('welcome.giveJob')}
-            </Link>
-          </Button>
-          <Button onClick={startNew}>
-            <MessageCirclePlusIcon />
-            {t('welcome.newChat')}
-          </Button>
-        </div>
-      </header>
+      <AskCaishen name={user.name.split(' ')[0]!} />
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="flex flex-col justify-between gap-10 rounded-md bg-primary p-7 text-primary-foreground">

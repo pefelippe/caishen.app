@@ -33,6 +33,11 @@ enum RateSource {
   IMPLIED
 }
 
+enum TaxFrequency {
+  MONTHLY
+  YEARLY
+}
+
 "Risk of default a Score indicates, with SPC cut-offs (docs/adr/0005)."
 enum RiskBand {
   HIGH
@@ -160,6 +165,8 @@ type Mutation {
   addExtraAmortization(creditOperationId: ID!, date: Date!, amountCents: Cents!): CreditOperation!
   removeExtraAmortization(id: ID!): CreditOperation!
   addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
+  addTax(input: AddTaxInput!): Tax!
+  deleteTax(id: ID!): Boolean!
   createCreditOperation(input: CreateCreditOperationInput!): CreditOperation!
   deleteCreditOperation(id: ID!): Boolean!
   createCreditCard(input: CreateCreditCardInput!): CreditCard!
@@ -193,6 +200,7 @@ type Holder {
   "Sum of Income Sources in force today."
   monthlyIncomeCents: Cents!
   incomeSources: [IncomeSource!]!
+  taxes: [Tax!]!
   creditOperations: [CreditOperation!]!
   creditCards: [CreditCard!]!
   assessments: [Assessment!]!
@@ -390,8 +398,22 @@ type IncomeSource {
   id: ID!
   description: String!
   monthlyNetCents: Cents!
+  "Days of the month it is paid on; its length is how many times a month."
+  paydays: [Int!]!
   startsOn: Date!
   endsOn: Date
+}
+
+"An Imposto: paid every month, or once a year in `installments` from `dueMonth`."
+type Tax {
+  id: ID!
+  name: String!
+  "A month's amount when MONTHLY; the year's total when YEARLY."
+  amountCents: Cents!
+  frequency: TaxFrequency!
+  installments: Int!
+  dueDay: Int!
+  dueMonth: Int
 }
 
 type CreditOperation {
@@ -586,8 +608,19 @@ input AddIncomeSourceInput {
   holderId: ID!
   description: String!
   monthlyNetCents: Cents!
+  paydays: [Int!]
   startsOn: Date!
   endsOn: Date
+}
+
+input AddTaxInput {
+  holderId: ID!
+  name: String!
+  amountCents: Cents!
+  frequency: TaxFrequency!
+  installments: Int
+  dueDay: Int!
+  dueMonth: Int
 }
 
 "Provide `monthlyRate` or `installmentCents`; the other is derived."

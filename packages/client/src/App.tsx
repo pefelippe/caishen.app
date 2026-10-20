@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
-import { Skeleton } from '@/components/ui/skeleton';
-
 import { Layout, Scrolling } from './components/Layout';
+import { Splash } from './components/Logo';
 import { authClient } from './lib/auth';
 import { isLanguage, useI18n } from './lib/i18n';
 import { LoginPage } from './pages/LoginPage';
@@ -27,6 +26,7 @@ const finance = <Name extends string>(name: Name) =>
 const FinanceOverviewPage = finance('FinanceOverviewPage');
 const IncomePage = finance('IncomePage');
 const ObligationsPage = finance('ObligationsPage');
+const TaxesPage = finance('TaxesPage');
 /** Workflows used to live under the Caishen's page; old links still land on them. */
 function LegacyJobRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -57,11 +57,7 @@ export function App() {
   }, [language, setLanguage]);
 
   if (isPending) {
-    return (
-      <div className="grid min-h-svh place-items-center p-4">
-        <Skeleton className="h-48 w-full max-w-sm" />
-      </div>
-    );
+    return <Splash />;
   }
   // Every User has a personal Organization from their first session on (docs/adr/0007).
   if (!session) {
@@ -88,7 +84,7 @@ export function App() {
           }
           index
         />
-        <Route element={<ChatPage />} path="chat" />
+        <Route element={<ChatPage user={session.user} />} path="chat" />
         <Route
           element={
             <Scrolling>
@@ -109,6 +105,7 @@ export function App() {
           <Route element={<Navigate replace to="overview" />} index />
           <Route element={<FinanceOverviewPage />} path="overview" />
           <Route element={<IncomePage />} path="income" />
+          <Route element={<TaxesPage />} path="taxes" />
           <Route element={<ObligationsPage />} path="obligations" />
           {['loans', 'financing', 'cards'].map(path => (
             <Route

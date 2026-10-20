@@ -206,8 +206,15 @@ _Avoid_: nível de risco AA–H (da Resolução 2.682, revogada em 2025)
 
 **Fonte de Renda** (`IncomeSource`):
 Uma entrada mensal líquida e recorrente de um Titular (salário, pró-labore,
-aluguel), com vigência.
-_Avoid_: renda (como entidade), receita, salário
+aluguel), com vigência e os dias do mês em que é paga (`paydays`; quantos dias,
+quantas vezes por mês). Na tela, a página se chama Salário.
+_Avoid_: renda (como entidade), receita, salário (no código)
+
+**Imposto** (`Tax`):
+O que um Titular paga ao governo: todo mês (DAS, INSS) ou uma vez por ano, à
+vista ou em Parcelas a partir de um mês (IPVA, IPTU). Só registrado; não entra
+na Avaliação.
+_Avoid_: tributo, taxa (taxa é de juros)
 
 ### Avaliação
 

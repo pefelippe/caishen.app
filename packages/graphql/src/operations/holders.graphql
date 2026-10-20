@@ -51,8 +51,18 @@ query Holder($id: ID!) {
       id
       description
       monthlyNetCents
+      paydays
       startsOn
       endsOn
+    }
+    taxes {
+      id
+      name
+      amountCents
+      frequency
+      installments
+      dueDay
+      dueMonth
     }
     creditOperations {
       id
@@ -131,6 +141,16 @@ mutation AddIncomeSource($input: AddIncomeSourceInput!) {
   addIncomeSource(input: $input) {
     id
   }
+}
+
+mutation AddTax($input: AddTaxInput!) {
+  addTax(input: $input) {
+    id
+  }
+}
+
+mutation DeleteTax($id: ID!) {
+  deleteTax(id: $id)
 }
 
 mutation GenerateAssessment($holderId: ID!) {

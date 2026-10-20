@@ -1,4 +1,4 @@
-import { XIcon } from 'lucide-react';
+import { BellIcon, GaugeIcon, ListOrderedIcon, XIcon } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -8,15 +8,16 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '../lib/i18n';
 import { useDesktop } from '../lib/media';
 import { BotPanel } from './BotPanel';
+import type { Suggestion } from './ChatThread';
 
 const STORAGE_KEY = 'zapbots.chatPanel';
 const WIDTH = 400;
 const EASE = [0.22, 1, 0.36, 1] as const;
 /** Questions offered while a Conversation is still blank. */
-export const CHAT_SUGGESTIONS = [
-  'O que merece minha atenção agora?',
-  'Qual das minhas dívidas devo quitar primeiro?',
-  'Como está meu Score e o que mais pesa nele?',
+export const CHAT_SUGGESTIONS: Suggestion[] = [
+  { icon: BellIcon, text: 'O que merece minha atenção agora?' },
+  { icon: ListOrderedIcon, text: 'Qual das minhas dívidas devo quitar primeiro?' },
+  { icon: GaugeIcon, text: 'Como está meu Score e o que mais pesa nele?' },
 ];
 
 function storedOpen(): boolean {
@@ -30,8 +31,8 @@ function storedOpen(): boolean {
 interface ChatPanelState {
   close: () => void;
   open: boolean;
-  /** Opens the panel on a blank Conversation. */
-  startNew: () => void;
+  /** Opens the panel on a blank Conversation, sending `message` in it when given. */
+  startNew: (message?: string) => void;
   toggle: () => void;
 }
 
@@ -42,6 +43,7 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(storedOpen);
   // Each blank Conversation asked for remounts the panel on one.
   const [blank, setBlank] = useState(0);
+  const [firstMessage, setFirstMessage] = useState<string>();
 
   useEffect(() => {
     try {
@@ -56,19 +58,20 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
       value={{
         close: () => setOpen(false),
         open,
-        startNew: () => {
+        startNew: message => {
+          setFirstMessage(message);
           setBlank(current => current + 1);
           setOpen(true);
         },
         toggle: () => setOpen(current => !current),
       }}
     >
-      <BlankContext.Provider value={blank}>{children}</BlankContext.Provider>
+      <BlankContext.Provider value={{ blank, firstMessage }}>{children}</BlankContext.Provider>
     </ChatPanelContext.Provider>
   );
 }
 
-const BlankContext = createContext(0);
+const BlankContext = createContext<{ blank: number; firstMessage?: string }>({ blank: 0 });
 
 export function useChatPanel(): ChatPanelState {
   const panel = useContext(ChatPanelContext);
@@ -83,7 +86,7 @@ export function useChatPanel(): ChatPanelState {
  */
 export function ChatPanel() {
   const { close, open } = useChatPanel();
-  const blank = useContext(BlankContext);
+  const { blank, firstMessage } = useContext(BlankContext);
   const { t } = useI18n();
   const { pathname } = useLocation();
   const desktop = useDesktop();
@@ -126,6 +129,7 @@ export function ChatPanel() {
               }
               bot="FINANCE"
               className="h-full"
+              firstMessage={firstMessage}
               key={blank}
               startBlank={blank > 0}
               suggestions={CHAT_SUGGESTIONS}
