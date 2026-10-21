@@ -57,6 +57,7 @@ import { FormError } from '../components/FormError';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { Sheet, SheetRow } from '../components/Sheet';
 import { PayoffPlanPanel } from '../components/PayoffPlanPanel';
+import { EntriesTabs } from '../components/EntriesTabs';
 import { ReportCharts } from '../components/ReportCharts';
 import { ScrPanel } from '../components/ScrPanel';
 import { formatCents, formatDate, formatPercent, parseCents, parsePercent } from '../lib/format';
@@ -106,9 +107,11 @@ function HolderSection({
   actions,
   children,
   description,
+  eyebrow,
   title,
 }: {
   actions?: ReactNode;
+  eyebrow?: ReactNode;
   children: (holder: Holder) => ReactNode;
   description?: (holder: Holder) => ReactNode;
   title: string;
@@ -117,22 +120,24 @@ function HolderSection({
   if (holder === null) return <PageSkeleton />;
   if (!holder) return <p>Não foi possível carregar suas Finanças.</p>;
   return (
-    <BotPage actions={actions} bot="FINANCE" description={description?.(holder)} title={title}>
+    <BotPage
+      actions={actions}
+      bot="FINANCE"
+      description={description?.(holder)}
+      eyebrow={eyebrow}
+      title={title}
+    >
       {children(holder)}
     </BotPage>
   );
 }
 
 /**
- * Relatório: the Alerts, six months in charts, the Assessment, the SCR and, with debts to compare,
- * the payoff plan; it prints to PDF.
+ * Relatório: six months in charts, the Assessment and the SCR; it prints to PDF. The Alerts live on
+ * the home page and the payoff plan on Dívidas.
  */
 export function FinanceOverviewPage() {
   const { data: market } = useQuery(MarketIndicatorsDocument);
-  const { data: alerts } = useQuery(BotAlertsDocument, {
-    fetchPolicy: 'cache-and-network',
-    variables: { key: 'FINANCE' },
-  });
   const indicators = market?.marketIndicators;
 
   return (
@@ -162,24 +167,49 @@ export function FinanceOverviewPage() {
     >
       {holder => (
         <>
-          {Boolean(alerts?.bot.alerts.length) && (
-            <Card className="border-ink">
-              <CardHeader>
-                <CardTitle>Avisos</CardTitle>
-                <CardDescription>
-                  O que merece atenção agora, do mais urgente ao menos.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AlertList alerts={alerts!.bot.alerts} />
-              </CardContent>
-            </Card>
-          )}
           <ReportCharts holderId={holder.id} />
           <ConsentBanner holder={holder} />
           <AssessmentPanel holder={holder} />
           <ScrPanel holder={holder} />
-          {holder.creditOperations.length > 1 && <PayoffPlanPanel holderId={holder.id} />}
+        </>
+      )}
+    </HolderSection>
+  );
+}
+
+/** Brings the part in the URL's hash into view once the page has it. */
+function useHashScroll(ready: boolean) {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (ready && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash, ready]);
+}
+
+/**
+ * Fixos, the second tab of Lançamentos: what repeats and so shows up in every month by itself,
+ * the Fontes de Renda (Salário) and the Impostos.
+ */
+export function FixedPage() {
+  const holder = useHolder();
+  useHashScroll(Boolean(holder));
+  return (
+    <HolderSection
+      description={() =>
+        'Cadastre uma vez o que se repete: ele entra sozinho nos Lançamentos de cada mês.'
+      }
+      eyebrow={<EntriesTabs />}
+      title="Fixos"
+    >
+      {holder => (
+        <>
+          <Figures
+            figures={[
+              { label: 'Renda mensal', value: holder.monthlyIncomeCents },
+              { label: 'Impostos no ano', value: taxesPerYear(holder) },
+            ]}
+          />
+          <IncomeSection holder={holder} />
+          <TaxesSection holder={holder} />
         </>
       )}
     </HolderSection>
@@ -187,25 +217,36 @@ export function FinanceOverviewPage() {
 }
 
 /**
- * Financeiro: what comes in (Salário), what goes to the government (Impostos) and every Credit
- * Operation and card (Obrigações), on one page. The figures on top lead to each part.
+ * Dívidas: every Credit Operation and card, a form for a new one and, with debts to compare, the
+ * Plano de Quitação.
  */
-export function FinancesPage() {
-  const { hash } = useLocation();
+export function DebtsPage() {
   const holder = useHolder();
-  // Opened on one part (from the Dashboard or an Alert): bring it into view once it is there.
-  useEffect(() => {
-    if (holder && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
-  }, [hash, holder]);
-
+  useHashScroll(Boolean(holder));
   return (
-    <HolderSection title="Financeiro">
+    <HolderSection
+      description={() =>
+        'Empréstimos, financiamentos e cartões: o que falta pagar, as Parcelas e como quitar antes.'
+      }
+      title="Dívidas"
+    >
       {holder => (
         <>
-          <Summary holder={holder} />
-          <IncomeSection holder={holder} />
-          <TaxesSection holder={holder} />
+          <Figures
+            figures={[
+              { label: 'Saldo devedor', value: outstandingOf(holder) },
+              { label: 'Parcelas por mês', value: installmentsOf(holder) },
+              {
+                label: 'Atrasado',
+                value: holder.creditOperations.reduce(
+                  (total, item) => total + item.overdueCents,
+                  0
+                ),
+              },
+            ]}
+          />
           <ObligationsSection holder={holder} />
+          {holder.creditOperations.length > 1 && <PayoffPlanPanel holderId={holder.id} />}
         </>
       )}
     </HolderSection>
@@ -222,36 +263,31 @@ const taxesPerYear = (holder: Holder) =>
 const outstandingOf = (holder: Holder) =>
   holder.creditOperations.reduce((total, item) => total + item.outstandingBalanceCents, 0);
 
-/** The three totals, large, each one the way to its part. */
-function Summary({ holder }: { holder: Holder }) {
-  const figures = [
-    { id: 'income', label: 'Renda mensal', value: holder.monthlyIncomeCents },
-    { id: 'taxes', label: 'Impostos no ano', value: taxesPerYear(holder) },
-    { id: 'obligations', label: 'Saldo devedor', value: outstandingOf(holder) },
-  ];
+/** What the Operations still being paid charge a month. */
+const installmentsOf = (holder: Holder) =>
+  holder.creditOperations
+    .filter(item => item.paidInstallments < item.termMonths)
+    .reduce((total, item) => total + item.installmentCents, 0);
+
+/** A page's totals, large, side by side. */
+function Figures({ figures }: { figures: { label: string; value: number }[] }) {
   return (
-    <nav aria-label="Partes do Financeiro" className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-px overflow-hidden rounded-2xl bg-border sm:grid-flow-col sm:auto-cols-fr">
       {figures.map((figure, index) => (
-        <motion.a
+        <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="group flex flex-col gap-2 rounded-2xl bg-card p-6 transition-colors hover:bg-card/70"
-          href={`#${figure.id}`}
-          initial={{ opacity: 0, y: 16 }}
-          key={figure.id}
+          className="flex flex-col gap-1 bg-card p-6"
+          initial={{ opacity: 0, y: 12 }}
+          key={figure.label}
           transition={{ delay: index * 0.06, duration: 0.5, ease: EASE }}
-          whileTap={{ scale: 0.98 }}
         >
-          <span className="text-base">{figure.label}</span>
-          <strong className="text-4xl font-semibold tracking-[-0.03em] tabular-nums">
+          <span className="text-sm text-muted-foreground">{figure.label}</span>
+          <strong className="text-3xl font-semibold tracking-[-0.03em] tabular-nums">
             {formatCents(figure.value)}
           </strong>
-          <span className="flex items-center gap-1 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
-            Ver detalhes
-            <ArrowDownIcon className="size-3.5 transition-transform group-hover:translate-y-0.5" />
-          </span>
-        </motion.a>
+        </motion.div>
       ))}
-    </nav>
+    </div>
   );
 }
 

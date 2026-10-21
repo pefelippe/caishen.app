@@ -3,6 +3,7 @@ import {
   CreditCardIcon,
   LanguagesIcon,
   LogOutIcon,
+  PlugIcon,
   UserIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -39,6 +40,7 @@ const ACCOUNT: { icon: LucideIcon; label: StringKey; to: string }[] = [
   { icon: UserIcon, label: 'menu.profile', to: '/profile' },
   { icon: CreditCardIcon, label: 'rail.plan', to: '/plan' },
   { icon: BuildingIcon, label: 'rail.organization', to: '/organization' },
+  { icon: PlugIcon, label: 'integrations.title', to: '/integrations' },
 ];
 
 /**

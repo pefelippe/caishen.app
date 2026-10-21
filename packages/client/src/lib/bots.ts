@@ -1,9 +1,17 @@
 import type { BotKey } from '@zapbots/graphql/client';
 import {
-  CalendarDaysIcon,
-  CoinsIcon,
+  BriefcaseIcon,
+  CalendarHeartIcon,
   ChartColumnIcon,
-  WalletIcon,
+  CoinsIcon,
+  FolderKanbanIcon,
+  HandCoinsIcon,
+  HeartPulseIcon,
+  ListTodoIcon,
+  ReceiptTextIcon,
+  RepeatIcon,
+  TimerIcon,
+  UserRoundIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -48,15 +56,53 @@ export const BOT_SECTIONS: Record<BotKey, SectionGroup[]> = {
   FINANCE: [
     {
       links: [
+        { icon: ReceiptTextIcon, label: 'Lançamentos', to: '/caishen/entries' },
+        { icon: HandCoinsIcon, label: 'Dívidas', to: '/caishen/debts' },
         { icon: ChartColumnIcon, label: 'Relatório', to: '/caishen/report' },
-        { icon: CalendarDaysIcon, label: 'Mês', to: '/caishen/month' },
       ],
-    },
-    {
-      links: [{ icon: WalletIcon, label: 'Financeiro', to: '/caishen/finances' }],
     },
   ],
 };
+
+/**
+ * Bots still being built, shown disabled under "Em breve" in the menu's Bot switcher with the
+ * sections they will have. They are not in `TEAM` and have no `BotKey` until they work.
+ */
+export interface UpcomingBot {
+  description: string;
+  field: string;
+  icon: LucideIcon;
+  key: string;
+  name: string;
+  sections: { icon: LucideIcon; label: string }[];
+}
+
+export const UPCOMING_BOTS: UpcomingBot[] = [
+  {
+    description: 'Hábitos, rotina, saúde e agenda do dia a dia.',
+    field: 'Pessoal',
+    icon: UserRoundIcon,
+    key: 'personal',
+    name: 'Caishen Personal',
+    sections: [
+      { icon: RepeatIcon, label: 'Rotina e hábitos' },
+      { icon: HeartPulseIcon, label: 'Saúde e bem-estar' },
+      { icon: CalendarHeartIcon, label: 'Agenda e lazer' },
+    ],
+  },
+  {
+    description: 'Tarefas, projetos e foco no trabalho.',
+    field: 'Trabalho',
+    icon: BriefcaseIcon,
+    key: 'work',
+    name: 'Caishen Work',
+    sections: [
+      { icon: ListTodoIcon, label: 'Minhas tarefas' },
+      { icon: FolderKanbanIcon, label: 'Projetos' },
+      { icon: TimerIcon, label: 'Foco e Pomodoro' },
+    ],
+  },
+];
 
 export const teamBot = (key: BotKey) => TEAM.find(bot => bot.key === key)!;
 

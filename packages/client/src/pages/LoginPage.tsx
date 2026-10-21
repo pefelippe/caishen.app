@@ -142,7 +142,7 @@ export function LoginPage() {
         <main className="relative grid flex-1 place-items-center px-4 pt-6 pb-16">
           <motion.div
             animate="shown"
-            className="w-full max-w-[440px] rounded-2xl border border-border/60 bg-card px-6 py-10 shadow-[0_24px_70px_-24px_rgba(30,26,23,0.28)] sm:px-10"
+            className="w-full max-w-[440px] rounded-2xl border border-border/60 bg-card px-6 py-10 shadow-[0_24px_70px_-24px_rgba(15,23,42,0.28)] sm:px-10"
             initial="hidden"
             variants={card}
           >

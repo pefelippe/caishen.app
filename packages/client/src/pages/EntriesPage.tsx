@@ -15,6 +15,7 @@ import {
   ChevronRightIcon,
   DownloadIcon,
   FileSpreadsheetIcon,
+  PlusIcon,
   PrinterIcon,
   UploadIcon,
   XIcon,
@@ -60,7 +61,8 @@ import { cn } from '@/lib/utils';
 
 import { FormError } from '../components/FormError';
 import { PageSkeleton } from '../components/PageSkeleton';
-import { Sheet, SheetRow } from '../components/Sheet';
+import { EntriesTabs } from '../components/EntriesTabs';
+import { Sheet } from '../components/Sheet';
 import { localToday } from '../lib/bots';
 import { formatCents, formatDate, parseCents } from '../lib/format';
 import {
@@ -98,12 +100,79 @@ function monthName(month: string) {
   return name[0]!.toUpperCase() + name.slice(1);
 }
 
+/** Where each kind of line is filed when it has no category of its own. */
+const KIND_CATEGORIES: Record<MonthLineKind, string> = {
+  INSTALLMENT: 'Dívidas',
+  ONE_OFF: 'Receita avulsa',
+  SALARY: 'Salário',
+  STATEMENT: 'Cartão',
+  TAX: 'Impostos',
+};
+
+/** One line of the month's spreadsheet, whatever it came from. */
+interface Entry {
+  amountCents: number;
+  category: string;
+  date: string;
+  description: string;
+  direction: 'IN' | 'OUT';
+  /** Typed or imported here (Receita avulsa, Gasto), so it can be removed here. */
+  removable: { id: string; kind: 'EXPENSE' | 'ONE_OFF' } | null;
+  /** What it is: Salário, Avulsa, Parcela, Fatura, Imposto or Gasto. */
+  source: string;
+  /** Where it is managed, for the lines that come from Fixos or Dívidas. */
+  to: string | null;
+}
+
+function entriesOf(statement: Statement): Entry[] {
+  return [
+    ...statement.incomes.map(line => ({
+      amountCents: line.amountCents,
+      category: KIND_CATEGORIES[line.kind],
+      date: line.date,
+      description: line.label,
+      direction: 'IN' as const,
+      removable:
+        line.kind === 'ONE_OFF' && line.id ? { id: line.id, kind: 'ONE_OFF' as const } : null,
+      source: KIND_LABELS[line.kind],
+      to: line.kind === 'SALARY' ? '/caishen/entries/fixed#income' : null,
+    })),
+    ...statement.commitments.map(line => ({
+      amountCents: line.amountCents,
+      category: KIND_CATEGORIES[line.kind],
+      date: line.date,
+      description: line.label,
+      direction: 'OUT' as const,
+      removable: null,
+      source: KIND_LABELS[line.kind],
+      to:
+        line.kind === 'INSTALLMENT' && line.id
+          ? `/caishen/operations/${line.id}`
+          : line.kind === 'TAX'
+            ? '/caishen/entries/fixed#taxes'
+            : '/caishen/debts',
+    })),
+    ...statement.expenses.map(item => ({
+      amountCents: item.amountCents,
+      category: item.category ?? 'Sem categoria',
+      date: item.date,
+      description: item.description,
+      direction: 'OUT' as const,
+      removable: { id: item.id, kind: 'EXPENSE' as const },
+      source: item.imported ? 'Importado' : 'Gasto',
+      to: null,
+    })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+type Filter = 'ALL' | 'IN' | 'OUT';
+
 /**
- * Mês: one month of the Holder's money, picked with the arrows. What came in (Fontes de Renda and
- * Receitas avulsas, which are added here), the Compromissos that fall due, the Gastos as a
- * spreadsheet (typed in or imported) and what is left; it exports as CSV or prints to PDF.
+ * Lançamentos: one month of money as one spreadsheet. Salários, Parcelas, Faturas and Impostos show
+ * up by themselves (from Fixos and Dívidas); Receitas avulsas and Gastos are typed in here, and
+ * Gastos also come in from a .csv or .xlsx. It filters, totals, and exports as CSV or PDF.
  */
-export function MonthPage() {
+export function EntriesPage() {
   const [params, setParams] = useSearchParams();
   const month = /^\d{4}-\d{2}$/.test(params.get('m') ?? '')
     ? params.get('m')!
@@ -122,63 +191,63 @@ export function MonthPage() {
   if (!statement || !holderId) return <p>Não foi possível carregar o mês.</p>;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            aria-label="Mês anterior"
-            className="print:hidden"
-            onClick={() => go(-1)}
-            size="icon"
-            variant="ghost"
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <motion.h1
-            animate={{ opacity: 1, y: 0 }}
-            className="min-w-56 text-center"
-            initial={{ opacity: 0, y: 6 }}
-            key={month}
-          >
-            {monthName(month)}
-          </motion.h1>
-          <Button
-            aria-label="Próximo mês"
-            className="print:hidden"
-            onClick={() => go(1)}
-            size="icon"
-            variant="ghost"
-          >
-            <ChevronRightIcon />
-          </Button>
-        </div>
-        <Export statement={statement} />
-      </header>
+    <div className="flex flex-col gap-6" data-bot="FINANCE">
+      <div>
+        <EntriesTabs />
+        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              aria-label="Mês anterior"
+              className="print:hidden"
+              onClick={() => go(-1)}
+              size="icon"
+              variant="ghost"
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <motion.h1
+              animate={{ opacity: 1, y: 0 }}
+              className="min-w-56 text-center"
+              initial={{ opacity: 0, y: 6 }}
+              key={month}
+            >
+              {monthName(month)}
+            </motion.h1>
+            <Button
+              aria-label="Próximo mês"
+              className="print:hidden"
+              onClick={() => go(1)}
+              size="icon"
+              variant="ghost"
+            >
+              <ChevronRightIcon />
+            </Button>
+          </div>
+          <Export statement={statement} />
+        </header>
+      </div>
 
       <Totals statement={statement} />
-      <Incomes holderId={holderId} month={month} statement={statement} />
-      <Commitments statement={statement} />
-      <Expenses holderId={holderId} month={month} statement={statement} />
+      <Ledger holderId={holderId} month={month} statement={statement} />
     </div>
   );
 }
 
 function Totals({ statement }: { statement: Statement }) {
   const figures = [
-    { label: 'Receitas', value: statement.incomeCents },
-    { label: 'Compromissos', value: statement.commitmentsCents },
-    { label: 'Gastos', value: statement.expensesCents },
-    { label: 'Saldo', value: statement.balanceCents },
+    { label: 'Entradas', value: statement.incomeCents },
+    { label: 'Saídas', value: statement.commitmentsCents + statement.expensesCents },
+    { label: 'Saldo do mês', value: statement.balanceCents },
   ];
   return (
-    <div className="grid gap-px overflow-hidden rounded-2xl bg-border sm:grid-cols-4">
+    <div className="grid gap-px overflow-hidden rounded-2xl bg-border sm:grid-cols-3">
       {figures.map(figure => (
         <div className="flex flex-col gap-1 bg-card p-5" key={figure.label}>
           <span className="text-sm text-muted-foreground">{figure.label}</span>
           <strong
             className={cn(
-              'text-2xl font-semibold tracking-tight tabular-nums',
-              figure.label === 'Saldo' && figure.value < 0 && 'text-destructive'
+              'text-3xl font-semibold tracking-tight tabular-nums',
+              figure.label === 'Saldo do mês' && figure.value < 0 && 'text-destructive'
             )}
           >
             {formatCents(figure.value)}
@@ -189,7 +258,8 @@ function Totals({ statement }: { statement: Statement }) {
   );
 }
 
-function Incomes({
+/** The month's spreadsheet: a row to add an entrada or a saída, then every line, filterable. */
+function Ledger({
   holderId,
   month,
   statement,
@@ -198,209 +268,69 @@ function Incomes({
   month: string;
   statement: Statement;
 }) {
-  const [add, { error }] = useMutation(AddOneOffIncomeDocument, {
+  const [addExpense, { error: expenseError }] = useMutation(AddExpenseDocument, {
     refetchQueries: [MonthDocument],
   });
-  const [remove] = useMutation(DeleteOneOffIncomeDocument, { refetchQueries: [MonthDocument] });
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const values = new FormData(form);
-    const amountCents = parseCents(String(values.get('amount')));
-    if (amountCents == null) return;
-    try {
-      await add({
-        variables: {
-          input: {
-            amountCents,
-            date: String(values.get('date')),
-            description: String(values.get('description')),
-            holderId,
-          },
-        },
-      });
-      form.reset();
-    } catch {
-      // Shown by `error` under the form; the typed values stay.
-    }
-  };
-
-  return (
-    <Sheet
-      id="incomes"
-      intro={
-        <>
-          Salários em vigor e Receitas avulsas. Salários se cadastram no{' '}
-          <Link className="underline underline-offset-4" to="/caishen/finances#income">
-            Financeiro
-          </Link>
-          .
-        </>
-      }
-      title="Receitas"
-      total={formatCents(statement.incomeCents)}
-    >
-      {statement.incomes.length > 0 ? (
-        <ul className="flex flex-col gap-2">
-          {statement.incomes.map((line, index) => (
-            <SheetRow
-              action={
-                line.kind === 'ONE_OFF' && line.id ? (
-                  <Button
-                    aria-label={`Remover ${line.label}`}
-                    className="print:hidden"
-                    onClick={() => void remove({ variables: { id: line.id! } })}
-                    size="icon-sm"
-                    variant="ghost"
-                  >
-                    <XIcon />
-                  </Button>
-                ) : undefined
-              }
-              amount={formatCents(line.amountCents)}
-              detail={
-                <>
-                  {formatDate(line.date)}{' '}
-                  <Badge variant="secondary">{KIND_LABELS[line.kind]}</Badge>
-                </>
-              }
-              key={`${line.label}-${index}`}
-              name={line.label}
-            />
-          ))}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground">Nenhuma receita neste mês.</p>
-      )}
-      <form
-        className="grid gap-3 rounded-xl bg-secondary p-4 sm:grid-cols-[10rem_minmax(0,1fr)_10rem_auto] sm:items-end print:hidden [&_input]:bg-card"
-        onSubmit={submit}
-      >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="income-date">Data</Label>
-          <Input
-            defaultValue={localToday().startsWith(month) ? localToday() : `${month}-01`}
-            id="income-date"
-            key={month}
-            name="date"
-            required
-            type="date"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="income-description">Receita avulsa</Label>
-          <Input
-            id="income-description"
-            name="description"
-            placeholder="Freela, venda, reembolso…"
-            required
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="income-amount">Valor (R$)</Label>
-          <Input
-            id="income-amount"
-            inputMode="decimal"
-            name="amount"
-            placeholder="800,00"
-            required
-          />
-        </div>
-        <Button type="submit">Adicionar</Button>
-      </form>
-      {error && <FormError message={error.message} />}
-    </Sheet>
-  );
-}
-
-function Commitments({ statement }: { statement: Statement }) {
-  return (
-    <Sheet
-      id="commitments"
-      intro={
-        <>
-          Parcelas, Faturas e Impostos que vencem no mês. Cadastre-os no{' '}
-          <Link className="underline underline-offset-4" to="/caishen/finances#obligations">
-            Financeiro
-          </Link>
-          .
-        </>
-      }
-      title="Compromissos"
-      total={formatCents(statement.commitmentsCents)}
-    >
-      {statement.commitments.length > 0 ? (
-        <ul className="flex flex-col gap-2">
-          {statement.commitments.map((line, index) => (
-            <SheetRow
-              amount={formatCents(line.amountCents)}
-              detail={
-                <>
-                  {formatDate(line.date)}{' '}
-                  <Badge variant="secondary">{KIND_LABELS[line.kind]}</Badge>
-                </>
-              }
-              key={`${line.label}-${index}`}
-              name={
-                line.kind === 'INSTALLMENT' && line.id ? (
-                  <Link
-                    className="underline-offset-4 hover:underline"
-                    to={`/caishen/operations/${line.id}`}
-                  >
-                    {line.label}
-                  </Link>
-                ) : (
-                  line.label
-                )
-              }
-            />
-          ))}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground">Nada vence neste mês.</p>
-      )}
-    </Sheet>
-  );
-}
-
-function Expenses({
-  holderId,
-  month,
-  statement,
-}: {
-  holderId: string;
-  month: string;
-  statement: Statement;
-}) {
-  const [add, { error }] = useMutation(AddExpenseDocument, { refetchQueries: [MonthDocument] });
-  const [remove] = useMutation(DeleteExpenseDocument, { refetchQueries: [MonthDocument] });
+  const [addIncome, { error: incomeError }] = useMutation(AddOneOffIncomeDocument, {
+    refetchQueries: [MonthDocument],
+  });
+  const [removeExpense] = useMutation(DeleteExpenseDocument, { refetchQueries: [MonthDocument] });
+  const [removeIncome] = useMutation(DeleteOneOffIncomeDocument, {
+    refetchQueries: [MonthDocument],
+  });
+  const [direction, setDirection] = useState<'IN' | 'OUT'>('OUT');
+  const [filter, setFilter] = useState<Filter>('ALL');
+  const [category, setCategory] = useState('ALL');
   const file = useRef<HTMLInputElement>(null);
   const [table, setTable] = useState<{ name: string; table: SpreadsheetTable } | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
 
+  const entries = entriesOf(statement);
+  const categories = [...new Set(entries.map(entry => entry.category))].sort();
+  const shown = entries.filter(
+    entry =>
+      (filter === 'ALL' || entry.direction === filter) &&
+      (category === 'ALL' || entry.category === category)
+  );
+  const shownTotal = shown.reduce(
+    (total, entry) => total + (entry.direction === 'IN' ? entry.amountCents : -entry.amountCents),
+    0
+  );
+  const outByCategory = Object.entries(
+    entries
+      .filter(entry => entry.direction === 'OUT')
+      .reduce<Record<string, number>>((totals, entry) => {
+        totals[entry.category] = (totals[entry.category] ?? 0) + entry.amountCents;
+        return totals;
+      }, {})
+  ).sort((a, b) => b[1] - a[1]);
+  const outTotal = statement.commitmentsCents + statement.expensesCents;
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
     const amountCents = parseCents(String(values.get('amount')));
     if (amountCents == null) return;
+    const common = {
+      amountCents,
+      date: String(values.get('date')),
+      description: String(values.get('description')),
+      holderId,
+    };
     try {
-      await add({
-        variables: {
-          input: {
-            amountCents,
-            category: String(values.get('category') ?? '') || null,
-            date: String(values.get('date')),
-            description: String(values.get('description')),
-            holderId,
+      if (direction === 'IN') await addIncome({ variables: { input: common } });
+      else {
+        await addExpense({
+          variables: {
+            input: { ...common, category: String(values.get('category') ?? '') || null },
           },
-        },
-      });
+        });
+      }
       form.reset();
       (form.elements.namedItem('description') as HTMLInputElement | null)?.focus();
     } catch {
-      // Shown by `error` under the sheet; the typed values stay.
+      // Shown by the error under the sheet; the typed values stay.
     }
   };
 
@@ -415,23 +345,61 @@ function Expenses({
     if (file.current) file.current.value = '';
   };
 
-  const categories = Object.entries(
-    statement.expenses.reduce<Record<string, number>>((totals, item) => {
-      const key = item.category ?? 'Sem categoria';
-      totals[key] = (totals[key] ?? 0) + item.amountCents;
-      return totals;
-    }, {})
-  ).sort((a, b) => b[1] - a[1]);
+  const remove = (entry: Entry) => {
+    if (!entry.removable) return;
+    const variables = { id: entry.removable.id };
+    void (entry.removable.kind === 'EXPENSE'
+      ? removeExpense({ variables })
+      : removeIncome({ variables }));
+  };
+
+  const error = expenseError ?? incomeError;
 
   return (
     <Sheet
-      id="expenses"
-      intro="Sua planilha de gastos do mês: digite uma linha ou importe um .csv ou .xlsx do banco ou da sua planilha."
-      title="Gastos"
-      total={formatCents(statement.expensesCents)}
+      id="entries"
+      intro="Tudo o que entrou e saiu no mês. Salários, Parcelas, Faturas e Impostos aparecem sozinhos; o resto você digita ou importa."
+      title="Planilha do mês"
+      total={
+        <span className={shownTotal < 0 ? 'text-destructive' : undefined}>
+          {formatCents(shownTotal)}
+        </span>
+      }
     >
-      <div className="flex flex-wrap gap-2 print:hidden">
-        <Button onClick={() => file.current?.click()} variant="outline">
+      <div className="flex flex-wrap items-center gap-2 print:hidden">
+        <div className="flex gap-1 rounded-full bg-secondary p-1">
+          {(
+            [
+              ['ALL', 'Tudo'],
+              ['IN', 'Entradas'],
+              ['OUT', 'Saídas'],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              className={cn('h-8 rounded-full px-4', filter === value && 'bg-card shadow-xs')}
+              key={value}
+              onClick={() => setFilter(value)}
+              size="sm"
+              variant="ghost"
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        <Select onValueChange={setCategory} value={category}>
+          <SelectTrigger aria-label="Categoria" className="h-10 w-52 rounded-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todas as categorias</SelectItem>
+            {categories.map(name => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button className="ml-auto" onClick={() => file.current?.click()} variant="outline">
           <UploadIcon />
           Importar planilha
         </Button>
@@ -445,45 +413,25 @@ function Expenses({
       </div>
       {readError && <FormError message={readError} />}
 
-      {categories.length > 1 && (
-        <ul aria-label="Por categoria" className="flex flex-col gap-2">
-          {categories.map(([name, cents]) => (
-            <li className="grid grid-cols-[10rem_minmax(0,1fr)_7rem] items-center gap-3" key={name}>
-              <span className="truncate text-sm">{name}</span>
-              <span className="h-2 overflow-hidden rounded-full bg-secondary">
-                <motion.span
-                  animate={{ width: `${(cents / statement.expensesCents) * 100}%` }}
-                  className="block h-full rounded-full bg-foreground"
-                  initial={{ width: 0 }}
-                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                />
-              </span>
-              <span className="text-right text-sm font-medium tabular-nums">
-                {formatCents(cents)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <form id="expense-row" onSubmit={submit} />
+      <form id="entry-row" onSubmit={submit} />
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-40">Data</TableHead>
             <TableHead>Descrição</TableHead>
             <TableHead className="w-48">Categoria</TableHead>
+            <TableHead className="w-28">Tipo</TableHead>
             <TableHead className="w-36 text-right">Valor</TableHead>
             <TableHead className="w-12 print:hidden" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow className="bg-secondary/60 hover:bg-secondary/60 print:hidden [&_input]:bg-card">
+          <TableRow className="bg-secondary/60 hover:bg-secondary/60 print:hidden [&_[data-slot=select-trigger]]:bg-card [&_input]:bg-card">
             <TableCell>
               <Input
-                aria-label="Data do gasto"
+                aria-label="Data"
                 defaultValue={localToday().startsWith(month) ? localToday() : `${month}-01`}
-                form="expense-row"
+                form="entry-row"
                 key={month}
                 name="date"
                 required
@@ -492,32 +440,49 @@ function Expenses({
             </TableCell>
             <TableCell>
               <Input
-                aria-label="Descrição do gasto"
-                form="expense-row"
+                aria-label="Descrição"
+                form="entry-row"
                 name="description"
-                placeholder="Mercado, aluguel, Uber…"
+                placeholder={
+                  direction === 'IN' ? 'Freela, venda, reembolso…' : 'Mercado, aluguel, Uber…'
+                }
                 required
               />
             </TableCell>
             <TableCell>
               <Input
-                aria-label="Categoria do gasto"
-                form="expense-row"
-                list="expense-categories"
+                aria-label="Categoria"
+                disabled={direction === 'IN'}
+                form="entry-row"
+                list="entry-categories"
                 name="category"
-                placeholder="Alimentação"
+                placeholder={direction === 'IN' ? 'Receita avulsa' : 'Alimentação'}
               />
-              <datalist id="expense-categories">
-                {categories.map(([name]) => (
+              <datalist id="entry-categories">
+                {categories.map(name => (
                   <option key={name} value={name} />
                 ))}
               </datalist>
             </TableCell>
             <TableCell>
+              <Select
+                onValueChange={value => setDirection(value as 'IN' | 'OUT')}
+                value={direction}
+              >
+                <SelectTrigger aria-label="Tipo" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OUT">Saída</SelectItem>
+                  <SelectItem value="IN">Entrada</SelectItem>
+                </SelectContent>
+              </Select>
+            </TableCell>
+            <TableCell>
               <Input
-                aria-label="Valor do gasto"
+                aria-label="Valor"
                 className="text-right"
-                form="expense-row"
+                form="entry-row"
                 inputMode="decimal"
                 name="amount"
                 placeholder="0,00"
@@ -525,45 +490,87 @@ function Expenses({
               />
             </TableCell>
             <TableCell>
-              <Button aria-label="Adicionar gasto" form="expense-row" size="icon-sm" type="submit">
-                +
+              <Button
+                aria-label="Adicionar lançamento"
+                form="entry-row"
+                size="icon-sm"
+                type="submit"
+              >
+                <PlusIcon />
               </Button>
             </TableCell>
           </TableRow>
-          {statement.expenses.map(item => (
-            <TableRow key={item.id}>
-              <TableCell className="tabular-nums">{formatDate(item.date)}</TableCell>
+          {shown.map((entry, index) => (
+            <TableRow key={`${entry.source}-${entry.description}-${entry.date}-${index}`}>
+              <TableCell className="tabular-nums">{formatDate(entry.date)}</TableCell>
               <TableCell>
-                {item.description}
-                {item.imported && (
-                  <FileSpreadsheetIcon
-                    aria-label="importado"
-                    className="ml-2 inline size-3.5 text-muted-foreground"
-                  />
+                {entry.to ? (
+                  <Link className="underline-offset-4 hover:underline" to={entry.to}>
+                    {entry.description}
+                  </Link>
+                ) : (
+                  entry.description
                 )}
               </TableCell>
-              <TableCell className="text-muted-foreground">{item.category ?? '—'}</TableCell>
-              <TableCell className="text-right font-medium tabular-nums">
-                {formatCents(item.amountCents)}
+              <TableCell className="text-muted-foreground">{entry.category}</TableCell>
+              <TableCell>
+                <Badge variant="secondary">{entry.source}</Badge>
+              </TableCell>
+              <TableCell
+                className={cn(
+                  'text-right font-medium tabular-nums',
+                  entry.direction === 'IN' && 'text-success'
+                )}
+              >
+                {entry.direction === 'IN' ? '+' : '−'} {formatCents(entry.amountCents)}
               </TableCell>
               <TableCell className="print:hidden">
-                <Button
-                  aria-label={`Remover ${item.description}`}
-                  onClick={() => void remove({ variables: { id: item.id } })}
-                  size="icon-sm"
-                  variant="ghost"
-                >
-                  <XIcon />
-                </Button>
+                {entry.removable && (
+                  <Button
+                    aria-label={`Remover ${entry.description}`}
+                    onClick={() => remove(entry)}
+                    size="icon-sm"
+                    variant="ghost"
+                  >
+                    <XIcon />
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      {!statement.expenses.length && (
-        <p className="text-muted-foreground">Nenhum gasto neste mês ainda.</p>
-      )}
+      {!shown.length && <p className="text-muted-foreground">Nenhum lançamento aqui.</p>}
       {error && <FormError message={error.message} />}
+
+      {outByCategory.length > 1 && (
+        <section aria-labelledby="by-category" className="flex flex-col gap-3">
+          <h3 className="text-lg font-semibold" id="by-category">
+            Saídas por categoria
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {outByCategory.map(([name, cents]) => (
+              <li
+                className="grid grid-cols-[10rem_minmax(0,1fr)_7rem] items-center gap-3"
+                key={name}
+              >
+                <span className="truncate text-sm">{name}</span>
+                <span className="h-2 overflow-hidden rounded-full bg-secondary">
+                  <motion.span
+                    animate={{ width: `${(cents / outTotal) * 100}%` }}
+                    className="block h-full rounded-full bg-foreground"
+                    initial={{ width: 0 }}
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </span>
+                <span className="text-right text-sm font-medium tabular-nums">
+                  {formatCents(cents)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {table && (
         <ImportDialog

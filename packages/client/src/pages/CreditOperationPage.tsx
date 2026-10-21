@@ -47,8 +47,8 @@ export function CreditOperationPage() {
   const vsMarket = market ? operation.monthlyRate / market.monthlyRate - 1 : null;
 
   // Back to the section the Operation is listed in.
-  const section = '/caishen/finances';
-  const sectionLabel = 'Obrigações';
+  const section = '/caishen/debts';
+  const sectionLabel = 'Dívidas';
 
   const onDelete = async () => {
     await remove({ variables: { id: operation.id } });

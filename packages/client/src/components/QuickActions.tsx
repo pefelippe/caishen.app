@@ -21,8 +21,8 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 /** What the "+" offers, from the most asked down; `to` opens a screen, otherwise the chat. */
 const ACTIONS: { icon: LucideIcon; label: StringKey; to?: string }[] = [
   { icon: MessageSquarePlusIcon, label: 'quick.chat' },
-  { icon: CreditCardIcon, label: 'quick.operation', to: '/caishen/finances#obligations' },
-  { icon: WalletIcon, label: 'quick.income', to: '/caishen/finances#income' },
+  { icon: CreditCardIcon, label: 'quick.operation', to: '/caishen/debts#obligations' },
+  { icon: WalletIcon, label: 'quick.income', to: '/caishen/entries/fixed#income' },
   { icon: PlugIcon, label: 'quick.integration', to: '/integrations' },
 ];
 
@@ -51,7 +51,7 @@ export function QuickActions() {
           <Button
             aria-expanded={open}
             aria-label={t('quick.open')}
-            className="size-14 rounded-full shadow-[0_10px_30px_-8px_rgb(30_26_23/0.55)] transition-transform hover:scale-105 active:scale-95"
+            className="size-14 rounded-full shadow-[0_10px_30px_-8px_rgb(37_99_235/0.45)] transition-transform hover:scale-105 active:scale-95"
             onClick={() => setOpen(current => !current)}
             size="icon"
             title={t('quick.open')}

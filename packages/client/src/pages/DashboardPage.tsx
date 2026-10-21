@@ -146,7 +146,7 @@ function MonthStrip({ holderId }: { holderId: string }) {
     <motion.div variants={rise}>
       <Link
         className="group grid gap-px overflow-hidden rounded-2xl bg-border sm:grid-cols-4"
-        to="/caishen/month"
+        to="/caishen/entries"
       >
         {figures.map(figure => (
           <span
@@ -297,13 +297,13 @@ function StartHere() {
       icon: WalletIcon,
       label: 'Salário',
       note: 'dashboard.startIncome',
-      to: '/caishen/finances#income',
+      to: '/caishen/entries/fixed#income',
     },
     {
       icon: HandCoinsIcon,
       label: 'Obrigações',
       note: 'dashboard.startObligations',
-      to: '/caishen/finances#obligations',
+      to: '/caishen/debts',
     },
   ];
   return (

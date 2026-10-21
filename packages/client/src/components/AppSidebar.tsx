@@ -1,88 +1,227 @@
-import { ChevronDownIcon } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import type { BotKey } from '@zapbots/graphql/client';
+import { CheckIcon, ChevronsUpDownIcon, type LucideIcon } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 
-import { activeItem, useNavGroups, type NavItem } from '../lib/nav';
+import { TEAM, UPCOMING_BOTS, teamBot } from '../lib/bots';
+import { useI18n } from '../lib/i18n';
+import { activeItem, useNav, type NavItem } from '../lib/nav';
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+const ITEM =
+  'h-10 gap-3 rounded-lg px-3 text-[0.9375rem] text-sidebar-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:shadow-[inset_3px_0_0_var(--sidebar-primary)] [&>svg]:size-[18px]';
 
 function NavItems({ active, items }: { active: NavItem | undefined; items: NavItem[] }) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const { t } = useI18n();
 
   return (
     <SidebarMenu className="gap-0.5">
       {items.map(item => (
         <SidebarMenuItem key={item.to}>
-          <SidebarMenuButton
-            asChild
-            className="h-10 gap-3 rounded-lg px-3 text-[0.9375rem] data-[active=true]:shadow-sm [&>svg]:size-[18px]"
-            isActive={item === active}
-          >
-            <NavLink onClick={() => isMobile && setOpenMobile(false)} to={item.to}>
-              <item.icon />
-              <span>{item.label}</span>
-            </NavLink>
-          </SidebarMenuButton>
+          {item.disabled ? (
+            <>
+              <SidebarMenuButton
+                aria-disabled
+                className={cn(ITEM, 'pointer-events-none opacity-50')}
+                tabIndex={-1}
+              >
+                <item.icon />
+                <span>{item.label}</span>
+              </SidebarMenuButton>
+              <SidebarMenuBadge className="top-2.5 text-[11px] font-normal text-sidebar-foreground/70">
+                {t('nav.soon')}
+              </SidebarMenuBadge>
+            </>
+          ) : (
+            <SidebarMenuButton asChild className={ITEM} isActive={item === active}>
+              <NavLink onClick={() => isMobile && setOpenMobile(false)} to={item.to}>
+                <item.icon />
+                <span>{item.label}</span>
+              </NavLink>
+            </SidebarMenuButton>
+          )}
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
   );
 }
 
+function BotTile({ icon: Icon, muted }: { icon: LucideIcon; muted?: boolean }) {
+  return (
+    <span
+      className={cn(
+        'grid size-8 shrink-0 place-items-center rounded-lg',
+        muted ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground'
+      )}
+    >
+      <Icon className="size-4" />
+    </span>
+  );
+}
+
 /**
- * The gray menu on the left, under the header and flush with the open screen: every screen with its icon, by category. Each
- * category folds; the open screen is a white pill. On a phone it slides in from the header's button.
+ * The Bot whose pages the menu shows: picked in the switcher, and following the address, so
+ * opening /caishen/* picks the Caishen.
+ */
+function useActiveBot(): [BotKey, (key: BotKey) => void] {
+  const { pathname } = useLocation();
+  const [activeBot, setActiveBot] = useState<BotKey>(TEAM[0]!.key);
+
+  useEffect(() => {
+    const here = TEAM.find(bot => pathname === bot.path || pathname.startsWith(`${bot.path}/`));
+    if (here) setActiveBot(here.key);
+  }, [pathname]);
+
+  return [activeBot, setActiveBot];
+}
+
+/** The switcher on top of the Bot's pages: the working Bots, then the ones still to come. */
+function BotSwitcher({ activeBot, onPick }: { activeBot: BotKey; onPick: (key: BotKey) => void }) {
+  const { t } = useI18n();
+  const bot = teamBot(activeBot);
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              aria-label={t('nav.switchBot')}
+              className="gap-3 rounded-lg bg-sidebar-accent/60 px-2 text-sidebar-accent-foreground hover:bg-sidebar-accent data-[state=open]:bg-sidebar-accent"
+              size="lg"
+            >
+              <BotTile icon={bot.icon} />
+              <span className="grid min-w-0 flex-1 text-left leading-tight">
+                <span className="truncate font-semibold">{bot.name}</span>
+                <span className="truncate text-xs text-sidebar-foreground/70">{bot.field}</span>
+              </span>
+              <ChevronsUpDownIcon className="ml-auto size-4 text-sidebar-foreground/70" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-72 rounded-xl p-1.5"
+            sideOffset={6}
+          >
+            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+              {t('nav.assistants')}
+            </DropdownMenuLabel>
+            {TEAM.map(entry => (
+              <DropdownMenuItem
+                className="gap-3 py-2"
+                key={entry.key}
+                onSelect={() => onPick(entry.key)}
+              >
+                <BotTile icon={entry.icon} />
+                <span className="grid min-w-0 flex-1 leading-tight">
+                  <span className="truncate font-medium">{entry.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{entry.field}</span>
+                </span>
+                {entry.key === activeBot && <CheckIcon className="text-primary" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            {UPCOMING_BOTS.map(entry => (
+              <DropdownMenuItem className="gap-3 py-2" disabled key={entry.key}>
+                <BotTile icon={entry.icon} muted />
+                <span className="grid min-w-0 flex-1 leading-tight">
+                  <span className="truncate font-medium">{entry.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{entry.field}</span>
+                </span>
+                <Badge variant="secondary">{t('nav.soon')}</Badge>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+/**
+ * The navy menu on the left, under the header and of a piece with it: the app's screens on top,
+ * then the Assistants (a switcher and the picked Bot's pages, sliding in when it changes) and the
+ * account's screens at the foot. On a phone it slides in from the header's button.
  */
 export function AppSidebar() {
   const { pathname } = useLocation();
-  const groups = useNavGroups();
-  const active = activeItem(
-    groups.flatMap(group => group.items),
-    pathname
-  );
+  const navigate = useNavigate();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const { t } = useI18n();
+  const still = useReducedMotion();
+  const nav = useNav();
+  const [activeBot, setActiveBot] = useActiveBot();
+  const active = activeItem([...nav.main, ...nav.bots[activeBot], ...nav.account], pathname);
+
+  const pick = (key: BotKey) => {
+    setActiveBot(key);
+    navigate(teamBot(key).path);
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
-    <Sidebar className="top-(--header-height) left-2 h-[calc(100svh-var(--header-height)-0.5rem)]! border-r-0 **:data-[slot=sidebar-inner]:rounded-l-2xl">
-      <SidebarContent className="gap-1 px-2 py-3">
-        {groups.map(group =>
-          group.label ? (
-            <Collapsible className="group/collapsible" defaultOpen key={group.id}>
-              <SidebarGroup className="py-1">
-                <SidebarGroupLabel
-                  asChild
-                  className="h-9 px-3 text-[0.8125rem] font-medium text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                >
-                  <CollapsibleTrigger className="w-full justify-between">
-                    {group.label}
-                    <ChevronDownIcon className="transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                  </CollapsibleTrigger>
-                </SidebarGroupLabel>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <NavItems active={active} items={group.items} />
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
-          ) : (
-            <SidebarGroup className="py-1" key={group.id}>
-              <SidebarGroupContent>
-                <NavItems active={active} items={group.items} />
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )
-        )}
+    <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]! border-r-0">
+      <SidebarContent className="gap-2 px-2 py-3">
+        <SidebarGroup className="py-1">
+          <SidebarGroupContent>
+            <NavItems active={active} items={nav.main} />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="py-1">
+          <SidebarGroupLabel className="h-8 px-3 text-xs font-medium tracking-wide text-sidebar-foreground/50 uppercase">
+            {t('nav.assistants')}
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="flex flex-col gap-1.5">
+            <BotSwitcher activeBot={activeBot} onPick={pick} />
+            <AnimatePresence initial={false} mode="wait">
+              <motion.div
+                animate={{ opacity: 1, x: 0 }}
+                className="border-l border-sidebar-border pl-2 ml-4"
+                exit={still ? { opacity: 0 } : { opacity: 0, x: -8 }}
+                initial={still ? { opacity: 0 } : { opacity: 0, x: 8 }}
+                key={activeBot}
+                transition={{ duration: 0.2, ease: EASE }}
+              >
+                <NavItems active={active} items={nav.bots[activeBot]} />
+              </motion.div>
+            </AnimatePresence>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border px-2 py-3">
+        <SidebarGroupLabel className="h-8 px-3 text-xs font-medium tracking-wide text-sidebar-foreground/50 uppercase">
+          {t('nav.account')}
+        </SidebarGroupLabel>
+        <NavItems active={active} items={nav.account} />
+      </SidebarFooter>
     </Sidebar>
   );
 }

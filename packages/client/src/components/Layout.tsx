@@ -15,8 +15,8 @@ interface Props {
 }
 
 /**
- * The app on a blue page: the header across the top, then the gray menu and the open screen side
- * by side as one block, and the chat panel docked on the right when it is open.
+ * The app in a navy frame: the header across the top and the menu down the left, one piece, with
+ * the open screen inset as a rounded light panel and the chat panel docked on its right when open.
  */
 export function Layout({ user }: Props) {
   return (
@@ -27,10 +27,10 @@ export function Layout({ user }: Props) {
           style={{ '--header-height': '4rem' } as CSSProperties}
         >
           <AppHeader user={user} />
-          <div className="flex min-h-0 flex-1 px-2 pb-2 md:pl-2 print:p-0">
+          <div className="flex min-h-0 flex-1 px-2 pb-2 md:pl-0 print:p-0">
             <AppSidebar />
-            {/* The screen and the chat panel, rounded on the right; the menu rounds the left. */}
-            <div className="flex min-w-0 flex-1 overflow-hidden rounded-2xl md:rounded-l-none print:overflow-visible">
+            {/* The screen and the chat panel, one rounded panel inside the frame. */}
+            <div className="flex min-w-0 flex-1 overflow-hidden rounded-2xl print:overflow-visible">
               <main className="relative min-w-0 flex-1 overflow-hidden bg-background print:overflow-visible print:bg-white">
                 <Suspense fallback={<PageSkeleton />}>
                   <Outlet />

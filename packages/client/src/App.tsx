@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 
 import { Layout, Scrolling } from './components/Layout';
 import { Splash } from './components/Logo';
@@ -24,8 +24,9 @@ const CreditOperationPage = page(
 const finance = <Name extends string>(name: Name) =>
   page(() => import('./pages/FinancePage') as Promise<Record<Name, ComponentType>>, name);
 const FinanceOverviewPage = finance('FinanceOverviewPage');
-const FinancesPage = finance('FinancesPage');
-const MonthPage = page(() => import('./pages/MonthPage'), 'MonthPage');
+const FixedPage = finance('FixedPage');
+const DebtsPage = finance('DebtsPage');
+const EntriesPage = page(() => import('./pages/EntriesPage'), 'EntriesPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
 const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
@@ -34,6 +35,17 @@ const IntegrationsPage = page(() => import('./pages/IntegrationsPage'), 'Integra
 const OrganizationPage = page(() => import('./pages/OrganizationPage'), 'OrganizationPage');
 const PlanPage = page(() => import('./pages/PlanPage'), 'PlanPage');
 const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage');
+
+/** Financeiro was split: its Obrigações went to Dívidas, Salário and Impostos to Fixos. */
+function LegacyFinances() {
+  const { hash } = useLocation();
+  return (
+    <Navigate
+      replace
+      to={hash === '#obligations' ? '/caishen/debts' : `/caishen/entries/fixed${hash}`}
+    />
+  );
+}
 
 /** Integrações used to be one page per kind; the old links land on its part of the one page. */
 function LegacyIntegration() {
@@ -60,6 +72,7 @@ export function App() {
       <Suspense fallback={null}>
         <Routes>
           <Route element={<LandingPage />} index />
+          <Route element={<LandingPage />} path="landing" />
           <Route element={<LoginPage />} path="sign-in" />
           <Route element={<Navigate replace to="/sign-in" />} path="*" />
         </Routes>
@@ -70,6 +83,15 @@ export function App() {
   // Every path is in English; the app speaks Portuguese and, later, English too.
   return (
     <Routes>
+      {/* Signed in, the landing page is still there to look at, outside the app's frame. */}
+      <Route
+        element={
+          <Suspense fallback={null}>
+            <LandingPage />
+          </Suspense>
+        }
+        path="landing"
+      />
       <Route element={<Layout user={session.user} />}>
         <Route
           element={
@@ -83,24 +105,24 @@ export function App() {
         {/* Workflows are off until they work end to end; JobsPage and JobPage wait for them. */}
         <Route element={<Navigate replace to="/" />} path="workflows/*" />
         <Route element={<BotLayout bot="FINANCE" />} path="caishen">
-          <Route element={<Navigate replace to="report" />} index />
+          <Route element={<Navigate replace to="entries" />} index />
+          <Route element={<EntriesPage />} path="entries" />
+          <Route element={<FixedPage />} path="entries/fixed" />
+          <Route element={<DebtsPage />} path="debts" />
           <Route element={<FinanceOverviewPage />} path="report" />
+          {/* Old addresses: Visão geral, Mês, Financeiro and its parts. */}
           <Route element={<Navigate replace to="/caishen/report" />} path="overview" />
-          <Route element={<FinancesPage />} path="finances" />
-          <Route element={<MonthPage />} path="month" />
-          {['income', 'taxes', 'obligations'].map(part => (
+          <Route element={<Navigate replace to="/caishen/entries" />} path="month" />
+          <Route element={<LegacyFinances />} path="finances" />
+          {['income', 'taxes'].map(part => (
             <Route
-              element={<Navigate replace to={`/caishen/finances#${part}`} />}
+              element={<Navigate replace to={`/caishen/entries/fixed#${part}`} />}
               key={part}
               path={part}
             />
           ))}
-          {['loans', 'financing', 'cards'].map(path => (
-            <Route
-              element={<Navigate replace to="/caishen/finances#obligations" />}
-              key={path}
-              path={path}
-            />
+          {['obligations', 'loans', 'financing', 'cards'].map(path => (
+            <Route element={<Navigate replace to="/caishen/debts" />} key={path} path={path} />
           ))}
           <Route element={<CreditOperationPage />} path="operations/:id" />
           <Route element={<Navigate replace to="/" />} path="jobs/*" />

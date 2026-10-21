@@ -1,3 +1,6 @@
+// First, so error monitoring is set up before anything else loads.
+import { reportError, Sentry } from './sentry';
+
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
 import { auth, resolveViewer } from '@zapbots/auth';
@@ -5,6 +8,7 @@ import { type Context, typeDefs } from '@zapbots/graphql/server';
 import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import express from 'express';
+import { GraphQLError } from 'graphql';
 
 import { resolvers } from './resolvers';
 import { handleStripeEvent } from './services/billing/billing';
@@ -38,6 +42,7 @@ app.post('/api/billing/webhook', express.text({ type: '*/*' }), async (req, res)
     res.json({ received: true });
   } catch (error) {
     console.error('stripe webhook failed:', error);
+    reportError(error);
     // Stripe retries a failed delivery later.
     res.status(500).json({ message: 'Falhou' });
   }
@@ -74,7 +79,10 @@ app.post('/api/chat/:conversationId', express.json(), async (req, res) => {
     });
   } catch (error) {
     const known = error instanceof ChatError || error instanceof ModelError;
-    if (!known && !abort.signal.aborted) console.error('chat failed:', error);
+    if (!known && !abort.signal.aborted) {
+      console.error('chat failed:', error);
+      reportError(error);
+    }
     send({ message: known ? error.message : 'O Bot não conseguiu responder.', type: 'error' });
   }
   res.end();
@@ -91,7 +99,24 @@ app.get('/api/cron/routines', async (req, res) => {
   res.json({ handed: await runDueRoutines() });
 });
 
-const apollo = new ApolloServer<Context>({ resolvers, typeDefs });
+const apollo = new ApolloServer<Context>({
+  plugins: [
+    {
+      // Errors thrown on purpose (a GraphQLError for the User) are answers, not failures.
+      requestDidStart: async () => ({
+        didEncounterErrors: async ({ errors }) => {
+          for (const error of errors) {
+            if (error.originalError && !(error.originalError instanceof GraphQLError)) {
+              reportError(error.originalError);
+            }
+          }
+        },
+      }),
+    },
+  ],
+  resolvers,
+  typeDefs,
+});
 await apollo.start();
 
 app.use(
@@ -101,5 +126,8 @@ app.use(
     context: async ({ req }) => ({ viewer: await resolveViewer(req.headers) }),
   })
 );
+
+// Whatever a route throws without answering ends up in Sentry, then in Express's own handler.
+Sentry.setupExpressErrorHandler(app);
 
 export default app;
