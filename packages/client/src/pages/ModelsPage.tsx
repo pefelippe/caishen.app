@@ -6,12 +6,9 @@ import {
   type BotsQuery,
   type ModelsQuery,
 } from '@zapbots/graphql/client';
-import { useState } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -38,10 +35,10 @@ export function ModelsList({ search }: { search: string }) {
   const { t } = useI18n();
   const { data, loading } = useQuery(BotsDocument);
   const { data: catalog } = useQuery(ModelsDocument);
-  const [onlyFree, setOnlyFree] = useState(true);
 
   if (loading && !data) return <PageSkeleton />;
   if (!data) return <p>{t('common.loadFailed')}</p>;
+  // Only free Models, always; a paid one chosen before stays listed for its Bot.
   const models = catalog?.models ?? [];
   const bots = data.bots.filter(bot =>
     matches(search, bot.name, models.find(model => model.id === bot.model)?.name ?? '')
@@ -55,25 +52,12 @@ export function ModelsList({ search }: { search: string }) {
           <AlertDescription>{t('models.notConfiguredText')}</AlertDescription>
         </Alert>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold">{t('models.title')}</h3>
-        <Label className="font-normal text-muted-foreground">
-          <Checkbox checked={onlyFree} onCheckedChange={checked => setOnlyFree(checked === true)} />
-          {t('models.onlyFree')}
-          <span className="tabular-nums">
-            ({models.filter(model => model.free).length}/{models.length})
-          </span>
-        </Label>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {t('models.subtitle', { model: data.aiStatus.defaultModel })}
-      </p>
       <ul className="flex flex-col gap-2">
         {bots.map(bot => (
           <ModelRow
             bot={bot}
             key={bot.id}
-            models={models.filter(model => !onlyFree || model.free || model.id === bot.model)}
+            models={models.filter(model => model.free || model.id === bot.model)}
           />
         ))}
       </ul>

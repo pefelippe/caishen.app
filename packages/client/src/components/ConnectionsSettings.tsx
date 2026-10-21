@@ -33,9 +33,9 @@ interface IntegrationGroup {
 
 export const INTEGRATION_GROUPS: IntegrationGroup[] = [
   {
-    description: 'De onde vêm os Modelos de linguagem que o Caishen usa, e qual ele usa.',
+    description: 'O Modelo de linguagem que o Caishen usa. Só os gratuitos, pelo OpenRouter.',
     id: 'ai',
-    kinds: ['OPENROUTER'],
+    kinds: [],
     title: 'Modelos de IA',
   },
   {
