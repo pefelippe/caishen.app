@@ -98,6 +98,43 @@ export const tax = pgTable(
   table => [index('tax_holder_idx').on(table.holderId)]
 );
 
+/** A Gasto: money that went out on `date`, typed in or imported from a spreadsheet. */
+export const expense = pgTable(
+  'expense',
+  {
+    amountCents: cents('amount_cents').notNull(),
+    category: text('category'),
+    date: date('date').notNull(),
+    description: text('description').notNull(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Came from a spreadsheet rather than typed in. */
+    imported: boolean('imported').notNull().default(false),
+    organizationId: organizationId(),
+    ...timestamps,
+  },
+  table => [index('expense_holder_date_idx').on(table.holderId, table.date)]
+);
+
+/** A Receita avulsa: money that came in once, on `date`, outside the Fontes de Renda. */
+export const oneOffIncome = pgTable(
+  'one_off_income',
+  {
+    amountCents: cents('amount_cents').notNull(),
+    date: date('date').notNull(),
+    description: text('description').notNull(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: organizationId(),
+    ...timestamps,
+  },
+  table => [index('one_off_income_holder_date_idx').on(table.holderId, table.date)]
+);
+
 export const creditOperation = pgTable(
   'credit_operation',
   {

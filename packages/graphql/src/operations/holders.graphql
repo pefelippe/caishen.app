@@ -97,6 +97,14 @@ query Holder($id: ID!) {
       ...AssessmentFields
     }
     registeredDebtCents
+    expenses {
+      id
+      date
+      description
+      category
+      amountCents
+      imported
+    }
     upcomingDues {
       label
       dueDate
@@ -156,6 +164,63 @@ mutation AddTax($input: AddTaxInput!) {
 
 mutation DeleteTax($id: ID!) {
   deleteTax(id: $id)
+}
+
+query Month($holderId: ID!, $month: String!) {
+  holder(id: $holderId) {
+    id
+    month(month: $month) {
+      month
+      incomeCents
+      commitmentsCents
+      expensesCents
+      balanceCents
+      incomes {
+        id
+        kind
+        label
+        date
+        amountCents
+      }
+      commitments {
+        id
+        kind
+        label
+        date
+        amountCents
+      }
+      expenses {
+        id
+        date
+        description
+        category
+        amountCents
+        imported
+      }
+    }
+  }
+}
+
+mutation AddOneOffIncome($input: OneOffIncomeInput!) {
+  addOneOffIncome(input: $input)
+}
+
+mutation DeleteOneOffIncome($id: ID!) {
+  deleteOneOffIncome(id: $id)
+}
+
+mutation AddExpense($input: ExpenseInput!) {
+  addExpense(input: $input) {
+    id
+  }
+}
+
+mutation ImportExpenses($holderId: ID!, $rows: [ExpenseRowInput!]!) {
+  importExpenses(holderId: $holderId, rows: $rows)
+}
+
+mutation DeleteExpense($id: ID!) {
+  deleteExpense(id: $id)
 }
 
 mutation GenerateAssessment($holderId: ID!) {

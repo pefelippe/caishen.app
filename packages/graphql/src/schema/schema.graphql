@@ -167,6 +167,13 @@ type Mutation {
   addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
   addTax(input: AddTaxInput!): Tax!
   deleteTax(id: ID!): Boolean!
+  addExpense(input: ExpenseInput!): Expense!
+  "Adds many Gastos at once, from a spreadsheet; returns how many were added."
+  importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!): Int!
+  deleteExpense(id: ID!): Boolean!
+  "Records a Receita avulsa; returns its id."
+  addOneOffIncome(input: OneOffIncomeInput!): ID!
+  deleteOneOffIncome(id: ID!): Boolean!
   createCreditOperation(input: CreateCreditOperationInput!): CreditOperation!
   deleteCreditOperation(id: ID!): Boolean!
   createCreditCard(input: CreateCreditCardInput!): CreditCard!
@@ -201,6 +208,10 @@ type Holder {
   monthlyIncomeCents: Cents!
   incomeSources: [IncomeSource!]!
   taxes: [Tax!]!
+  "Gastos, the latest first."
+  expenses: [Expense!]!
+  "One month (`YYYY-MM`): Receitas, Compromissos that fall due, Gastos and what is left."
+  month(month: String!): MonthStatement!
   creditOperations: [CreditOperation!]!
   creditCards: [CreditCard!]!
   assessments: [Assessment!]!
@@ -416,6 +427,46 @@ type Tax {
   dueMonth: Int
 }
 
+enum MonthLineKind {
+  SALARY
+  ONE_OFF
+  INSTALLMENT
+  STATEMENT
+  TAX
+}
+
+"One line of a month: what came in or what fell due, on a date."
+type MonthLine {
+  "The Receita avulsa (ONE_OFF) or the Credit Operation (INSTALLMENT) it comes from."
+  id: ID
+  kind: MonthLineKind!
+  label: String!
+  date: Date!
+  amountCents: Cents!
+}
+
+type MonthStatement {
+  month: String!
+  incomes: [MonthLine!]!
+  commitments: [MonthLine!]!
+  expenses: [Expense!]!
+  incomeCents: Cents!
+  commitmentsCents: Cents!
+  expensesCents: Cents!
+  "Receitas minus Compromissos minus Gastos; negative when the month closes short."
+  balanceCents: Cents!
+}
+
+"A Gasto: money that went out on `date`, typed in or imported from a spreadsheet."
+type Expense {
+  id: ID!
+  date: Date!
+  description: String!
+  category: String
+  amountCents: Cents!
+  imported: Boolean!
+}
+
 type CreditOperation {
   id: ID!
   holder: Holder!
@@ -611,6 +662,29 @@ input AddIncomeSourceInput {
   paydays: [Int!]
   startsOn: Date!
   endsOn: Date
+}
+
+input OneOffIncomeInput {
+  holderId: ID!
+  date: Date!
+  description: String!
+  amountCents: Cents!
+}
+
+input ExpenseInput {
+  holderId: ID!
+  date: Date!
+  description: String!
+  category: String
+  amountCents: Cents!
+}
+
+"One line of an imported spreadsheet, already read by the client."
+input ExpenseRowInput {
+  date: Date!
+  description: String!
+  category: String
+  amountCents: Cents!
 }
 
 input AddTaxInput {

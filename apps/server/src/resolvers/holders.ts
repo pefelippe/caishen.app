@@ -10,10 +10,36 @@ import {
   payoffPlanFor,
   upcomingDues,
 } from '../services/obligations';
+import { monthStatement } from '../services/month';
 import { viewerHolder } from '../services/viewerHolder';
 import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
 const isDay = (day: number) => Number.isInteger(day) && day >= 1 && day <= 31;
+
+const MAX_IMPORTED_EXPENSES = 2000;
+
+/** A Gasto's (or Receita avulsa's) columns, checked: positive whole cents, a description, a real date. */
+function expenseValues(input: {
+  amountCents: number;
+  category?: string | null;
+  date: string;
+  description: string;
+}) {
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    badInput('O valor deve ser positivo');
+  }
+  const description = input.description.trim();
+  if (!description) badInput('Preencha a descrição');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || Number.isNaN(Date.parse(input.date))) {
+    badInput(`Data inválida: ${input.date}`);
+  }
+  return {
+    amountCents: input.amountCents,
+    category: input.category?.trim() || null,
+    date: input.date,
+    description,
+  };
+}
 
 export const holderResolvers: Resolvers = {
   Assessment: {
@@ -52,6 +78,16 @@ export const holderResolvers: Resolvers = {
         .where(eq(schema.tax.holderId, holder.id))
         .orderBy(schema.tax.createdAt),
     upcomingDues: holder => upcomingDues(holder.id),
+    month: (holder, { month }) => {
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) badInput('Mês inválido: use AAAA-MM');
+      return monthStatement(holder.id, month);
+    },
+    expenses: holder =>
+      db
+        .select()
+        .from(schema.expense)
+        .where(eq(schema.expense.holderId, holder.id))
+        .orderBy(desc(schema.expense.date), desc(schema.expense.createdAt)),
     reportedScores: holder =>
       db
         .select()
@@ -120,6 +156,65 @@ export const holderResolvers: Resolvers = {
         })
         .returning();
       return row!;
+    },
+    addExpense: async (_, { input }, context) => {
+      const viewer = requireViewer(context);
+      await findHolder(viewer, input.holderId);
+      const [row] = await db
+        .insert(schema.expense)
+        .values({
+          ...expenseValues(input),
+          holderId: input.holderId,
+          organizationId: viewer.organizationId,
+        })
+        .returning();
+      return row!;
+    },
+    importExpenses: async (_, { holderId, rows }, context) => {
+      const viewer = requireViewer(context);
+      await findHolder(viewer, holderId);
+      if (!rows.length) badInput('A planilha não tem linhas de gastos');
+      if (rows.length > MAX_IMPORTED_EXPENSES) {
+        badInput(`Importe até ${MAX_IMPORTED_EXPENSES} linhas por vez`);
+      }
+      const values = rows.map(row => ({
+        ...expenseValues(row),
+        holderId,
+        imported: true,
+        organizationId: viewer.organizationId,
+      }));
+      await db.insert(schema.expense).values(values);
+      return values.length;
+    },
+    addOneOffIncome: async (_, { input }, context) => {
+      const viewer = requireViewer(context);
+      await findHolder(viewer, input.holderId);
+      const values = expenseValues({ ...input, category: null });
+      const [row] = await db
+        .insert(schema.oneOffIncome)
+        .values({
+          amountCents: values.amountCents,
+          date: values.date,
+          description: values.description,
+          holderId: input.holderId,
+          organizationId: viewer.organizationId,
+        })
+        .returning({ id: schema.oneOffIncome.id });
+      return row!.id;
+    },
+    deleteOneOffIncome: async (_, { id }, context) => {
+      const deleted = await db
+        .delete(schema.oneOffIncome)
+        .where(owned(schema.oneOffIncome, requireViewer(context), id))
+        .returning({ id: schema.oneOffIncome.id });
+      return deleted.length > 0;
+    },
+    deleteExpense: async (_, { id }, context) => {
+      const deleted = await db
+        .delete(schema.expense)
+        .where(owned(schema.expense, requireViewer(context), id))
+        .returning({ id: schema.expense.id });
+      return deleted.length > 0;
     },
     deleteTax: async (_, { id }, context) => {
       const deleted = await db

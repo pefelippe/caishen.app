@@ -30,6 +30,7 @@ const config: CodegenConfig = {
           Holder: '@zapbots/database#HolderRow',
           IncomeSource: '@zapbots/database#IncomeSourceRow',
           Tax: '@zapbots/database#TaxRow',
+          Expense: '@zapbots/database#ExpenseRow',
           LatePayment: '@zapbots/database#LatePaymentRow',
           ReportedScore: '@zapbots/database#ReportedScoreRow',
           ScrEntry: '@zapbots/database#ScrEntryRow',

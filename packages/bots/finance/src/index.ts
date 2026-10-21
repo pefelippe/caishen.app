@@ -8,3 +8,4 @@ export * from './modalities';
 export * from './money';
 export * from './payoff';
 export * from './payoffPlan';
+export * from './taxes';

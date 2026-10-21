@@ -99,6 +99,13 @@
       "when": 1792533479971,
       "tag": "0013_paydays_and_taxes",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792565826987,
+      "tag": "0014_expenses_and_one_off_income",
+      "breakpoints": true
     }
   ]
 }
