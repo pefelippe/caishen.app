@@ -47,11 +47,11 @@
   --sidebar-border: #e4e1dc;
   --sidebar-ring: #8c8277;
 
-  /* The bar across the top: a deep navy from the original Caishen's #0B3D91, with its gold coin. */
-  --header: #0a1f44;
-  --header-foreground: #e7ecf5;
-  --header-muted: #1a3366;
-  --header-gradient: linear-gradient(100deg, #0a1f44 0%, #163a8a 55%, #2d5bd1 100%);
+  /* The bar across the top: the ink, warmed a little towards the right. */
+  --header: var(--ink-black);
+  --header-foreground: #f4efe8;
+  --header-muted: #3a332d;
+  --header-gradient: linear-gradient(100deg, #15120f 0%, #1e1a17 55%, #2e2722 100%);
   --gold: #c79a3a;
 
   /* The dark rail of the landing page's app preview (LandingPreview). */

@@ -1,11 +1,8 @@
 import {
-  BuildingIcon,
-  CreditCardIcon,
   FileTextIcon,
   HouseIcon,
   MessageSquareIcon,
   PlugIcon,
-  UserIcon,
   WorkflowIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -28,7 +25,7 @@ export interface NavGroup {
 
 /**
  * Every screen of the app, by category, as the menu on the left lists them: the main screens, then
- * each working Bot's pages (from `BOT_SECTIONS`), then the account's.
+ * each working Bot's pages (from `BOT_SECTIONS`). The account's screens live in the `ProfileMenu`.
  */
 export function useNavGroups(): NavGroup[] {
   const { t } = useI18n();
@@ -40,6 +37,7 @@ export function useNavGroups(): NavGroup[] {
         { icon: MessageSquareIcon, label: t('nav.agent'), to: '/chat' },
         { icon: WorkflowIcon, label: t('rail.workflows'), to: '/workflows' },
         { icon: FileTextIcon, label: t('rail.documents'), to: '/documents' },
+        { icon: PlugIcon, label: t('rail.integrations'), to: '/integrations' },
       ],
     },
     ...TEAM.map(bot => ({
@@ -47,16 +45,6 @@ export function useNavGroups(): NavGroup[] {
       items: BOT_SECTIONS[bot.key].flatMap(group => group.links),
       label: bot.name,
     })),
-    {
-      id: 'account',
-      items: [
-        { icon: UserIcon, label: t('menu.profile'), to: '/profile' },
-        { icon: CreditCardIcon, label: t('rail.plan'), to: '/plan' },
-        { icon: BuildingIcon, label: t('rail.organization'), to: '/organization' },
-        { icon: PlugIcon, label: t('rail.integrations'), to: '/integrations' },
-      ],
-      label: t('nav.account'),
-    },
   ];
 }
 

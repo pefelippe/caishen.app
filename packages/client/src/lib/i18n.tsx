@@ -88,7 +88,6 @@ const STRINGS = {
   'menu.plan': { en: 'Plan', pt: 'Plano' },
   'menu.profile': { en: 'Profile', pt: 'Perfil' },
   'menu.usage': { en: 'Usage', pt: 'Uso' },
-  'nav.account': { en: 'Account', pt: 'Conta' },
   'nav.agent': { en: 'Agent', pt: 'Agente' },
   'nav.home': { en: 'Home', pt: 'Página inicial' },
   'notifications.empty': { en: 'Nothing needs your attention.', pt: 'Nada pedindo sua atenção.' },
