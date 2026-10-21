@@ -1,11 +1,15 @@
+import { LoaderCircle, MailCheck } from 'lucide-react';
+import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/react';
 import { type FormEvent, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 import { FormError } from '../components/FormError';
+import { Logo } from '../components/Logo';
 import { authClient } from '../lib/auth';
 
 /** Where the sign-in link goes: by email, back to this page (local server, no email set up) or
@@ -16,6 +20,41 @@ type Methods = { google: boolean; link: 'console' | 'email' | 'page' };
 const LINK_ERRORS: Record<string, string> = {
   EXPIRED_TOKEN: 'O link expirou. Peça um novo.',
   INVALID_TOKEN: 'O link é inválido ou já foi usado. Peça um novo.',
+};
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+/** The card rises and settles with a small spring. */
+const card: Variants = {
+  hidden: { opacity: 0, scale: 0.97, y: 24 },
+  shown: {
+    opacity: 1,
+    scale: 1,
+    transition: { damping: 22, delayChildren: 0.15, stiffness: 200, type: 'spring' },
+    y: 0,
+  },
+};
+
+/** A parent whose children rise one after another. */
+const stagger: Variants = {
+  hidden: {},
+  shown: { transition: { staggerChildren: 0.07 } },
+};
+
+const rise: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  shown: { opacity: 1, transition: { duration: 0.5, ease: EASE }, y: 0 },
+};
+
+/** The mark pops in, turning into place. */
+const pop: Variants = {
+  hidden: { opacity: 0, rotate: -15, scale: 0.5 },
+  shown: {
+    opacity: 1,
+    rotate: 0,
+    scale: 1,
+    transition: { damping: 12, stiffness: 220, type: 'spring' },
+  },
 };
 
 /**
@@ -79,85 +118,207 @@ export function LoginPage() {
     }
   };
 
+  const reset = () => {
+    setSentTo(null);
+    setLocalLink(null);
+  };
+
   return (
-    <main className="grid min-h-svh place-items-center px-4 py-12">
-      <div className="page-enter flex w-full max-w-md flex-col gap-12">
-        <h1 className="text-center font-serif text-[clamp(4.5rem,14vw,8.5rem)] leading-[0.9] font-normal tracking-[-0.04em] italic">
-          Caishen
-        </h1>
-        <div className="flex flex-col gap-3">
-          {sentTo ? (
-            <div className="flex flex-col gap-3 text-center">
-              {methods.link === 'email' ? (
-                <p className="text-base">
-                  Enviamos um link para <span className="font-medium">{sentTo}</span>. Abra o e-mail
-                  neste navegador para entrar; o link vale por 15 minutos.
-                </p>
+    <MotionConfig reducedMotion="user">
+      <div className="relative flex min-h-svh flex-col overflow-hidden bg-[var(--paper)]">
+        <Backdrop />
+        <motion.header
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mx-auto flex w-full max-w-6xl items-center px-4 py-5 sm:px-6"
+          initial={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.5, ease: EASE }}
+        >
+          <Link className="flex items-center gap-2.5 text-header" to="/">
+            <Logo size={24} />
+            <span className="text-lg font-semibold tracking-tight text-foreground">
+              caishen.app
+            </span>
+          </Link>
+        </motion.header>
+
+        <main className="relative grid flex-1 place-items-center px-4 pt-6 pb-16">
+          <motion.div
+            animate="shown"
+            className="w-full max-w-[440px] rounded-2xl border border-border/60 bg-card px-6 py-10 shadow-[0_24px_70px_-24px_rgba(30,26,23,0.28)] sm:px-10"
+            initial="hidden"
+            variants={card}
+          >
+            <motion.div className="flex flex-col items-center text-center" variants={stagger}>
+              <motion.div
+                className="grid size-16 place-items-center rounded-2xl bg-foreground text-header-foreground shadow-lg"
+                variants={pop}
+                whileHover={{ rotate: -6, scale: 1.06 }}
+              >
+                <Logo size={30} />
+              </motion.div>
+              <motion.h1 className="mt-6 text-3xl font-bold tracking-tight" variants={rise}>
+                Bem-vindo ao Caishen
+              </motion.h1>
+              <motion.p className="mt-2 text-muted-foreground" variants={rise}>
+                {sentTo
+                  ? 'Confira sua caixa de entrada'
+                  : methods.google
+                    ? 'Entre com o Google ou receba um link de acesso'
+                    : 'Digite seu e-mail para receber um link de acesso'}
+              </motion.p>
+            </motion.div>
+
+            <AnimatePresence initial={false} mode="wait">
+              {sentTo ? (
+                <motion.div
+                  animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
+                  className="mt-8 flex flex-col items-center gap-4 text-center"
+                  exit={{ filter: 'blur(4px)', opacity: 0, y: -12 }}
+                  initial={{ filter: 'blur(4px)', opacity: 0, y: 12 }}
+                  key="sent"
+                  transition={{ duration: 0.35, ease: EASE }}
+                >
+                  <motion.span
+                    animate={{ rotate: 0, scale: 1 }}
+                    className="grid size-14 place-items-center rounded-full bg-emerald-50 text-emerald-600"
+                    initial={{ rotate: -20, scale: 0 }}
+                    transition={{ damping: 12, delay: 0.1, stiffness: 220, type: 'spring' }}
+                  >
+                    <MailCheck className="size-7" />
+                  </motion.span>
+                  {methods.link === 'email' ? (
+                    <p className="text-pretty">
+                      Enviamos um link para <span className="font-semibold">{sentTo}</span>. Abra o
+                      e-mail neste navegador para entrar; o link vale por 15 minutos.
+                    </p>
+                  ) : (
+                    <p className="text-pretty">
+                      Este servidor não envia e-mails (falta <code>RESEND_API_KEY</code>). O link
+                      para <span className="font-semibold">{sentTo}</span> está no terminal do
+                      servidor{localLink ? ', ou abra-o aqui.' : '.'}
+                    </p>
+                  )}
+                  {localLink && (
+                    <Button asChild className="h-11 w-full text-base">
+                      <a href={localLink}>Entrar como {sentTo}</a>
+                    </Button>
+                  )}
+                  <Button className="px-0" onClick={reset} variant="link">
+                    Usar outro e-mail
+                  </Button>
+                </motion.div>
               ) : (
-                <p className="text-base">
-                  Este servidor não envia e-mails (falta <code>RESEND_API_KEY</code>). O link para{' '}
-                  <span className="font-medium">{sentTo}</span> está no terminal do servidor
-                  {localLink ? ', ou abra-o aqui.' : '.'}
-                </p>
+                <motion.div
+                  animate="shown"
+                  className="mt-8 flex flex-col gap-6"
+                  exit={{ filter: 'blur(4px)', opacity: 0, y: -12 }}
+                  initial="hidden"
+                  key="form"
+                  variants={stagger}
+                >
+                  {methods.google && (
+                    <>
+                      <motion.div variants={rise}>
+                        <Button
+                          className="h-11 w-full text-base font-medium"
+                          disabled={pending}
+                          onClick={() => void signInWithGoogle()}
+                          variant="outline"
+                        >
+                          <GoogleIcon />
+                          Continuar com o Google
+                        </Button>
+                      </motion.div>
+                      <motion.div className="flex items-center gap-3" variants={rise}>
+                        <Separator className="flex-1" />
+                        <span className="text-xs tracking-wide text-muted-foreground uppercase">
+                          ou continue com e-mail
+                        </span>
+                        <Separator className="flex-1" />
+                      </motion.div>
+                    </>
+                  )}
+                  <motion.form
+                    className="flex flex-col gap-6"
+                    onSubmit={event => void sendLink(event)}
+                    variants={rise}
+                  >
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="email">E-mail</Label>
+                      <Input
+                        autoComplete="email"
+                        autoFocus
+                        className="h-11 px-4 text-base shadow-none md:text-base"
+                        id="email"
+                        onChange={event => setEmail(event.target.value)}
+                        placeholder="voce@exemplo.com"
+                        required
+                        type="email"
+                        value={email}
+                      />
+                    </div>
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <Button className="h-11 w-full text-base" disabled={pending} type="submit">
+                        {pending ? (
+                          <>
+                            <LoaderCircle className="size-4 animate-spin" />
+                            Enviando…
+                          </>
+                        ) : (
+                          'Enviar link de acesso'
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.form>
+                </motion.div>
               )}
-              {localLink && (
-                <Button asChild className="h-12 text-base" size="lg">
-                  <a href={localLink}>Entrar como {sentTo}</a>
-                </Button>
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="overflow-hidden"
+                  exit={{ height: 0, opacity: 0 }}
+                  initial={{ height: 0, opacity: 0 }}
+                >
+                  <div className="pt-4">
+                    <FormError message={error} />
+                  </div>
+                </motion.div>
               )}
-              <Button
-                className="self-center px-0"
-                onClick={() => {
-                  setSentTo(null);
-                  setLocalLink(null);
-                }}
-                variant="link"
-              >
-                Usar outro e-mail
-              </Button>
-            </div>
-          ) : (
-            <form className="flex flex-col gap-3" onSubmit={event => void sendLink(event)}>
-              <div>
-                <Label className="sr-only" htmlFor="email">
-                  E-mail
-                </Label>
-                <Input
-                  autoComplete="email"
-                  autoFocus
-                  className="h-12 px-4 text-base shadow-none md:text-base"
-                  id="email"
-                  onChange={event => setEmail(event.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                  type="email"
-                  value={email}
-                />
-              </div>
-              <Button className="h-12 text-base" disabled={pending} size="lg" type="submit">
-                {pending ? 'Enviando…' : 'Receber link de acesso'}
-              </Button>
-            </form>
-          )}
-          {methods.google && (
-            <>
-              <p className="text-center text-sm text-muted-foreground">ou</p>
-              <Button
-                className="h-12 text-base"
-                disabled={pending}
-                onClick={() => void signInWithGoogle()}
-                size="lg"
-                variant="secondary"
-              >
-                <GoogleIcon />
-                Entrar com Google
-              </Button>
-            </>
-          )}
-          {error && <FormError message={error} />}
-        </div>
+            </AnimatePresence>
+
+            <motion.p
+              animate={{ opacity: 1 }}
+              className="mt-8 text-center text-sm text-muted-foreground"
+              initial={{ opacity: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              Ao entrar, você concorda com nossos Termos de Uso.
+            </motion.p>
+          </motion.div>
+        </main>
       </div>
-    </main>
+    </MotionConfig>
+  );
+}
+
+/** Two warm lights drifting slowly behind the card. */
+function Backdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
+        className="absolute -top-40 -left-40 size-[520px] rounded-full bg-[radial-gradient(closest-side,#f3dcae,transparent)] opacity-70 blur-3xl"
+        transition={{ duration: 14, ease: 'easeInOut', repeat: Infinity }}
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, -40, 0] }}
+        className="absolute -right-40 -bottom-40 size-[560px] rounded-full bg-[radial-gradient(closest-side,#e9e1d4,transparent)] opacity-80 blur-3xl"
+        transition={{ duration: 16, ease: 'easeInOut', repeat: Infinity }}
+      />
+    </div>
   );
 }
 
