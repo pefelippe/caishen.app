@@ -1,6 +1,10 @@
 import {
+  Ban,
+  Calculator,
   CalendarClock,
   ChartNoAxesCombined,
+  Eye,
+  KeyRound,
   type LucideIcon,
   MessageCircle,
   ShieldCheck,
@@ -105,24 +109,6 @@ const STEPS = [
   },
 ];
 
-const SHOTS = [
-  {
-    alt: 'Uma Operação de Crédito com taxa, Saldo Devedor e Tabela de Amortização',
-    caption: 'Cada Operação, Parcela por Parcela',
-    src: '/landing/app-operacao.jpg',
-  },
-  {
-    alt: 'Uma Entrega do Caishen com um plano para quitar as dívidas',
-    caption: 'Entregas prontas para ler',
-    src: '/landing/app-entrega.jpg',
-  },
-  {
-    alt: 'A tela de Finanças com Fontes de Renda, Operações e Cartões',
-    caption: 'Tudo o que entra e sai',
-    src: '/landing/app-financas.jpg',
-  },
-];
-
 // ---------------------------------------------------------------- page
 
 /** The page for visitors who are not signed in. "Entrar" leads to the LoginPage at /sign-in. */
@@ -141,7 +127,6 @@ export function LandingPage() {
           <Hero />
           <Features />
           <Steps />
-          <Shots />
           <Trust />
           <FinalCta />
         </main>
@@ -189,6 +174,9 @@ function Header() {
           </Button>
           <Button asChild className="hidden sm:inline-flex" variant="ghost">
             <a href="#como-funciona">Como funciona</a>
+          </Button>
+          <Button asChild className="hidden md:inline-flex" variant="ghost">
+            <a href="#seguranca">Segurança</a>
           </Button>
           <Button asChild variant="ghost">
             <Link to="/sign-in">Entrar</Link>
@@ -410,56 +398,98 @@ function Steps() {
   );
 }
 
-function Shots() {
-  return (
-    <section aria-labelledby="telas-title" className="px-4 py-24 sm:px-6 sm:py-32">
-      <SectionTitle eyebrow="O app" id="telas-title" title="Feito para você ver tudo com clareza" />
-      <motion.div
-        className="mx-auto mt-14 grid max-w-6xl gap-6 md:grid-cols-3"
-        variants={stagger}
-        {...onView}
-      >
-        {SHOTS.map(shot => (
-          <motion.figure key={shot.src} variants={rise} whileHover={{ y: -6 }}>
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <motion.img
-                alt={shot.alt}
-                className="block aspect-[4/3] w-full object-cover object-top"
-                loading="lazy"
-                src={shot.src}
-                transition={{ duration: 0.6, ease: EASE }}
-                whileHover={{ scale: 1.04 }}
-              />
-            </div>
-            <figcaption className="mt-3 text-center text-sm text-muted-foreground">
-              {shot.caption}
-            </figcaption>
-          </motion.figure>
-        ))}
-      </motion.div>
-    </section>
-  );
-}
+/** The promises behind ADR 0009, in the visitor's words. */
+const PROMISES: { description: string; icon: LucideIcon; title: string }[] = [
+  {
+    description:
+      'O Caishen entra nas ferramentas que você conecta, lê o que precisa e volta com o trabalho pronto. Nunca altera nada lá fora.',
+    icon: Eye,
+    title: 'Só leitura',
+  },
+  {
+    description:
+      'Ele não faz pagamentos, transferências nem contratações. Quem decide e age é sempre você.',
+    icon: Ban,
+    title: 'Nenhum centavo movido',
+  },
+  {
+    description:
+      'As Integrações usam o login oficial de cada serviço. O Caishen nunca pede nem guarda as suas senhas.',
+    icon: KeyRound,
+    title: 'Sem senhas guardadas',
+  },
+  {
+    description:
+      'Juros, Saldo Devedor e Score saem de cálculos exatos. A IA recebe os números prontos e só explica, sem inventar.',
+    icon: Calculator,
+    title: 'Números exatos',
+  },
+];
 
 function Trust() {
   return (
-    <section className="px-4 sm:px-6">
-      <motion.div
-        className="mx-auto flex max-w-5xl flex-col items-start gap-6 rounded-2xl border border-border bg-card p-8 sm:flex-row sm:items-center sm:p-12"
-        variants={rise}
-        {...onView}
-      >
-        <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-          <ShieldCheck className="size-7" />
-        </span>
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">O Caishen só lê</h2>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
-            Ele entra nas ferramentas que você conecta, lê o que precisa e volta com o trabalho
-            pronto. Nunca altera nada lá fora, nunca guarda senhas e nunca movimenta dinheiro.
-          </p>
-        </div>
-      </motion.div>
+    <section
+      aria-labelledby="seguranca-title"
+      className="scroll-mt-20 border-y border-border bg-card px-4 py-24 sm:px-6 sm:py-32"
+      id="seguranca"
+    >
+      <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1fr_1.4fr] lg:gap-20">
+        <motion.div variants={stagger} {...onView}>
+          <motion.span
+            className="relative grid size-20 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"
+            variants={{
+              hidden: { opacity: 0, scale: 0.6 },
+              shown: {
+                opacity: 1,
+                scale: 1,
+                transition: { damping: 14, stiffness: 180, type: 'spring' },
+              },
+            }}
+          >
+            <motion.span
+              animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.35, 1] }}
+              aria-hidden
+              className="absolute inset-0 rounded-2xl border-2 border-emerald-300"
+              transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity }}
+            />
+            <ShieldCheck className="size-10" />
+          </motion.span>
+          <motion.p
+            className="mt-8 text-sm font-medium tracking-widest text-muted-foreground uppercase"
+            variants={rise}
+          >
+            Segurança
+          </motion.p>
+          <motion.h2
+            className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+            id="seguranca-title"
+            variants={rise}
+          >
+            Seu dinheiro continua só com você
+          </motion.h2>
+          <motion.p className="mt-4 text-lg text-pretty text-muted-foreground" variants={rise}>
+            O Caishen foi desenhado para ajudar sem nunca tocar no que é seu. Ele lê, calcula e
+            explica. As decisões ficam com você.
+          </motion.p>
+        </motion.div>
+
+        <motion.ul className="grid gap-4 sm:grid-cols-2" variants={stagger} {...onView}>
+          {PROMISES.map(({ description, icon: Icon, title }) => (
+            <motion.li
+              className="group rounded-xl border border-border bg-[var(--paper)] p-6"
+              key={title}
+              variants={rise}
+              whileHover={{ y: -4 }}
+            >
+              <span className="grid size-10 place-items-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition-transform duration-300 group-hover:scale-110">
+                <Icon className="size-5" />
+              </span>
+              <h3 className="mt-5 text-lg font-semibold">{title}</h3>
+              <p className="mt-2 text-muted-foreground">{description}</p>
+            </motion.li>
+          ))}
+        </motion.ul>
+      </div>
     </section>
   );
 }
