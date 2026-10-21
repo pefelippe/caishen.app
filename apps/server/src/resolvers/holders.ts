@@ -1,5 +1,5 @@
 import { db, schema } from '@zapbots/database';
-import { AssessmentError, riskBand } from '@zapbots/finance';
+import { addMonths, AssessmentError, riskBand, today } from '@zapbots/finance';
 import type { Resolvers } from '@zapbots/graphql/server';
 import { desc, eq } from 'drizzle-orm';
 
@@ -81,6 +81,14 @@ export const holderResolvers: Resolvers = {
     month: (holder, { month }) => {
       if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) badInput('Mês inválido: use AAAA-MM');
       return monthStatement(holder.id, month);
+    },
+    months: (holder, { last }) => {
+      if (!Number.isInteger(last) || last < 1 || last > 12) badInput('De 1 a 12 meses');
+      const current = today().slice(0, 7);
+      const months = Array.from({ length: last }, (_, index) =>
+        addMonths(`${current}-01`, index - last + 1).slice(0, 7)
+      );
+      return Promise.all(months.map(month => monthStatement(holder.id, month)));
     },
     expenses: holder =>
       db

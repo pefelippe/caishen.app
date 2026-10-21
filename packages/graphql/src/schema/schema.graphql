@@ -212,6 +212,8 @@ type Holder {
   expenses: [Expense!]!
   "One month (`YYYY-MM`): Receitas, Compromissos that fall due, Gastos and what is left."
   month(month: String!): MonthStatement!
+  "The last `last` months (up to 12) through the current one, oldest first, for the Relatório."
+  months(last: Int!): [MonthStatement!]!
   creditOperations: [CreditOperation!]!
   creditCards: [CreditCard!]!
   assessments: [Assessment!]!

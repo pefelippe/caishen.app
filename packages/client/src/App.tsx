@@ -83,8 +83,9 @@ export function App() {
         {/* Workflows are off until they work end to end; JobsPage and JobPage wait for them. */}
         <Route element={<Navigate replace to="/" />} path="workflows/*" />
         <Route element={<BotLayout bot="FINANCE" />} path="caishen">
-          <Route element={<Navigate replace to="overview" />} index />
-          <Route element={<FinanceOverviewPage />} path="overview" />
+          <Route element={<Navigate replace to="report" />} index />
+          <Route element={<FinanceOverviewPage />} path="report" />
+          <Route element={<Navigate replace to="/caishen/report" />} path="overview" />
           <Route element={<FinancesPage />} path="finances" />
           <Route element={<MonthPage />} path="month" />
           {['income', 'taxes', 'obligations'].map(part => (

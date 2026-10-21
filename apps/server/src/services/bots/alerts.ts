@@ -79,7 +79,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
   for (const due of await upcomingDues(holder.id, asOf)) {
     if (due.dueDate > until) continue;
     alerts.push({
-      href: '/caishen/overview',
+      href: '/caishen/report',
       kind: 'DUE_SOON',
       message: `${due.label} vence em ${day(due.dueDate)}: ${money(due.amountCents)}.`,
     });
@@ -119,7 +119,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
     const madeOn = assessment ? dateOf(assessment.createdAt) : null;
     if (!madeOn || madeOn < addDays(asOf, -STALE_ASSESSMENT_DAYS)) {
       alerts.push({
-        href: '/caishen/overview',
+        href: '/caishen/report',
         kind: 'STALE_ASSESSMENT',
         message: madeOn
           ? `Sua última Avaliação é de ${day(madeOn)}. Gere uma nova para ver o Score com os dados de hoje.`

@@ -201,6 +201,29 @@ query Month($holderId: ID!, $month: String!) {
   }
 }
 
+query Report($holderId: ID!) {
+  holder(id: $holderId) {
+    id
+    months(last: 6) {
+      month
+      incomeCents
+      commitmentsCents
+      expensesCents
+      balanceCents
+      expenses {
+        id
+        category
+        amountCents
+      }
+    }
+    creditOperations {
+      id
+      name
+      outstandingBalanceCents
+    }
+  }
+}
+
 mutation AddOneOffIncome($input: OneOffIncomeInput!) {
   addOneOffIncome(input: $input)
 }

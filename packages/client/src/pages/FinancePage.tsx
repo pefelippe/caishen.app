@@ -24,7 +24,7 @@ import {
   monthlyToAnnualRate,
   today,
 } from '@zapbots/finance';
-import { ArrowDownIcon, PlusIcon, XIcon } from 'lucide-react';
+import { ArrowDownIcon, PlusIcon, PrinterIcon, XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -57,6 +57,7 @@ import { FormError } from '../components/FormError';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { Sheet, SheetRow } from '../components/Sheet';
 import { PayoffPlanPanel } from '../components/PayoffPlanPanel';
+import { ReportCharts } from '../components/ReportCharts';
 import { ScrPanel } from '../components/ScrPanel';
 import { formatCents, formatDate, formatPercent, parseCents, parsePercent } from '../lib/format';
 
@@ -102,10 +103,12 @@ function useHolder(): Holder | null | undefined {
 
 /** A section of the Caishen's page once the Holder is there. */
 function HolderSection({
+  actions,
   children,
   description,
   title,
 }: {
+  actions?: ReactNode;
   children: (holder: Holder) => ReactNode;
   description?: (holder: Holder) => ReactNode;
   title: string;
@@ -114,13 +117,16 @@ function HolderSection({
   if (holder === null) return <PageSkeleton />;
   if (!holder) return <p>Não foi possível carregar suas Finanças.</p>;
   return (
-    <BotPage bot="FINANCE" description={description?.(holder)} title={title}>
+    <BotPage actions={actions} bot="FINANCE" description={description?.(holder)} title={title}>
       {children(holder)}
     </BotPage>
   );
 }
 
-/** Visão geral: the Alerts, the Assessment, the SCR and, with debts to compare, the payoff plan. */
+/**
+ * Relatório: the Alerts, six months in charts, the Assessment, the SCR and, with debts to compare,
+ * the payoff plan; it prints to PDF.
+ */
 export function FinanceOverviewPage() {
   const { data: market } = useQuery(MarketIndicatorsDocument);
   const { data: alerts } = useQuery(BotAlertsDocument, {
@@ -131,6 +137,12 @@ export function FinanceOverviewPage() {
 
   return (
     <HolderSection
+      actions={
+        <Button className="print:hidden" onClick={() => window.print()} variant="outline">
+          <PrinterIcon />
+          Exportar PDF
+        </Button>
+      }
       description={holder => (
         <>
           Renda mensal líquida{' '}
@@ -146,7 +158,7 @@ export function FinanceOverviewPage() {
           )}
         </>
       )}
-      title="Visão geral"
+      title="Relatório"
     >
       {holder => (
         <>
@@ -163,6 +175,7 @@ export function FinanceOverviewPage() {
               </CardContent>
             </Card>
           )}
+          <ReportCharts holderId={holder.id} />
           <ConsentBanner holder={holder} />
           <AssessmentPanel holder={holder} />
           <ScrPanel holder={holder} />

@@ -2,7 +2,7 @@ import type { BotKey } from '@zapbots/graphql/client';
 import {
   CalendarDaysIcon,
   CoinsIcon,
-  LayoutGridIcon,
+  ChartColumnIcon,
   WalletIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -48,7 +48,7 @@ export const BOT_SECTIONS: Record<BotKey, SectionGroup[]> = {
   FINANCE: [
     {
       links: [
-        { icon: LayoutGridIcon, label: 'Visão geral', to: '/caishen/overview' },
+        { icon: ChartColumnIcon, label: 'Relatório', to: '/caishen/report' },
         { icon: CalendarDaysIcon, label: 'Mês', to: '/caishen/month' },
       ],
     },
