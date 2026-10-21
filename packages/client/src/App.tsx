@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { Layout, Scrolling } from './components/Layout';
 import { Splash } from './components/Logo';
@@ -29,12 +29,16 @@ const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
 const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
 const DocumentPage = page(() => import('./pages/DocumentPage'), 'DocumentPage');
-const IntegrationsLayout = page(() => import('./pages/IntegrationsPage'), 'IntegrationsLayout');
 const IntegrationsPage = page(() => import('./pages/IntegrationsPage'), 'IntegrationsPage');
 const OrganizationPage = page(() => import('./pages/OrganizationPage'), 'OrganizationPage');
-const ModelsPage = page(() => import('./pages/ModelsPage'), 'ModelsPage');
 const PlanPage = page(() => import('./pages/PlanPage'), 'PlanPage');
 const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage');
+
+/** Integrações used to be one page per kind; the old links land on its part of the one page. */
+function LegacyIntegration() {
+  const { group } = useParams<{ group: string }>();
+  return <Navigate replace to={group === 'files' ? '/integrations#files' : '/integrations#ai'} />;
+}
 
 export function App() {
   const { data: session, isPending } = authClient.useSession();
@@ -107,11 +111,9 @@ export function App() {
           path="documents"
         />
         <Route element={<DocumentPage />} path="documents/:id" />
-        <Route element={<IntegrationsLayout />} path="integrations">
-          <Route element={<IntegrationsPage />} index />
-          <Route element={<ModelsPage />} path="models" />
-          <Route element={<IntegrationsPage />} path=":group" />
-        </Route>
+        <Route element={<IntegrationsPage />} path="integrations" />
+        <Route element={<Navigate replace to="/integrations#ai" />} path="integrations/models" />
+        <Route element={<LegacyIntegration />} path="integrations/:group" />
         <Route
           element={
             <Scrolling>
@@ -120,7 +122,7 @@ export function App() {
           }
           path="organization"
         />
-        <Route element={<Navigate replace to="/integrations/models" />} path="models" />
+        <Route element={<Navigate replace to="/integrations#ai" />} path="models" />
         <Route
           element={
             <Scrolling>

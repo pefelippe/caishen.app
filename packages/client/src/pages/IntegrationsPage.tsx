@@ -1,21 +1,11 @@
-import { Navigate, Outlet, useParams } from 'react-router-dom';
-
-import { ConnectionsSettings, INTEGRATION_GROUPS } from '../components/ConnectionsSettings';
+import { ConnectionsSettings } from '../components/ConnectionsSettings';
 import { Scrolling } from '../components/Layout';
 
-/** Integrações: each kind of tool the Bots can enter is its own item in the menu on the left. */
-export function IntegrationsLayout() {
+/** Integrações: one page, a sheet per kind of tool, the Models under OpenRouter. */
+export function IntegrationsPage() {
   return (
     <Scrolling>
-      <Outlet />
+      <ConnectionsSettings />
     </Scrolling>
   );
-}
-
-export function IntegrationsPage() {
-  const { group } = useParams<{ group?: string }>();
-  if (!group || !INTEGRATION_GROUPS.some(item => item.id === group)) {
-    return <Navigate replace to="/integrations/models" />;
-  }
-  return <ConnectionsSettings group={group} />;
 }

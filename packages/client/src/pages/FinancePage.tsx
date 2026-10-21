@@ -55,6 +55,7 @@ import { AssessmentPanel } from '../components/AssessmentPanel';
 import { ConsentBanner } from '../components/ConsentBanner';
 import { FormError } from '../components/FormError';
 import { PageSkeleton } from '../components/PageSkeleton';
+import { Sheet, SheetRow } from '../components/Sheet';
 import { PayoffPlanPanel } from '../components/PayoffPlanPanel';
 import { ScrPanel } from '../components/ScrPanel';
 import { formatCents, formatDate, formatPercent, parseCents, parsePercent } from '../lib/format';
@@ -273,29 +274,7 @@ function Part({
   useEffect(() => setAdding(false), [count]);
 
   return (
-    <motion.section
-      aria-labelledby={`${id}-title`}
-      className="flex scroll-mt-6 flex-col gap-6 rounded-2xl bg-card p-6 md:p-8"
-      id={id}
-      initial={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.55, ease: EASE }}
-      viewport={{ amount: 0.15, once: true }}
-      whileInView={{ opacity: 1, y: 0 }}
-    >
-      <header className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="text-2xl font-semibold tracking-tight" id={`${id}-title`}>
-            {title}
-          </h2>
-          <p className="max-w-prose">{intro}</p>
-        </div>
-        {total && (
-          <div className="text-right text-2xl font-semibold tracking-tight tabular-nums">
-            {total}
-          </div>
-        )}
-      </header>
-
+    <Sheet id={id} intro={intro} title={title} total={total}>
       {count > 0 ? children : <p className="text-muted-foreground">{empty}</p>}
 
       <AnimatePresence initial={false} mode="wait">
@@ -338,29 +317,7 @@ function Part({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.section>
-  );
-}
-
-/** One registered thing in a Part: its name, what describes it and its amount, on a light row. */
-function Row({
-  action,
-  amount,
-  detail,
-  name,
-}: {
-  action?: ReactNode;
-  amount: ReactNode;
-  detail: ReactNode;
-  name: ReactNode;
-}) {
-  return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-secondary/60 px-4 py-3.5 transition-colors hover:bg-secondary">
-      <span className="font-medium">{name}</span>
-      <span className="text-muted-foreground">{detail}</span>
-      <span className="ml-auto text-lg font-semibold tabular-nums">{amount}</span>
-      {action}
-    </li>
+    </Sheet>
   );
 }
 
@@ -497,7 +454,7 @@ function IncomeSection({ holder }: { holder: Holder }) {
     >
       <ul className="flex flex-col gap-2">
         {holder.incomeSources.map(source => (
-          <Row
+          <SheetRow
             amount={formatCents(source.monthlyNetCents)}
             detail={
               source.paydays.length
@@ -671,7 +628,7 @@ function TaxesSection({ holder }: { holder: Holder }) {
     >
       <ul className="flex flex-col gap-2">
         {holder.taxes.map(tax => (
-          <Row
+          <SheetRow
             action={
               <Button
                 aria-label={`Remover ${tax.name}`}
