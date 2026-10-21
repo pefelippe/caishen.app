@@ -21,6 +21,12 @@ import { Sheet, SheetRow } from './Sheet';
 
 type Connection = ConnectionsQuery['connections'][number];
 
+/** An Integration still to come, listed disabled so the User sees where the team is going. */
+interface Upcoming {
+  description: string;
+  name: string;
+}
+
 /** A kind of tool the Bots can enter, with the Integrations that already work for it. */
 interface IntegrationGroup {
   description: string;
@@ -29,6 +35,7 @@ interface IntegrationGroup {
   /** Integrations that already work, by their kind on the server. */
   kinds: ConnectionKind[];
   title: string;
+  upcoming: Upcoming[];
 }
 
 export const INTEGRATION_GROUPS: IntegrationGroup[] = [
@@ -37,12 +44,58 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
     id: 'ai',
     kinds: [],
     title: 'Modelos de IA',
+    upcoming: [
+      { description: 'Os Modelos Claude com a sua própria chave.', name: 'Anthropic' },
+      { description: 'Os Modelos GPT com a sua própria chave.', name: 'OpenAI' },
+      { description: 'Os Modelos Gemini com a sua própria chave.', name: 'Google AI' },
+    ],
   },
   {
     description: 'Os arquivos que você entrega ao Caishen para ele ler.',
     id: 'files',
     kinds: ['GOOGLE_DRIVE'],
     title: 'Arquivos',
+    upcoming: [
+      { description: 'Arquivos do OneDrive, só leitura.', name: 'OneDrive' },
+      { description: 'Arquivos do Dropbox, só leitura.', name: 'Dropbox' },
+      { description: 'Arquivos do Box, só leitura.', name: 'Box' },
+    ],
+  },
+  {
+    description: 'Para o Caishen ler faturas, extratos e avisos que chegam por e-mail.',
+    id: 'email',
+    kinds: [],
+    title: 'E-mail',
+    upcoming: [
+      { description: 'Lê os e-mails dos bancos e das contas, sem enviar nada.', name: 'Gmail' },
+      { description: 'Lê os e-mails do Outlook, sem enviar nada.', name: 'Outlook' },
+    ],
+  },
+  {
+    description: 'Para o Caishen acompanhar prazos e vencimentos.',
+    id: 'agenda',
+    kinds: [],
+    title: 'Agenda',
+    upcoming: [
+      { description: 'Lê seus eventos para lembrar o que vence.', name: 'Google Agenda' },
+      { description: 'Lê seus eventos do Outlook.', name: 'Outlook Agenda' },
+    ],
+  },
+  {
+    description: 'Seus dados financeiros direto das instituições, com o seu consentimento.',
+    id: 'bancos',
+    kinds: [],
+    title: 'Bancos',
+    upcoming: [
+      {
+        description: 'Contas, cartões e empréstimos pelo Open Finance, só leitura.',
+        name: 'Open Finance',
+      },
+      {
+        description: 'O relatório do SCR do Bacen, lido sozinho a partir do PDF.',
+        name: 'Registrato',
+      },
+    ],
   },
 ];
 
@@ -98,10 +151,13 @@ export function ConnectionsSettings() {
       .filter(
         item => groupMatches || matches(search, COPY[item.kind].name, COPY[item.kind].description)
       );
+    const upcoming = group.upcoming.filter(
+      item => groupMatches || matches(search, item.name, item.description)
+    );
     // The Models are found by Bot or Model name too, so they can match on their own.
     const models = group.id === 'ai';
-    if (!live.length && !models) return null;
-    return { group, live, models, search: groupMatches ? '' : search };
+    if (!live.length && !upcoming.length && !models) return null;
+    return { group, live, models, search: groupMatches ? '' : search, upcoming };
   }).filter(sheet => sheet !== null);
 
   return (
@@ -126,7 +182,7 @@ export function ConnectionsSettings() {
         </div>
       </header>
 
-      {sheets.map(({ group, live, models, search: within }) => (
+      {sheets.map(({ group, live, models, search: within, upcoming }) => (
         <Sheet id={group.id} intro={group.description} key={group.id} title={group.title}>
           {live.length > 0 && (
             <ul className="flex flex-col gap-2">
@@ -144,6 +200,25 @@ export function ConnectionsSettings() {
             </ul>
           )}
           {models && <ModelsList search={within} />}
+          {upcoming.length > 0 && (
+            <ul aria-label="Em breve" className="grid gap-2 md:grid-cols-2">
+              {upcoming.map(item => (
+                <SheetRow
+                  action={
+                    <Button disabled size="sm" variant="outline">
+                      Conectar
+                    </Button>
+                  }
+                  className="opacity-60 hover:bg-secondary/60"
+                  detail={<Badge variant="outline">em breve</Badge>}
+                  key={item.name}
+                  name={item.name}
+                >
+                  <p className="text-sm">{item.description}</p>
+                </SheetRow>
+              ))}
+            </ul>
+          )}
         </Sheet>
       ))}
       {search && !sheets.length && (
