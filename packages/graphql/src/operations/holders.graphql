@@ -97,6 +97,11 @@ query Holder($id: ID!) {
       ...AssessmentFields
     }
     registeredDebtCents
+    upcomingDues {
+      label
+      dueDate
+      amountCents
+    }
     scrSnapshots {
       id
       referenceMonth

@@ -8,6 +8,7 @@ import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
 import { ChatPanel, ChatPanelProvider } from './ChatPanel';
 import { PageSkeleton } from './PageSkeleton';
+import { QuickActions } from './QuickActions';
 
 interface Props {
   user: { email: string; name: string };
@@ -34,6 +35,7 @@ export function Layout({ user }: Props) {
                 <Suspense fallback={<PageSkeleton />}>
                   <Outlet />
                 </Suspense>
+                <QuickActions />
               </main>
               <ChatPanel />
             </div>
