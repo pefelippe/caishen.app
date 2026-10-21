@@ -7,7 +7,7 @@ import { GraphQLError } from 'graphql';
 import { PlanLimitError, requireWithinLimit } from '../services/billing/billing';
 import { botAlerts } from '../services/bots/alerts';
 import { CATALOG, ensureBots } from '../services/bots/catalog';
-import { cancelJob, handOverJob, type JobFile } from '../services/bots/jobs';
+import { cancelJob, failStaleJobs, handOverJob, type JobFile } from '../services/bots/jobs';
 import { MAX_ROUTINES, nextRunAfter } from '../services/bots/routines';
 import { aiConfigured, defaultModel, listModels } from '../services/models';
 import { badInput, notFound, owned, requireViewer } from './guards';
@@ -46,6 +46,8 @@ function validInstructions(raw: string): string {
 
 /** Refuses new work while the Organization already has the most Jobs in progress. */
 async function requireRoom(viewer: Viewer) {
+  // On Vercel a Job that outlived its function would hold a place forever.
+  if (process.env.VERCEL) await failStaleJobs();
   const working = await db
     .select({ id: schema.job.id })
     .from(schema.job)

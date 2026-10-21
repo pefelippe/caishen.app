@@ -1,6 +1,7 @@
 import type { Viewer } from '@zapbots/auth';
 import { db, schema, type AttachmentRow } from '@zapbots/database';
-import { and, eq, inArray } from 'drizzle-orm';
+import { waitUntil } from '@vercel/functions';
+import { and, eq, inArray, lt } from 'drizzle-orm';
 
 import { attachmentText } from '../drive';
 import { defaultModel, ModelError, streamCompletion } from '../models';
@@ -9,6 +10,8 @@ import { botPrompt } from './prompt';
 const MAX_ATTACHMENTS = 5;
 const PROGRESS_MS = 1000;
 const IN_PROGRESS: ('QUEUED' | 'RUNNING')[] = ['QUEUED', 'RUNNING'];
+/** Past this a Job on Vercel is dead: its function's `maxDuration` (vercel.json) is 5 minutes. */
+const STALE_MS = 10 * 60_000;
 
 /** Jobs this process is running, so a cancellation can interrupt the Model. */
 const running = new Map<string, AbortController>();
@@ -48,7 +51,8 @@ export async function handOverJob(
     }
     return row!;
   });
-  void runJob(viewer, job.id);
+  // On Vercel the function stays alive until the Job ends; elsewhere this is a no-op.
+  waitUntil(runJob(viewer, job.id));
   return job;
 }
 
@@ -205,4 +209,24 @@ export async function failInterruptedJobs(): Promise<void> {
       status: 'FAILED',
     })
     .where(inArray(schema.job.status, ['QUEUED', 'RUNNING']));
+}
+
+/**
+ * On Vercel a Job dies with its function, and no boot comes after to sweep it (docs/adr/0012):
+ * one still in progress long after its function's time limit is marked failed.
+ */
+export async function failStaleJobs(): Promise<void> {
+  await db
+    .update(schema.job)
+    .set({
+      error: 'O Workflow passou do tempo limite. Peça de novo.',
+      finishedAt: new Date(),
+      status: 'FAILED',
+    })
+    .where(
+      and(
+        inArray(schema.job.status, IN_PROGRESS),
+        lt(schema.job.createdAt, new Date(Date.now() - STALE_MS))
+      )
+    );
 }

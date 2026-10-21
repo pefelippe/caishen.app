@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "client": {
+      "root": "packages/client",
+      "framework": "vite",
+      "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+      "buildCommand": "cd ../.. && pnpm turbo run build --filter=@zapbots/client",
+      "outputDirectory": "dist",
+      "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+    },
+    "server": {
+      "root": "apps/server",
+      "framework": "express",
+      "entrypoint": "src/app.ts",
+      "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+      "buildCommand": "cd ../.. && pnpm --filter @zapbots/graphql codegen",
+      "functions": { "src/app.ts": { "maxDuration": 300 } }
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "server" } },
+    { "source": "/graphql", "destination": { "service": "server" } },
+    { "source": "/health", "destination": { "service": "server" } },
+    { "source": "/(.*)", "destination": { "service": "client" } }
+  ],
+  "crons": [{ "path": "/api/cron/routines", "schedule": "0 9 * * *" }]
+}

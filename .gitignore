@@ -18,3 +18,5 @@
 
 # Personal editor config
 config.yaml
+.vercel
+.env.local

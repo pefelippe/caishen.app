@@ -27,7 +27,7 @@ Turborepo + pnpm (hoisted `node_modules`), mirroring `www/monorepo`.
   - Sign-in has no password: a link sent by email (`authClient.signIn.magicLink`, Better Auth's `magicLink` plugin; sent through Resend when `RESEND_API_KEY` is set; otherwise printed on the server console and, when `CLIENT_ORIGIN` is localhost, handed back to the page by `POST /api/auth/sign-in/local-link`) and Google (`authClient.signIn.social`), offered only when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set. `GET /api/auth/sign-in-methods` tells the page which are on. The Google Drive Connection asks for the `drive.file` scope later, on the Integrações page, and its file picker needs `VITE_GOOGLE_API_KEY`/`VITE_GOOGLE_APP_ID`.
   - Billing (ADR 0011): Plans and Limits in `services/billing/plans.ts`, Stripe over REST in `services/billing/stripe.ts` (Checkout, portal, webhook at `POST /api/billing/webhook`, raw body, signature checked, events deduped). Needs `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO`, `STRIPE_WEBHOOK_SECRET`. Jobs, Routines and chat Messages pass `requireWithinLimit`. Usage codes are created with `pnpm usage-code`.
 
-Workspace packages have no build step: `main` points at `src/index.ts`; apps run with `tsx`.
+Workspace packages have no build step: `main` points at `src/index.ts`; apps run with `tsx`. Production is one Vercel project with two Services, `client` and `server` (`vercel.json`, ADR 0012): `apps/server/src/app.ts` is the Express app, `index.ts` the long-lived process around it.
 
 ## Conventions
 
@@ -36,8 +36,8 @@ Workspace packages have no build step: `main` points at `src/index.ts`; apps run
 - Every query or mutation scopes by `viewer.organizationId`: build the filter with `owned(table, viewer, id?)` from `resolvers/guards.ts`, never by hand, and load a Holder through `findHolder`. The Organization is personal and has its own page; changing it takes `requireAdmin`. Finanças uses the `viewerHolder` (ADR 0007).
 - Bots only read (ADR 0009): no Model tools, nothing written outside zapbots, no money moved. They reach outside tools only through Connections (OAuth), never with stored passwords. Give Models money already formatted.
 - A Bot is an entry in `CATALOG` (`services/bots/catalog.ts`) with its name and personality fixed in its package; the `bot` table only stores which Organization has it and its Model (ADR 0010).
-- A Job runs in the server process; `createJob` starts it and the client polls `job`. On boot, unfinished Jobs are marked failed. Hand Jobs over only through `handOverJob` (`services/bots/jobs.ts`); requests from Users also pass `requireRoom` (at most 3 Jobs in progress per Organization).
-- A Routine hands the same Job over every week or month; `startRoutineClock` checks once a minute in the server process (ADR 0010).
+- A Job runs in the server process; `createJob` starts it and the client polls `job`. On boot, unfinished Jobs are marked failed; on Vercel, `failStaleJobs` does it to Jobs past their function's time limit (ADR 0012). Hand Jobs over only through `handOverJob` (`services/bots/jobs.ts`); requests from Users also pass `requireRoom` (at most 3 Jobs in progress per Organization).
+- A Routine hands the same Job over every week or month; `startRoutineClock` checks once a minute in the server process (ADR 0010); on Vercel a daily Cron Job calls `/api/cron/routines` instead (ADR 0012).
 - A Connection is an entry in `services/connections.ts` (kind, category, status) plus its copy on the Integrações page.
 - Changing the GraphQL schema or operations: run `pnpm codegen`.
 - Changing the Drizzle schema: run `pnpm db:generate`, then `pnpm db:migrate`.
