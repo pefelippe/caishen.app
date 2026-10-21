@@ -117,7 +117,6 @@ const STRINGS = {
   'quick.integration': { en: 'Connect an integration', pt: 'Conectar Integração' },
   'quick.open': { en: 'Quick actions', pt: 'Ações rápidas' },
   'quick.operation': { en: 'Add a Credit Operation', pt: 'Adicionar Operação de Crédito' },
-  'quick.workflow': { en: 'New Workflow', pt: 'Novo Workflow' },
   'rail.workflows': { en: 'Workflows', pt: 'Workflows' },
   'rail.integrations': { en: 'Integrations', pt: 'Integrações' },
   'rail.models': { en: 'Models', pt: 'Modelos' },

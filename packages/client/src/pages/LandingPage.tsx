@@ -75,9 +75,9 @@ const FEATURES: { description: string; icon: LucideIcon; title: string }[] = [
   },
   {
     description:
-      'Peça um plano ou uma análise e receba a Entrega pronta. Com Rotinas, o mesmo Workflow roda toda semana ou todo mês.',
+      'Com um valor fixo por mês sempre na Operação de maior taxa, veja quando você fica sem dívidas e quanto economiza em juros.',
     icon: CalendarClock,
-    title: 'Workflows e Rotinas',
+    title: 'Plano de Quitação',
   },
   {
     description:
@@ -266,7 +266,7 @@ function Hero() {
         >
           <BrowserFrame>
             <img
-              alt="O Dashboard do Caishen com Score, Saldo Devedor, Avisos e últimos Workflows"
+              alt="O Dashboard do Caishen com Score, Saldo Devedor e Avisos"
               className="block w-full"
               height={1560}
               src="/landing/app-dashboard.jpg"

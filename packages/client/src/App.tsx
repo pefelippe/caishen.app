@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { Layout, Scrolling } from './components/Layout';
 import { Splash } from './components/Logo';
@@ -27,14 +27,6 @@ const FinanceOverviewPage = finance('FinanceOverviewPage');
 const IncomePage = finance('IncomePage');
 const ObligationsPage = finance('ObligationsPage');
 const TaxesPage = finance('TaxesPage');
-/** Workflows used to live under the Caishen's page; old links still land on them. */
-function LegacyJobRedirect() {
-  const { id } = useParams<{ id: string }>();
-  return <Navigate replace to={`/workflows/${id}`} />;
-}
-
-const JobPage = page(() => import('./pages/JobPage'), 'JobPage');
-const JobsPage = page(() => import('./pages/JobsPage'), 'JobsPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
 const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
@@ -85,22 +77,8 @@ export function App() {
           index
         />
         <Route element={<ChatPage user={session.user} />} path="chat" />
-        <Route
-          element={
-            <Scrolling>
-              <JobsPage />
-            </Scrolling>
-          }
-          path="workflows"
-        />
-        <Route
-          element={
-            <Scrolling>
-              <JobPage />
-            </Scrolling>
-          }
-          path="workflows/:id"
-        />
+        {/* Workflows are off until they work end to end; JobsPage and JobPage wait for them. */}
+        <Route element={<Navigate replace to="/" />} path="workflows/*" />
         <Route element={<BotLayout bot="FINANCE" />} path="caishen">
           <Route element={<Navigate replace to="overview" />} index />
           <Route element={<FinanceOverviewPage />} path="overview" />
@@ -115,8 +93,7 @@ export function App() {
             />
           ))}
           <Route element={<CreditOperationPage />} path="operations/:id" />
-          <Route element={<Navigate replace to="/workflows" />} path="jobs" />
-          <Route element={<LegacyJobRedirect />} path="jobs/:id" />
+          <Route element={<Navigate replace to="/" />} path="jobs/*" />
         </Route>
         <Route
           element={

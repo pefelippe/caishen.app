@@ -4,7 +4,6 @@ import {
   PlugIcon,
   PlusIcon,
   WalletIcon,
-  WorkflowIcon,
   type LucideIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -22,7 +21,6 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 /** What the "+" offers, from the most asked down; `to` opens a screen, otherwise the chat. */
 const ACTIONS: { icon: LucideIcon; label: StringKey; to?: string }[] = [
   { icon: MessageSquarePlusIcon, label: 'quick.chat' },
-  { icon: WorkflowIcon, label: 'quick.workflow', to: '/workflows' },
   { icon: CreditCardIcon, label: 'quick.operation', to: '/caishen/obligations' },
   { icon: WalletIcon, label: 'quick.income', to: '/caishen/income' },
   { icon: PlugIcon, label: 'quick.integration', to: '/integrations' },

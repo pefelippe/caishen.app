@@ -3,7 +3,6 @@ import {
   HouseIcon,
   MessageSquareIcon,
   PlugIcon,
-  WorkflowIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -35,7 +34,6 @@ export function useNavGroups(): NavGroup[] {
       items: [
         { icon: HouseIcon, label: t('nav.home'), to: '/' },
         { icon: MessageSquareIcon, label: t('nav.agent'), to: '/chat' },
-        { icon: WorkflowIcon, label: t('rail.workflows'), to: '/workflows' },
         { icon: FileTextIcon, label: t('rail.documents'), to: '/documents' },
         { icon: PlugIcon, label: t('rail.integrations'), to: '/integrations' },
       ],
