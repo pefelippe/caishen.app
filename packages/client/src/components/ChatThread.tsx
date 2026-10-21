@@ -69,6 +69,18 @@ export function ChatThread({
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+
+  /** A suggestion goes into the input, to be sent as is or edited first. */
+  const fill = (text: string) => {
+    setDraft(text);
+    requestAnimationFrame(() => {
+      const field = input.current;
+      if (!field) return;
+      field.focus();
+      field.setSelectionRange(text.length, text.length);
+    });
+  };
 
   const saved = (conversationId && data?.conversation?.messages) || [];
   // While a reply is being written, the saved copy of this exchange stays hidden: the pending
@@ -149,7 +161,7 @@ export function ChatThread({
               <Button
                 className="h-auto justify-start px-0 py-0.5 text-left whitespace-normal text-ink"
                 key={suggestion.text}
-                onClick={() => void send(suggestion.text)}
+                onClick={() => fill(suggestion.text)}
                 variant="link"
               >
                 {suggestion.text}
@@ -170,12 +182,11 @@ export function ChatThread({
               {suggestions.map(suggestion => (
                 <li className="border-b last:border-b-0" key={suggestion.text}>
                   <Button
-                    className="h-auto w-full justify-start gap-4 rounded-lg px-2 py-4 text-left text-base font-normal whitespace-normal"
-                    disabled={Boolean(unavailable)}
-                    onClick={() => void send(suggestion.text)}
+                    className="h-auto w-full justify-start gap-4 rounded-lg px-2 py-4 text-left text-base font-normal whitespace-normal text-foreground"
+                    onClick={() => fill(suggestion.text)}
                     variant="ghost"
                   >
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-header">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-background">
                       <suggestion.icon className="size-4" />
                     </span>
                     {suggestion.text}
@@ -210,6 +221,7 @@ export function ChatThread({
               onChange={event => setDraft(event.target.value)}
               onKeyDown={onKeyDown}
               placeholder={`Escreva para ${bot.name}…`}
+              ref={input}
               value={draft}
             />
             <div className="flex items-center justify-end gap-3">
@@ -240,6 +252,7 @@ export function ChatThread({
             onChange={event => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={`Escreva para ${bot.name}…`}
+            ref={input}
             value={draft}
           />
           <Button
