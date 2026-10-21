@@ -10,11 +10,10 @@ import { useChatPanel } from './ChatPanel';
 import { Logo } from './Logo';
 import { NotificationsMenu } from './NotificationsMenu';
 import { ProfileMenu } from './ProfileMenu';
-import { SearchCommand } from './SearchCommand';
 
 /**
- * The bar across the top, on the page's blue: the Caishen's mark on the left (and, on a phone, the
- * menu button); on the right the chat with the Caishen, search, the Alerts and the account.
+ * The bar across the top, on the page's ink: the Caishen's mark on the left (and, on a phone, the
+ * menu button); on the right the chat with the Caishen, the Alerts and the account.
  */
 export function AppHeader({ user }: { user: { email: string; name: string } }) {
   const { pathname } = useLocation();
@@ -46,7 +45,6 @@ export function AppHeader({ user }: { user: { email: string; name: string } }) {
             <span className="hidden sm:inline">{t('rail.caishen')}</span>
           </Button>
         )}
-        <SearchCommand />
         <NotificationsMenu />
         <ProfileMenu user={user} />
       </div>
