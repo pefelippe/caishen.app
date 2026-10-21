@@ -249,8 +249,6 @@ const STRINGS = {
     pt: 'O que o Caishen entregou e os arquivos que ele recebeu, num lugar só.',
   },
   'documents.title': { en: 'Documents', pt: 'Documentos' },
-  'integrations.all': { en: 'All', pt: 'Todas' },
-  'integrations.categories': { en: 'Categories', pt: 'Categorias' },
   /** The locale dates and numbers are written in. */
   locale: { en: 'en-US', pt: 'pt-BR' },
   'models.free': { en: 'free', pt: 'gratuito' },

@@ -39,6 +39,8 @@ export interface IntegrationGroup {
   id: string;
   /** Integrations that already work, by their kind on the server. */
   kinds: ConnectionKind[];
+  /** The name in the menu on the left, when `title` is too long for it. */
+  short?: string;
   title: string;
   upcoming: Upcoming[];
 }
@@ -61,6 +63,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
     icon: ArchiveIcon,
     id: 'files',
     kinds: ['GOOGLE_DRIVE'],
+    short: 'Arquivos',
     title: 'Armazenamento de arquivos',
     upcoming: [
       { description: 'Arquivos do OneDrive, só leitura.', name: 'OneDrive' },

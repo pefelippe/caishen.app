@@ -1,7 +1,17 @@
 import type { BotKey } from '@zapbots/graphql/client';
 import { CoinsIcon, LayoutGridIcon, WalletIcon, type LucideIcon } from 'lucide-react';
 
-import type { SectionGroup } from '../components/SectionLayout';
+export interface SectionLink {
+  icon: LucideIcon;
+  label: string;
+  to: string;
+}
+
+/** A set of links in the menu on the left; groups without a label sit at the top. */
+export interface SectionGroup {
+  label?: string;
+  links: SectionLink[];
+}
 
 /** A Bot on the team as the app shows it. */
 export interface TeamBot {
