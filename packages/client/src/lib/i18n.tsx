@@ -82,6 +82,7 @@ const STRINGS = {
   'chat.close': { en: 'Close chat', pt: 'Fechar conversa' },
   'chat.panel': { en: 'Chat with the Caishen', pt: 'Conversa com o Caishen' },
   'chat.toggle': { en: 'Open or close the chat', pt: 'Abrir ou fechar a conversa' },
+  'header.chat': { en: 'Caishen AI', pt: 'Caishen AI' },
   'header.menu': { en: 'Open the menu', pt: 'Abrir o menu' },
   'header.search': { en: 'Search', pt: 'Buscar' },
   'integrations.title': { en: 'Integrations', pt: 'Integrações' },

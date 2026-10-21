@@ -42,7 +42,7 @@ export function AppHeader({ user }: { user: { email: string; name: string } }) {
             onClick={toggle}
           >
             <MessageCircleIcon className="size-4" />
-            <span className="hidden sm:inline">{t('rail.caishen')}</span>
+            <span className="hidden sm:inline">{t('header.chat')}</span>
           </Button>
         )}
         <NotificationsMenu />
