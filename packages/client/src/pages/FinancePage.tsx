@@ -24,7 +24,8 @@ import {
   monthlyToAnnualRate,
   today,
 } from '@zapbots/finance';
-import { XIcon } from 'lucide-react';
+import { ArrowDownIcon, PlusIcon, XIcon } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -171,16 +172,9 @@ export function FinanceOverviewPage() {
   );
 }
 
-/** Financeiro's parts, in page order; each one's id is its anchor (`/caishen/finances#taxes`). */
-export const FINANCE_PARTS = [
-  { id: 'income', title: 'Salário' },
-  { id: 'taxes', title: 'Impostos' },
-  { id: 'obligations', title: 'Obrigações' },
-] as const;
-
 /**
  * Financeiro: what comes in (Salário), what goes to the government (Impostos) and every Credit
- * Operation and card (Obrigações), on one page.
+ * Operation and card (Obrigações), on one page. The figures on top lead to each part.
  */
 export function FinancesPage() {
   const { hash } = useLocation();
@@ -191,48 +185,184 @@ export function FinancesPage() {
   }, [hash, holder]);
 
   return (
-    <HolderSection
-      description={() => (
-        <span className="flex flex-wrap gap-2 pt-2">
-          {FINANCE_PARTS.map(part => (
-            <Button asChild className="rounded-full" key={part.id} size="sm" variant="outline">
-              <a href={`#${part.id}`}>{part.title}</a>
-            </Button>
-          ))}
-        </span>
-      )}
-      title="Financeiro"
-    >
+    <HolderSection title="Financeiro">
       {holder => (
         <>
-          <FinancePart id="income" title="Salário">
-            <IncomeSection holder={holder} />
-          </FinancePart>
-          <FinancePart id="taxes" title="Impostos">
-            <TaxesSection holder={holder} />
-          </FinancePart>
-          <FinancePart id="obligations" title="Obrigações">
-            <ObligationsSection holder={holder} />
-          </FinancePart>
+          <Summary holder={holder} />
+          <IncomeSection holder={holder} />
+          <TaxesSection holder={holder} />
+          <ObligationsSection holder={holder} />
         </>
       )}
     </HolderSection>
   );
 }
 
-function FinancePart({ children, id, title }: { children: ReactNode; id: string; title: string }) {
+/** Whole cents a year: yearly Taxes as typed, monthly ones twelve times (docs/adr/0004). */
+const taxesPerYear = (holder: Holder) =>
+  holder.taxes.reduce(
+    (total, tax) => total + (tax.frequency === 'MONTHLY' ? tax.amountCents * 12 : tax.amountCents),
+    0
+  );
+
+const outstandingOf = (holder: Holder) =>
+  holder.creditOperations.reduce((total, item) => total + item.outstandingBalanceCents, 0);
+
+/** The three totals, large, each one the way to its part. */
+function Summary({ holder }: { holder: Holder }) {
+  const figures = [
+    { id: 'income', label: 'Renda mensal', value: holder.monthlyIncomeCents },
+    { id: 'taxes', label: 'Impostos no ano', value: taxesPerYear(holder) },
+    { id: 'obligations', label: 'Saldo devedor', value: outstandingOf(holder) },
+  ];
   return (
-    <section aria-labelledby={`${id}-title`} className="flex scroll-mt-6 flex-col gap-4" id={id}>
-      <h2 className="text-xl font-semibold tracking-tight" id={`${id}-title`}>
-        {title}
-      </h2>
-      {children}
-    </section>
+    <nav aria-label="Partes do Financeiro" className="grid gap-3 sm:grid-cols-3">
+      {figures.map((figure, index) => (
+        <motion.a
+          animate={{ opacity: 1, y: 0 }}
+          className="group flex flex-col gap-2 rounded-2xl bg-card p-6 transition-colors hover:bg-card/70"
+          href={`#${figure.id}`}
+          initial={{ opacity: 0, y: 16 }}
+          key={figure.id}
+          transition={{ delay: index * 0.06, duration: 0.5, ease: EASE }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <span className="text-base">{figure.label}</span>
+          <strong className="text-4xl font-semibold tracking-[-0.03em] tabular-nums">
+            {formatCents(figure.value)}
+          </strong>
+          <span className="flex items-center gap-1 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
+            Ver detalhes
+            <ArrowDownIcon className="size-3.5 transition-transform group-hover:translate-y-0.5" />
+          </span>
+        </motion.a>
+      ))}
+    </nav>
   );
 }
 
-/** The one white sheet a Salário or Impostos page holds. */
-const SHEET = 'gap-6 rounded-2xl border-0 bg-card p-6 md:p-8';
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+/**
+ * One part of Financeiro: a white sheet with its title, a line on what it holds, its total, the
+ * things registered and, behind a button, the form for a new one. The form closes by itself once
+ * `count` changes, that is, once what it added is there.
+ */
+function Part({
+  addLabel,
+  children,
+  count,
+  empty,
+  form,
+  id,
+  intro,
+  title,
+  total,
+}: {
+  addLabel: string;
+  children: ReactNode;
+  count: number;
+  empty: string;
+  form: ReactNode;
+  id: string;
+  intro: string;
+  title: string;
+  total?: ReactNode;
+}) {
+  const [adding, setAdding] = useState(false);
+  useEffect(() => setAdding(false), [count]);
+
+  return (
+    <motion.section
+      aria-labelledby={`${id}-title`}
+      className="flex scroll-mt-6 flex-col gap-6 rounded-2xl bg-card p-6 md:p-8"
+      id={id}
+      initial={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.55, ease: EASE }}
+      viewport={{ amount: 0.15, once: true }}
+      whileInView={{ opacity: 1, y: 0 }}
+    >
+      <header className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="text-2xl font-semibold tracking-tight" id={`${id}-title`}>
+            {title}
+          </h2>
+          <p className="max-w-prose">{intro}</p>
+        </div>
+        {total && (
+          <div className="text-right text-2xl font-semibold tracking-tight tabular-nums">
+            {total}
+          </div>
+        )}
+      </header>
+
+      {count > 0 ? children : <p className="text-muted-foreground">{empty}</p>}
+
+      <AnimatePresence initial={false} mode="wait">
+        {adding ? (
+          <motion.div
+            animate={{ height: 'auto', opacity: 1 }}
+            className="overflow-hidden"
+            exit={{ height: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            key="form"
+            transition={{ duration: 0.35, ease: EASE }}
+          >
+            <div className="flex flex-col gap-4 rounded-xl bg-secondary p-5 md:p-6 [&_[data-slot=select-trigger]]:bg-card [&_input]:bg-card">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold">{addLabel}</h3>
+                <Button
+                  aria-label="Fechar"
+                  onClick={() => setAdding(false)}
+                  size="icon-sm"
+                  title="Fechar"
+                  variant="ghost"
+                >
+                  <XIcon />
+                </Button>
+              </div>
+              {form}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            key="button"
+          >
+            <Button onClick={() => setAdding(true)} variant="outline">
+              <PlusIcon />
+              {addLabel}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
+  );
+}
+
+/** One registered thing in a Part: its name, what describes it and its amount, on a light row. */
+function Row({
+  action,
+  amount,
+  detail,
+  name,
+}: {
+  action?: ReactNode;
+  amount: ReactNode;
+  detail: ReactNode;
+  name: ReactNode;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-secondary/60 px-4 py-3.5 transition-colors hover:bg-secondary">
+      <span className="font-medium">{name}</span>
+      <span className="text-muted-foreground">{detail}</span>
+      <span className="ml-auto text-lg font-semibold tabular-nums">{amount}</span>
+      {action}
+    </li>
+  );
+}
 
 const MONTHS = [
   'Janeiro',
@@ -290,92 +420,96 @@ function IncomeSection({ holder }: { holder: Holder }) {
   };
 
   return (
-    <Card className={SHEET}>
-      {holder.incomeSources.length > 0 && (
-        <ul className="flex flex-col divide-y">
-          {holder.incomeSources.map(source => (
-            <li
-              className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 first:pt-0"
-              key={source.id}
-            >
-              <span className="font-medium">{source.description}</span>
-              <span className="text-muted-foreground">
-                {source.paydays.length
-                  ? `${source.paydays.length}x por mês, ${daysLabel(source.paydays)}`
-                  : `desde ${formatDate(source.startsOn)}`}
-              </span>
-              <span className="ml-auto text-base font-semibold tabular-nums">
-                {formatCents(source.monthlyNetCents)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form className="flex flex-col gap-5" onSubmit={submit}>
-        <div className={FORM_GRID}>
-          <Field id="income-description" label="Descrição">
-            <Input
-              id="income-description"
-              name="description"
-              placeholder="Salário, pró-labore…"
-              required
-            />
-          </Field>
-          <Field
-            hint="O total do mês, já com os descontos."
-            id="income-amount"
-            label="Valor líquido mensal (R$)"
-          >
-            <Input
-              id="income-amount"
-              inputMode="decimal"
-              name="amount"
-              placeholder="5.000,00"
-              required
-            />
-          </Field>
-          <Field id="income-times" label="Quantas vezes recebe por mês">
-            <Select onValueChange={value => setTimes(Number(value))} value={String(times)}>
-              <SelectTrigger className="w-full" id="income-times">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4].map(count => (
-                  <SelectItem key={count} value={String(count)}>
-                    {count === 1 ? '1 vez' : `${count} vezes`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          {Array.from({ length: times }, (_, index) => (
-            <Field
-              id={`income-payday-${index}`}
-              key={index}
-              label={times === 1 ? 'Dia do pagamento' : `Dia do ${index + 1}º pagamento`}
-            >
+    <Part
+      addLabel="Adicionar renda"
+      count={holder.incomeSources.length}
+      empty="Nenhuma renda cadastrada. Sem ela, o Caishen não sabe quanto sobra no mês."
+      form={
+        <form className="flex flex-col gap-5" onSubmit={submit}>
+          <div className={FORM_GRID}>
+            <Field id="income-description" label="Descrição">
               <Input
-                id={`income-payday-${index}`}
-                inputMode="numeric"
-                max={31}
-                min={1}
-                name={`payday-${index}`}
-                placeholder={times === 1 ? '5' : String(Math.min(30, 15 * (index + 1)))}
+                id="income-description"
+                name="description"
+                placeholder="Salário, pró-labore…"
                 required
-                type="number"
               />
             </Field>
-          ))}
-          <Field hint="Vazio: hoje." id="income-starts" label="Desde">
-            <Input id="income-starts" name="startsOn" type="date" />
-          </Field>
-        </div>
-        <Button className="self-start" type="submit">
-          Salvar salário
-        </Button>
-        {error && <FormError message={error.message} />}
-      </form>
-    </Card>
+            <Field
+              hint="O total do mês, já com os descontos."
+              id="income-amount"
+              label="Valor líquido mensal (R$)"
+            >
+              <Input
+                id="income-amount"
+                inputMode="decimal"
+                name="amount"
+                placeholder="5.000,00"
+                required
+              />
+            </Field>
+            <Field id="income-times" label="Quantas vezes recebe por mês">
+              <Select onValueChange={value => setTimes(Number(value))} value={String(times)}>
+                <SelectTrigger className="w-full" id="income-times">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4].map(count => (
+                    <SelectItem key={count} value={String(count)}>
+                      {count === 1 ? '1 vez' : `${count} vezes`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            {Array.from({ length: times }, (_, index) => (
+              <Field
+                id={`income-payday-${index}`}
+                key={index}
+                label={times === 1 ? 'Dia do pagamento' : `Dia do ${index + 1}º pagamento`}
+              >
+                <Input
+                  id={`income-payday-${index}`}
+                  inputMode="numeric"
+                  max={31}
+                  min={1}
+                  name={`payday-${index}`}
+                  placeholder={times === 1 ? '5' : String(Math.min(30, 15 * (index + 1)))}
+                  required
+                  type="number"
+                />
+              </Field>
+            ))}
+            <Field hint="Vazio: hoje." id="income-starts" label="Desde">
+              <Input id="income-starts" name="startsOn" type="date" />
+            </Field>
+          </div>
+          <Button className="self-start" type="submit">
+            Salvar salário
+          </Button>
+          {error && <FormError message={error.message} />}
+        </form>
+      }
+      id="income"
+      intro="O que entra todo mês, já com os descontos."
+      title="Salário"
+      total={formatCents(holder.monthlyIncomeCents)}
+    >
+      <ul className="flex flex-col gap-2">
+        {holder.incomeSources.map(source => (
+          <Row
+            amount={formatCents(source.monthlyNetCents)}
+            detail={
+              source.paydays.length
+                ? `${source.paydays.length}x por mês, ${daysLabel(source.paydays)}`
+                : `desde ${formatDate(source.startsOn)}`
+            }
+            key={source.id}
+            name={source.description}
+          />
+        ))}
+      </ul>
+    </Part>
   );
 }
 
@@ -427,19 +561,118 @@ function TaxesSection({ holder }: { holder: Holder }) {
   };
 
   return (
-    <Card className={SHEET}>
-      {holder.taxes.length > 0 && (
-        <ul className="flex flex-col divide-y">
-          {holder.taxes.map(tax => (
-            <li
-              className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 first:pt-0"
-              key={tax.id}
-            >
-              <span className="font-medium">{tax.name}</span>
-              <span className="text-muted-foreground">{taxLabel(tax)}</span>
-              <span className="ml-auto text-base font-semibold tabular-nums">
-                {formatCents(tax.amountCents)}
-              </span>
+    <Part
+      addLabel="Adicionar imposto"
+      count={holder.taxes.length}
+      empty="Nenhum imposto cadastrado. IPVA, IPTU e DAS entram nos vencimentos do mês."
+      form={
+        <form className="flex flex-col gap-5" onSubmit={submit}>
+          <div className={FORM_GRID}>
+            <Field id="tax-name" label="Imposto">
+              <Input id="tax-name" name="name" placeholder="IPVA, IPTU, DAS…" required />
+            </Field>
+            <Field id="tax-frequency" label="Frequência">
+              <Select
+                onValueChange={value => setFrequency(value as TaxFrequency)}
+                value={frequency}
+              >
+                <SelectTrigger className="w-full" id="tax-frequency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FREQUENCIES.map(item => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field id="tax-amount" label={yearly ? 'Valor total no ano (R$)' : 'Valor mensal (R$)'}>
+              <Input
+                id="tax-amount"
+                inputMode="decimal"
+                name="amount"
+                placeholder={yearly ? '2.400,00' : '76,60'}
+                required
+              />
+            </Field>
+            {yearly && (
+              <>
+                <Field id="tax-installments" label="Parcelas">
+                  <Select
+                    onValueChange={value => setInstallments(Number(value))}
+                    value={String(installments)}
+                  >
+                    <SelectTrigger className="w-full" id="tax-installments">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, index) => index + 1).map(count => (
+                        <SelectItem key={count} value={String(count)}>
+                          {count === 1 ? 'À vista' : `${count}x`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field
+                  id="tax-month"
+                  label={installments === 1 ? 'Mês do vencimento' : 'Mês da 1ª parcela'}
+                >
+                  <Select
+                    onValueChange={value => setDueMonth(Number(value))}
+                    value={String(dueMonth)}
+                  >
+                    <SelectTrigger className="w-full" id="tax-month">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTHS.map((month, index) => (
+                        <SelectItem key={month} value={String(index + 1)}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </>
+            )}
+            <Field id="tax-day" label="Dia do vencimento">
+              <Input
+                id="tax-day"
+                inputMode="numeric"
+                max={31}
+                min={1}
+                name="dueDay"
+                placeholder="10"
+                required
+                type="number"
+              />
+            </Field>
+          </div>
+          <Button className="self-start" type="submit">
+            Adicionar imposto
+          </Button>
+          {error && <FormError message={error.message} />}
+        </form>
+      }
+      id="taxes"
+      intro="O que vai para o governo, todo mês ou uma vez por ano."
+      title="Impostos"
+      total={
+        holder.taxes.length ? (
+          <>
+            {formatCents(taxesPerYear(holder))}
+            <span className="block text-sm font-normal text-muted-foreground">por ano</span>
+          </>
+        ) : undefined
+      }
+    >
+      <ul className="flex flex-col gap-2">
+        {holder.taxes.map(tax => (
+          <Row
+            action={
               <Button
                 aria-label={`Remover ${tax.name}`}
                 onClick={() => void deleteTax({ variables: { id: tax.id } })}
@@ -449,98 +682,15 @@ function TaxesSection({ holder }: { holder: Holder }) {
               >
                 <XIcon />
               </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form className="flex flex-col gap-5" onSubmit={submit}>
-        <div className={FORM_GRID}>
-          <Field id="tax-name" label="Imposto">
-            <Input id="tax-name" name="name" placeholder="IPVA, IPTU, DAS…" required />
-          </Field>
-          <Field id="tax-frequency" label="Frequência">
-            <Select onValueChange={value => setFrequency(value as TaxFrequency)} value={frequency}>
-              <SelectTrigger className="w-full" id="tax-frequency">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FREQUENCIES.map(item => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field id="tax-amount" label={yearly ? 'Valor total no ano (R$)' : 'Valor mensal (R$)'}>
-            <Input
-              id="tax-amount"
-              inputMode="decimal"
-              name="amount"
-              placeholder={yearly ? '2.400,00' : '76,60'}
-              required
-            />
-          </Field>
-          {yearly && (
-            <>
-              <Field id="tax-installments" label="Parcelas">
-                <Select
-                  onValueChange={value => setInstallments(Number(value))}
-                  value={String(installments)}
-                >
-                  <SelectTrigger className="w-full" id="tax-installments">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, index) => index + 1).map(count => (
-                      <SelectItem key={count} value={String(count)}>
-                        {count === 1 ? 'À vista' : `${count}x`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field
-                id="tax-month"
-                label={installments === 1 ? 'Mês do vencimento' : 'Mês da 1ª parcela'}
-              >
-                <Select
-                  onValueChange={value => setDueMonth(Number(value))}
-                  value={String(dueMonth)}
-                >
-                  <SelectTrigger className="w-full" id="tax-month">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map((month, index) => (
-                      <SelectItem key={month} value={String(index + 1)}>
-                        {month}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </>
-          )}
-          <Field id="tax-day" label="Dia do vencimento">
-            <Input
-              id="tax-day"
-              inputMode="numeric"
-              max={31}
-              min={1}
-              name="dueDay"
-              placeholder="10"
-              required
-              type="number"
-            />
-          </Field>
-        </div>
-        <Button className="self-start" type="submit">
-          Adicionar imposto
-        </Button>
-        {error && <FormError message={error.message} />}
-      </form>
-    </Card>
+            }
+            amount={formatCents(tax.amountCents)}
+            detail={taxLabel(tax)}
+            key={tax.id}
+            name={tax.name}
+          />
+        ))}
+      </ul>
+    </Part>
   );
 }
 
@@ -590,19 +740,19 @@ function ObligationsSection({ holder }: { holder: Holder }) {
   const [type, setType] = useState<ObligationType>('LOAN');
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Nova Obrigação</CardTitle>
-          <CardDescription>
+    <Part
+      addLabel="Adicionar Obrigação"
+      count={holder.creditOperations.length + holder.creditCards.length}
+      empty="Nenhuma Obrigação cadastrada. Empréstimos, financiamentos e cartões entram aqui."
+      form={
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
             Parcelas vencidas contam como pagas em dia; registre Atrasos na página da operação.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+          </p>
           <div className={FORM_GRID}>
             <Field id="obligation-type" label="Tipo">
               <Select onValueChange={value => setType(value as ObligationType)} value={type}>
-                <SelectTrigger className="w-full" id="obligation-type">
+                <SelectTrigger className="w-full bg-card" id="obligation-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -620,71 +770,81 @@ function ObligationsSection({ holder }: { holder: Holder }) {
           ) : (
             <OperationForm holder={holder} key={type} type={type} />
           )}
-        </CardContent>
-      </Card>
-      {holder.creditOperations.length > 0 && <OperationsTable holder={holder} />}
-      {holder.creditCards.length > 0 && <CardsList holder={holder} />}
-    </>
+        </div>
+      }
+      id="obligations"
+      intro="Empréstimos, financiamentos e cartões, com o que falta pagar."
+      title="Obrigações"
+      total={
+        holder.creditOperations.length ? (
+          <>
+            {formatCents(outstandingOf(holder))}
+            <span className="block text-sm font-normal text-muted-foreground">saldo devedor</span>
+          </>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-8">
+        {holder.creditOperations.length > 0 && <OperationsTable holder={holder} />}
+        {holder.creditCards.length > 0 && <CardsList holder={holder} />}
+      </div>
+    </Part>
   );
 }
 
 function OperationsTable({ holder }: { holder: Holder }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Operações de Crédito</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Operação</TableHead>
-              <TableHead>Modalidade</TableHead>
-              <TableHead className="text-right">Taxa a.m.</TableHead>
-              <TableHead className="text-right">Parcela</TableHead>
-              <TableHead className="text-right">Pagas</TableHead>
-              <TableHead>Estágio</TableHead>
-              <TableHead className="text-right">Saldo devedor</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {holder.creditOperations.map(operation => (
-              <TableRow key={operation.id}>
-                <TableCell>
-                  <Link
-                    className="font-medium text-ink underline-offset-4 hover:underline"
-                    to={`/caishen/operations/${operation.id}`}
-                  >
-                    {operation.name}
-                  </Link>
-                  {operation.lender && (
-                    <span className="text-muted-foreground"> · {operation.lender}</span>
-                  )}
-                </TableCell>
-                <TableCell>{operation.modalityLabel}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatPercent(operation.monthlyRate)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatCents(operation.installmentCents)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {operation.paidInstallments}/{operation.termMonths}
-                </TableCell>
-                <TableCell
-                  className={operation.stage > 1 ? 'text-destructive' : 'text-muted-foreground'}
+    <div className="flex flex-col gap-3">
+      <h3 className="text-lg font-semibold">Operações de Crédito</h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Operação</TableHead>
+            <TableHead>Modalidade</TableHead>
+            <TableHead className="text-right">Taxa a.m.</TableHead>
+            <TableHead className="text-right">Parcela</TableHead>
+            <TableHead className="text-right">Pagas</TableHead>
+            <TableHead>Estágio</TableHead>
+            <TableHead className="text-right">Saldo devedor</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {holder.creditOperations.map(operation => (
+            <TableRow key={operation.id}>
+              <TableCell>
+                <Link
+                  className="font-medium text-ink underline-offset-4 hover:underline"
+                  to={`/caishen/operations/${operation.id}`}
                 >
-                  {operation.stage}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatCents(operation.outstandingBalanceCents)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                  {operation.name}
+                </Link>
+                {operation.lender && (
+                  <span className="text-muted-foreground"> · {operation.lender}</span>
+                )}
+              </TableCell>
+              <TableCell>{operation.modalityLabel}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatPercent(operation.monthlyRate)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatCents(operation.installmentCents)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {operation.paidInstallments}/{operation.termMonths}
+              </TableCell>
+              <TableCell
+                className={operation.stage > 1 ? 'text-destructive' : 'text-muted-foreground'}
+              >
+                {operation.stage}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatCents(operation.outstandingBalanceCents)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
@@ -942,65 +1102,66 @@ function CardsList({ holder }: { holder: Holder }) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Cartões</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {holder.creditCards.map(card => (
-          <Card className="gap-3 py-4 shadow-none" key={card.id}>
-            <CardHeader className="px-4">
-              <CardTitle className="text-base">
-                {card.name}
-                {card.issuer && (
-                  <span className="font-normal text-muted-foreground"> · {card.issuer}</span>
-                )}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Limite {formatCents(card.limitCents)} · fecha dia {card.closingDay} · vence dia{' '}
-                {card.dueDay}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 px-4">
-              {card.statements.length > 0 && (
-                <Table>
-                  <TableBody>
-                    {card.statements.map(item => (
-                      <TableRow key={item.id}>
-                        <TableCell>Fatura {item.referenceMonth}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          vence {formatDate(item.dueDate)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCents(item.amountCents)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+    <div className="flex flex-col gap-3">
+      <h3 className="text-lg font-semibold">Cartões</h3>
+      {holder.creditCards.map(card => (
+        <div className="flex flex-col gap-4 rounded-xl bg-secondary/60 p-5" key={card.id}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <span className="font-medium">
+              {card.name}
+              {card.issuer && (
+                <span className="font-normal text-muted-foreground"> · {card.issuer}</span>
               )}
-              <form className={FORM_GRID} onSubmit={submitStatement(card.id)}>
-                <Field id={`month-${card.id}`} label="Mês de vencimento">
-                  <Input id={`month-${card.id}`} name="month" required type="month" />
-                </Field>
-                <Field id={`amount-${card.id}`} label="Valor da Fatura (R$)">
-                  <Input
-                    id={`amount-${card.id}`}
-                    inputMode="decimal"
-                    name="amount"
-                    placeholder="1.250,00"
-                    required
-                  />
-                </Field>
-                <Button className="mt-5.5" type="submit" variant="outline">
-                  Salvar Fatura
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        ))}
-        {error && <FormError message={error.message} />}
-      </CardContent>
-    </Card>
+            </span>
+            <span className="text-sm text-muted-foreground">
+              Limite {formatCents(card.limitCents)} · fecha dia {card.closingDay} · vence dia{' '}
+              {card.dueDay}
+            </span>
+          </div>
+          {card.statements.length > 0 && (
+            <Table>
+              <TableBody>
+                {card.statements.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell>Fatura {item.referenceMonth}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      vence {formatDate(item.dueDate)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCents(item.amountCents)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          <form className={FORM_GRID} onSubmit={submitStatement(card.id)}>
+            <Field id={`month-${card.id}`} label="Mês de vencimento">
+              <Input
+                className="bg-card"
+                id={`month-${card.id}`}
+                name="month"
+                required
+                type="month"
+              />
+            </Field>
+            <Field id={`amount-${card.id}`} label="Valor da Fatura (R$)">
+              <Input
+                className="bg-card"
+                id={`amount-${card.id}`}
+                inputMode="decimal"
+                name="amount"
+                placeholder="1.250,00"
+                required
+              />
+            </Field>
+            <Button className="mt-5.5" type="submit" variant="outline">
+              Salvar Fatura
+            </Button>
+          </form>
+        </div>
+      ))}
+      {error && <FormError message={error.message} />}
+    </div>
   );
 }
