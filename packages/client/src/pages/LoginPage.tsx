@@ -135,9 +135,7 @@ export function LoginPage() {
         >
           <Link className="flex items-center gap-2.5 text-header" to="/">
             <Logo size={24} />
-            <span className="text-lg font-semibold tracking-tight text-foreground">
-              caishen.app
-            </span>
+            <span className="text-lg font-semibold tracking-tight text-foreground">Caishen</span>
           </Link>
         </motion.header>
 
