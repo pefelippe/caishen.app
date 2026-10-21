@@ -23,21 +23,23 @@ export function Layout({ user }: Props) {
     <TooltipProvider delayDuration={300}>
       <ChatPanelProvider>
         <SidebarProvider
-          className="h-svh flex-col overflow-hidden bg-(image:--header-gradient)"
+          className="h-svh flex-col overflow-hidden bg-(image:--header-gradient) print:h-auto print:overflow-visible print:bg-none"
           style={{ '--header-height': '4rem' } as CSSProperties}
         >
           <AppHeader user={user} />
-          <div className="flex min-h-0 flex-1 px-2 pb-2 md:pl-2">
+          <div className="flex min-h-0 flex-1 px-2 pb-2 md:pl-2 print:p-0">
             <AppSidebar />
             {/* The screen and the chat panel, rounded on the right; the menu rounds the left. */}
-            <div className="flex min-w-0 flex-1 overflow-hidden rounded-2xl md:rounded-l-none">
-              <main className="relative min-w-0 flex-1 overflow-hidden bg-background">
+            <div className="flex min-w-0 flex-1 overflow-hidden rounded-2xl md:rounded-l-none print:overflow-visible">
+              <main className="relative min-w-0 flex-1 overflow-hidden bg-background print:overflow-visible print:bg-white">
                 <Suspense fallback={<PageSkeleton />}>
                   <Outlet />
                 </Suspense>
                 <QuickActions />
               </main>
-              <ChatPanel />
+              <div className="contents print:hidden">
+                <ChatPanel />
+              </div>
             </div>
           </div>
         </SidebarProvider>
@@ -50,7 +52,7 @@ export function Layout({ user }: Props) {
 export function Scrolling({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return (
-    <div className="relative h-full overflow-y-auto">
+    <div className="relative h-full overflow-y-auto print:h-auto print:overflow-visible">
       <div className="page-enter w-full px-5 pt-10 pb-24 md:px-10" key={pathname}>
         {children}
       </div>

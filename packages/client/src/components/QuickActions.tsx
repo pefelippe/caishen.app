@@ -44,7 +44,7 @@ export function QuickActions() {
       <PopoverAnchor asChild>
         <motion.div
           animate={{ opacity: 1, scale: 1 }}
-          className="absolute right-6 bottom-6 z-30"
+          className="absolute right-6 bottom-6 z-30 print:hidden"
           initial={{ opacity: 0, scale: 0.6 }}
           transition={{ damping: 16, delay: 0.4, stiffness: 220, type: 'spring' }}
         >

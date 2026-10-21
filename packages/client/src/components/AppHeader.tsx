@@ -21,7 +21,7 @@ export function AppHeader({ user }: { user: { email: string; name: string } }) {
   const { t } = useI18n();
 
   return (
-    <header className="z-20 flex h-(--header-height) shrink-0 items-center gap-2 px-3 text-header-foreground md:px-4">
+    <header className="z-20 flex h-(--header-height) shrink-0 items-center gap-2 px-3 text-header-foreground md:px-4 print:hidden">
       <SidebarTrigger
         aria-label={t('header.menu')}
         className="size-9 rounded-full text-header-foreground hover:bg-white/10 hover:text-header-foreground md:hidden"

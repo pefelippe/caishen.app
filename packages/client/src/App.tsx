@@ -25,6 +25,7 @@ const finance = <Name extends string>(name: Name) =>
   page(() => import('./pages/FinancePage') as Promise<Record<Name, ComponentType>>, name);
 const FinanceOverviewPage = finance('FinanceOverviewPage');
 const FinancesPage = finance('FinancesPage');
+const MonthPage = page(() => import('./pages/MonthPage'), 'MonthPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
 const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
@@ -85,6 +86,7 @@ export function App() {
           <Route element={<Navigate replace to="overview" />} index />
           <Route element={<FinanceOverviewPage />} path="overview" />
           <Route element={<FinancesPage />} path="finances" />
+          <Route element={<MonthPage />} path="month" />
           {['income', 'taxes', 'obligations'].map(part => (
             <Route
               element={<Navigate replace to={`/caishen/finances#${part}`} />}

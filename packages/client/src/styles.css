@@ -222,3 +222,11 @@
     transform: translateX(250%);
   }
 }
+
+/* Exporting a page to PDF prints only the screen: no menu, header or chat around it. */
+@media print {
+  [data-slot='sidebar-gap'],
+  [data-slot='sidebar-container'] {
+    display: none !important;
+  }
+}
