@@ -24,9 +24,7 @@ const CreditOperationPage = page(
 const finance = <Name extends string>(name: Name) =>
   page(() => import('./pages/FinancePage') as Promise<Record<Name, ComponentType>>, name);
 const FinanceOverviewPage = finance('FinanceOverviewPage');
-const IncomePage = finance('IncomePage');
-const ObligationsPage = finance('ObligationsPage');
-const TaxesPage = finance('TaxesPage');
+const FinancesPage = finance('FinancesPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
 const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
@@ -82,12 +80,17 @@ export function App() {
         <Route element={<BotLayout bot="FINANCE" />} path="caishen">
           <Route element={<Navigate replace to="overview" />} index />
           <Route element={<FinanceOverviewPage />} path="overview" />
-          <Route element={<IncomePage />} path="income" />
-          <Route element={<TaxesPage />} path="taxes" />
-          <Route element={<ObligationsPage />} path="obligations" />
+          <Route element={<FinancesPage />} path="finances" />
+          {['income', 'taxes', 'obligations'].map(part => (
+            <Route
+              element={<Navigate replace to={`/caishen/finances#${part}`} />}
+              key={part}
+              path={part}
+            />
+          ))}
           {['loans', 'financing', 'cards'].map(path => (
             <Route
-              element={<Navigate replace to="/caishen/obligations" />}
+              element={<Navigate replace to="/caishen/finances#obligations" />}
               key={path}
               path={path}
             />

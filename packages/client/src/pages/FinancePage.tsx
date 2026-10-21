@@ -25,8 +25,8 @@ import {
   today,
 } from '@zapbots/finance';
 import { XIcon } from 'lucide-react';
-import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -171,17 +171,63 @@ export function FinanceOverviewPage() {
   );
 }
 
-/** Renda: the Holder's Income Sources. */
-export function IncomePage() {
+/** Financeiro's parts, in page order; each one's id is its anchor (`/caishen/finances#taxes`). */
+export const FINANCE_PARTS = [
+  { id: 'income', title: 'Salário' },
+  { id: 'taxes', title: 'Impostos' },
+  { id: 'obligations', title: 'Obrigações' },
+] as const;
+
+/**
+ * Financeiro: what comes in (Salário), what goes to the government (Impostos) and every Credit
+ * Operation and card (Obrigações), on one page.
+ */
+export function FinancesPage() {
+  const { hash } = useLocation();
+  const holder = useHolder();
+  // Opened on one part (from the Dashboard or an Alert): bring it into view once it is there.
+  useEffect(() => {
+    if (holder && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash, holder]);
+
   return (
-    <HolderSection title="Salário">{holder => <IncomeSection holder={holder} />}</HolderSection>
+    <HolderSection
+      description={() => (
+        <span className="flex flex-wrap gap-2 pt-2">
+          {FINANCE_PARTS.map(part => (
+            <Button asChild className="rounded-full" key={part.id} size="sm" variant="outline">
+              <a href={`#${part.id}`}>{part.title}</a>
+            </Button>
+          ))}
+        </span>
+      )}
+      title="Financeiro"
+    >
+      {holder => (
+        <>
+          <FinancePart id="income" title="Salário">
+            <IncomeSection holder={holder} />
+          </FinancePart>
+          <FinancePart id="taxes" title="Impostos">
+            <TaxesSection holder={holder} />
+          </FinancePart>
+          <FinancePart id="obligations" title="Obrigações">
+            <ObligationsSection holder={holder} />
+          </FinancePart>
+        </>
+      )}
+    </HolderSection>
   );
 }
 
-/** Impostos: what the Holder pays the government, monthly or once a year. */
-export function TaxesPage() {
+function FinancePart({ children, id, title }: { children: ReactNode; id: string; title: string }) {
   return (
-    <HolderSection title="Impostos">{holder => <TaxesSection holder={holder} />}</HolderSection>
+    <section aria-labelledby={`${id}-title`} className="flex scroll-mt-6 flex-col gap-4" id={id}>
+      <h2 className="text-xl font-semibold tracking-tight" id={`${id}-title`}>
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }
 
@@ -207,15 +253,6 @@ const MONTHS = [
 function daysLabel(days: number[]): string {
   if (days.length === 1) return `dia ${days[0]}`;
   return `dias ${days.slice(0, -1).join(', ')} e ${days.at(-1)}`;
-}
-
-/** Obrigações: every Credit Operation and card, and a form for a new one of any type. */
-export function ObligationsPage() {
-  return (
-    <HolderSection title="Obrigações">
-      {holder => <ObligationsSection holder={holder} />}
-    </HolderSection>
-  );
 }
 
 function IncomeSection({ holder }: { holder: Holder }) {

@@ -21,8 +21,8 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 /** What the "+" offers, from the most asked down; `to` opens a screen, otherwise the chat. */
 const ACTIONS: { icon: LucideIcon; label: StringKey; to?: string }[] = [
   { icon: MessageSquarePlusIcon, label: 'quick.chat' },
-  { icon: CreditCardIcon, label: 'quick.operation', to: '/caishen/obligations' },
-  { icon: WalletIcon, label: 'quick.income', to: '/caishen/income' },
+  { icon: CreditCardIcon, label: 'quick.operation', to: '/caishen/finances#obligations' },
+  { icon: WalletIcon, label: 'quick.income', to: '/caishen/finances#income' },
   { icon: PlugIcon, label: 'quick.integration', to: '/integrations' },
 ];
 

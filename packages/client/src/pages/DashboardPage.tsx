@@ -7,6 +7,7 @@ import {
   CalendarClockIcon,
   ChartNoAxesColumnIcon,
   GaugeIcon,
+  HandCoinsIcon,
   WalletIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,7 +24,6 @@ import { useChatPanel } from '../components/ChatPanel';
 import { Logo } from '../components/Logo';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { ScoreBadge } from '../components/ScoreBadge';
-import { BOT_SECTIONS } from '../lib/bots';
 import { formatCents, formatDate, formatPercent } from '../lib/format';
 import { useI18n, type StringKey } from '../lib/i18n';
 
@@ -119,14 +119,21 @@ function AskCaishen() {
   );
 }
 
-/** Where a new Holder adds their income and debts: the Caishen's Finanças tabs. */
-const FINANCE_LINKS = BOT_SECTIONS.FINANCE.find(group => group.label === 'Finanças')!.links;
-
-/** What each of those tabs holds, said in one line. */
-const START_NOTES: Record<string, StringKey> = {
-  '/caishen/income': 'dashboard.startIncome',
-  '/caishen/obligations': 'dashboard.startObligations',
-};
+/** Where a new Holder starts: the income and the debts parts of Financeiro. */
+const START_LINKS: { icon: LucideIcon; label: string; note: StringKey; to: string }[] = [
+  {
+    icon: WalletIcon,
+    label: 'Salário',
+    note: 'dashboard.startIncome',
+    to: '/caishen/finances#income',
+  },
+  {
+    icon: HandCoinsIcon,
+    label: 'Obrigações',
+    note: 'dashboard.startObligations',
+    to: '/caishen/finances#obligations',
+  },
+];
 
 /**
  * The Dashboard: the money at a glance. How much of the month's income the Installments take, the
@@ -195,7 +202,7 @@ export function DashboardPage({ user }: { user: { name: string } }) {
             </p>
           </div>
           <nav className="flex flex-col gap-3">
-            {FINANCE_LINKS.map(link => (
+            {START_LINKS.map(link => (
               <Link
                 className="group flex items-center gap-5 rounded-lg border border-border p-5 transition-colors hover:bg-secondary"
                 key={link.to}
@@ -206,9 +213,7 @@ export function DashboardPage({ user }: { user: { name: string } }) {
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-lg font-semibold">{link.label}</span>
-                  {START_NOTES[link.to] && (
-                    <span className="text-muted-foreground">{t(START_NOTES[link.to]!)}</span>
-                  )}
+                  <span className="text-muted-foreground">{t(link.note)}</span>
                 </span>
                 <ArrowRightIcon className="size-5 shrink-0 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -362,7 +367,10 @@ function Month({ income, installments }: { income: number; installments: number 
       ) : (
         <p className="text-muted-foreground">
           {t('dashboard.noIncome')}{' '}
-          <Link className="text-foreground underline underline-offset-4" to="/caishen/income">
+          <Link
+            className="text-foreground underline underline-offset-4"
+            to="/caishen/finances#income"
+          >
             {t('dashboard.income')}
           </Link>
         </p>

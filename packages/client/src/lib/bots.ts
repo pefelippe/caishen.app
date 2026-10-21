@@ -1,12 +1,5 @@
 import type { BotKey } from '@zapbots/graphql/client';
-import {
-  CoinsIcon,
-  HandCoinsIcon,
-  LayoutGridIcon,
-  LandmarkIcon,
-  WalletIcon,
-  type LucideIcon,
-} from 'lucide-react';
+import { CoinsIcon, LayoutGridIcon, WalletIcon, type LucideIcon } from 'lucide-react';
 
 import type { SectionGroup } from '../components/SectionLayout';
 
@@ -41,12 +34,7 @@ export const BOT_SECTIONS: Record<BotKey, SectionGroup[]> = {
       links: [{ icon: LayoutGridIcon, label: 'Visão geral', to: '/caishen/overview' }],
     },
     {
-      label: 'Finanças',
-      links: [
-        { icon: WalletIcon, label: 'Salário', to: '/caishen/income' },
-        { icon: LandmarkIcon, label: 'Impostos', to: '/caishen/taxes' },
-        { icon: HandCoinsIcon, label: 'Obrigações', to: '/caishen/obligations' },
-      ],
+      links: [{ icon: WalletIcon, label: 'Financeiro', to: '/caishen/finances' }],
     },
   ],
 };

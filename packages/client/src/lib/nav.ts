@@ -47,8 +47,8 @@ export function useNavGroups(): NavGroup[] {
 }
 
 /**
- * The item for the open screen: the longest one that matches, so /caishen/obligations/x lights
- * Obrigações and `/` only lights on the home itself.
+ * The item for the open screen: the longest one that matches, so /caishen/finances lights
+ * Financeiro and `/` only lights on the home itself.
  */
 export function activeItem(items: NavItem[], pathname: string): NavItem | undefined {
   return [...items]
