@@ -14,7 +14,7 @@
       "framework": "express",
       "entrypoint": "src/app.ts",
       "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-      "buildCommand": "cd ../.. && pnpm --filter @zapbots/graphql codegen",
+      "buildCommand": "cd ../.. && pnpm db:migrate && pnpm --filter @zapbots/graphql codegen",
       "functions": { "src/app.ts": { "maxDuration": 300 } }
     }
   },

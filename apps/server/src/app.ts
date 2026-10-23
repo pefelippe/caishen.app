@@ -2,6 +2,7 @@
 import { reportError, Sentry } from './sentry';
 
 import { ApolloServer } from '@apollo/server';
+import { unwrapResolverError } from '@apollo/server/errors';
 import { expressMiddleware } from '@as-integrations/express5';
 import { auth, resolveViewer } from '@zapbots/auth';
 import { type Context, typeDefs } from '@zapbots/graphql/server';
@@ -114,6 +115,16 @@ const apollo = new ApolloServer<Context>({
       }),
     },
   ],
+  // Only errors thrown on purpose reach the User with their message; anything else (a failed
+  // query, a bug) is reported above and answered in general words, so no SQL or ids leak out.
+  formatError: (formatted, error) =>
+    unwrapResolverError(error) instanceof Error &&
+    !(unwrapResolverError(error) instanceof GraphQLError)
+      ? {
+          extensions: { code: 'INTERNAL_SERVER_ERROR' },
+          message: 'Algo deu errado do nosso lado. Tente de novo em instantes.',
+        }
+      : formatted,
   resolvers,
   typeDefs,
 });

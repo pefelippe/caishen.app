@@ -31,7 +31,7 @@ Turborepo + pnpm (hoisted `node_modules`), mirroring `www/monorepo`.
   - Error monitoring: Sentry (`apps/server/src/sentry.ts`, imported first by `app.ts`; `packages/client/src/lib/sentry.ts`, imported first by `main.tsx`), on only when `SENTRY_DSN` / `VITE_SENTRY_DSN` are set. Errors only, and no User data: cookies, bodies, GraphQL variables, Model prompts and local variables stay out (`dataCollection`). Report errors we catch and answer ourselves with `reportError`.
   - Billing (ADR 0011): Plans and Limits in `services/billing/plans.ts`, Stripe over REST in `services/billing/stripe.ts` (Checkout, portal, webhook at `POST /api/billing/webhook`, raw body, signature checked, events deduped). Needs `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO`, `STRIPE_WEBHOOK_SECRET`. Jobs, Routines and chat Messages pass `requireWithinLimit`. Usage codes are created with `pnpm usage-code`.
 
-Workspace packages have no build step: `main` points at `src/index.ts`; apps run with `tsx`. Production is one Vercel project with two Services, `client` and `server` (`vercel.json`, ADR 0012): `apps/server/src/app.ts` is the Express app, `index.ts` the long-lived process around it.
+Workspace packages have no build step: `main` points at `src/index.ts`; apps run with `tsx`. Production is one Vercel project with two Services, `client` and `server` (`vercel.json`, ADR 0012): `apps/server/src/app.ts` is the Express app, `index.ts` the long-lived process around it. The server's build runs `pnpm db:migrate` before codegen, so each deploy brings the production database up to the code (migrations must stay additive: a new column nullable or with a default).
 
 ## Conventions
 
