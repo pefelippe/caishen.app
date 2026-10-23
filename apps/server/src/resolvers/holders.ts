@@ -1,7 +1,7 @@
 import { db, schema } from '@zapbots/database';
 import { addMonths, AssessmentError, riskBand, today } from '@zapbots/finance';
 import type { Resolvers } from '@zapbots/graphql/server';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import { marketIndicators } from '../services/bacen';
 import {
@@ -10,38 +10,42 @@ import {
   payoffPlanFor,
   upcomingDues,
 } from '../services/obligations';
-import { monthStatement } from '../services/month';
+import { monthlyNetBrlCents } from '../services/income';
+import { MAX_PERIOD_DAYS, monthStatement, periodStatement } from '../services/month';
+import { fieldsFor, inputFor } from '../services/recordForms';
+import {
+  addExpense,
+  addIncomeSource,
+  addOneOffIncome,
+  addRecurringExpense,
+  expenseValues,
+  isDay,
+  deleteRecord,
+  findIncomeSource,
+  readRecord,
+  updateRecord,
+} from '../services/records';
 import { viewerHolder } from '../services/viewerHolder';
 import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
-const isDay = (day: number) => Number.isInteger(day) && day >= 1 && day <= 31;
-
 const MAX_IMPORTED_EXPENSES = 2000;
 
-/** A Gasto's (or Receita avulsa's) columns, checked: positive whole cents, a description, a real date. */
-function expenseValues(input: {
-  amountCents: number;
-  category?: string | null;
-  date: string;
-  description: string;
-}) {
-  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
-    badInput('O valor deve ser positivo');
-  }
-  const description = input.description.trim();
-  if (!description) badInput('Preencha a descrição');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || Number.isNaN(Date.parse(input.date))) {
-    badInput(`Data inválida: ${input.date}`);
-  }
-  return {
-    amountCents: input.amountCents,
-    category: input.category?.trim() || null,
-    date: input.date,
-    description,
-  };
-}
-
 export const holderResolvers: Resolvers = {
+  IncomeSource: {
+    iofRate: source => (source.iofRate == null ? null : Number(source.iofRate)),
+    monthlyNetBrlCents: source => monthlyNetBrlCents(source, today()),
+    spreadRate: source => (source.spreadRate == null ? null : Number(source.spreadRate)),
+  },
+  RecurringExpense: {
+    creditCard: async item => {
+      if (!item.creditCardId) return null;
+      const [card] = await db
+        .select()
+        .from(schema.creditCard)
+        .where(eq(schema.creditCard.id, item.creditCardId));
+      return card ?? null;
+    },
+  },
   Assessment: {
     breakdown: assessment => assessment.breakdown as never,
     indicators: assessment => assessment.indicators as never,
@@ -77,10 +81,23 @@ export const holderResolvers: Resolvers = {
         .from(schema.tax)
         .where(eq(schema.tax.holderId, holder.id))
         .orderBy(schema.tax.createdAt),
+    recurringExpenses: holder =>
+      db
+        .select()
+        .from(schema.recurringExpense)
+        .where(eq(schema.recurringExpense.holderId, holder.id))
+        .orderBy(schema.recurringExpense.dueDay),
     upcomingDues: holder => upcomingDues(holder.id),
     month: (holder, { month }) => {
       if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) badInput('Mês inválido: use AAAA-MM');
       return monthStatement(holder.id, month);
+    },
+    period: (holder, { from, to }) => {
+      if (from > to) badInput('O início vem depois do fim');
+      if (Date.parse(to) - Date.parse(from) > MAX_PERIOD_DAYS * 86_400_000) {
+        badInput('Escolha um período de até dois anos');
+      }
+      return periodStatement(holder.id, from, to);
     },
     months: (holder, { last }) => {
       if (!Number.isInteger(last) || last < 1 || last > 12) badInput('De 1 a 12 meses');
@@ -116,23 +133,34 @@ export const holderResolvers: Resolvers = {
         .returning();
       return row!;
     },
-    addIncomeSource: async (_, { input }, context) => {
-      await findHolder(requireViewer(context), input.holderId);
-      const paydays = [...new Set(input.paydays ?? [])].sort((a, b) => a - b);
-      if (paydays.some(day => !isDay(day))) badInput('Dias de pagamento vão de 1 a 31');
-      const [row] = await db
-        .insert(schema.incomeSource)
-        .values({
-          description: input.description,
-          endsOn: input.endsOn ?? null,
-          holderId: input.holderId,
-          monthlyNetCents: input.monthlyNetCents,
-          paydays,
-          startsOn: input.startsOn,
-        })
-        .returning();
-      return row!;
+    addIncomeSource: (_, { input }, context) => addIncomeSource(requireViewer(context), input),
+    setIncomeRate: async (_, { date, incomeSourceId, rate }, context) => {
+      const viewer = requireViewer(context);
+      const source = await findIncomeSource(viewer, incomeSourceId);
+      if (source.currency === 'BRL') badInput('Esta renda já é em reais');
+      if (rate == null) {
+        await db
+          .delete(schema.incomeRateOverride)
+          .where(
+            and(
+              eq(schema.incomeRateOverride.incomeSourceId, source.id),
+              eq(schema.incomeRateOverride.date, date)
+            )
+          );
+        return true;
+      }
+      if (!(rate > 0) || rate > 100) badInput('Cotação inválida');
+      await db
+        .insert(schema.incomeRateOverride)
+        .values({ date, incomeSourceId: source.id, rate: String(rate) })
+        .onConflictDoUpdate({
+          set: { rate: String(rate) },
+          target: [schema.incomeRateOverride.incomeSourceId, schema.incomeRateOverride.date],
+        });
+      return true;
     },
+    addRecurringExpense: (_, { input }, context) =>
+      addRecurringExpense(requireViewer(context), input),
     addTax: async (_, { input }, context) => {
       const viewer = requireViewer(context);
       await findHolder(viewer, input.holderId);
@@ -165,19 +193,7 @@ export const holderResolvers: Resolvers = {
         .returning();
       return row!;
     },
-    addExpense: async (_, { input }, context) => {
-      const viewer = requireViewer(context);
-      await findHolder(viewer, input.holderId);
-      const [row] = await db
-        .insert(schema.expense)
-        .values({
-          ...expenseValues(input),
-          holderId: input.holderId,
-          organizationId: viewer.organizationId,
-        })
-        .returning();
-      return row!;
-    },
+    addExpense: (_, { input }, context) => addExpense(requireViewer(context), input),
     importExpenses: async (_, { holderId, rows }, context) => {
       const viewer = requireViewer(context);
       await findHolder(viewer, holderId);
@@ -194,22 +210,19 @@ export const holderResolvers: Resolvers = {
       await db.insert(schema.expense).values(values);
       return values.length;
     },
-    addOneOffIncome: async (_, { input }, context) => {
-      const viewer = requireViewer(context);
-      await findHolder(viewer, input.holderId);
-      const values = expenseValues({ ...input, category: null });
-      const [row] = await db
-        .insert(schema.oneOffIncome)
-        .values({
-          amountCents: values.amountCents,
-          date: values.date,
-          description: values.description,
-          holderId: input.holderId,
-          organizationId: viewer.organizationId,
-        })
-        .returning({ id: schema.oneOffIncome.id });
-      return row!.id;
+    deleteRecord: async (_, { id, kind }, context) => {
+      await deleteRecord(requireViewer(context), kind, id);
+      return true;
     },
+    updateRecord: async (_, { id, kind, values }, context) => {
+      const viewer = requireViewer(context);
+      const { holderId } = await readRecord(viewer, kind, id);
+      const args = Object.fromEntries(values.map(({ key, value }) => [key, value]));
+      await updateRecord(viewer, kind, id, inputFor(kind, args, holderId, viewer.organizationId));
+      return true;
+    },
+    addOneOffIncome: async (_, { input }, context) =>
+      (await addOneOffIncome(requireViewer(context), input)).id,
     deleteOneOffIncome: async (_, { id }, context) => {
       const deleted = await db
         .delete(schema.oneOffIncome)
@@ -293,6 +306,8 @@ export const holderResolvers: Resolvers = {
     band: reported => riskBand(reported.score),
   },
   Query: {
+    recordFields: async (_, { id, kind }, context) =>
+      fieldsFor(kind, await readRecord(requireViewer(context), kind, id)),
     holder: async (_, { id }, context) => {
       const viewer = requireViewer(context);
       const [row] = await db

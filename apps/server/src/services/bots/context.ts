@@ -25,6 +25,8 @@ const money = (cents: number | null | undefined) =>
   // Assessments saved by older scoring models may lack an amount; the Model must not see "NaN".
   cents == null || !Number.isFinite(cents) ? 'sem dado' : brl.format(cents / 100);
 const day = (iso: string) => iso.split('-').reverse().join('/');
+const usd = new Intl.NumberFormat('pt-BR', { currency: 'USD', style: 'currency' });
+const dollars = (cents: number) => usd.format(cents / 100);
 const list = (lines: string[], empty: string) =>
   lines.length ? lines.map(line => `- ${line}`).join('\n') : empty;
 
@@ -120,6 +122,10 @@ async function finance(viewer: Viewer): Promise<string> {
     .from(schema.incomeSource)
     .where(eq(schema.incomeSource.holderId, holder.id));
   const taxes = await db.select().from(schema.tax).where(eq(schema.tax.holderId, holder.id));
+  const recurring = await db
+    .select()
+    .from(schema.recurringExpense)
+    .where(eq(schema.recurringExpense.holderId, holder.id));
   const operationLines: string[] = [];
   const prepaymentLines: string[] = [];
   for (const operation of operations) {
@@ -186,7 +192,9 @@ async function finance(viewer: Viewer): Promise<string> {
     list(
       incomeSources.map(
         source =>
-          `${source.description}: ${money(source.monthlyNetCents)} líquidos por mês` +
+          (source.currency === 'USD'
+            ? `${source.description}: ${dollars(source.monthlyNetCents)} por mês, recebidos em dólar e convertidos pela PTAX menos IOF${source.spreadRate ? ' e spread' : ''}`
+            : `${source.description}: ${money(source.monthlyNetCents)} líquidos por mês`) +
           (source.paydays.length
             ? `, recebidos ${source.paydays.length}x (dias ${source.paydays.join(', ')})`
             : '') +
@@ -194,6 +202,16 @@ async function finance(viewer: Viewer): Promise<string> {
           (source.endsOn ? ` até ${day(source.endsOn)}` : '')
       ),
       'Nenhuma cadastrada.'
+    ),
+    'Gastos recorrentes:',
+    list(
+      recurring.map(
+        item =>
+          `${item.description}: ${money(item.amountCents)} ${item.cycle === 'YEARLY' ? `por ano, dia ${item.dueDay}/${String(item.dueMonth).padStart(2, '0')}` : `por mês, dia ${item.dueDay}`}` +
+          (item.paymentMethod === 'CARD' ? ', no cartão (já entra na Fatura)' : '') +
+          (item.endsOn ? `, cancelado em ${day(item.endsOn)}` : '')
+      ),
+      'Nenhum cadastrado.'
     ),
     'Impostos:',
     list(

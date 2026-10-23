@@ -11,18 +11,20 @@ import {
   amortizationSchedule,
   assess,
   avalanchePlan,
-  payoffOutlook,
   dateInMonth,
   dueWithin,
-  outstandingBalance,
-  today,
   type Installment,
   type LatePaymentFact,
+  outstandingBalance,
+  payoffOutlook,
+  recurringDueInMonth,
   type ScheduleInput,
+  today,
 } from '@zapbots/finance';
 import { and, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm';
 
 import { latestScrSummary } from './scr';
+import { monthlyNetBrlCents } from './income';
 
 /** What the schedule of a Credit Operation is computed from, its Extra Amortizations included. */
 export async function scheduleInputFor(operation: CreditOperationRow): Promise<ScheduleInput> {
@@ -54,7 +56,7 @@ export function statementDueDate(card: Pick<CreditCardRow, 'dueDay'>, referenceM
 /** Sum of Income Sources in force on `asOf`. */
 export async function monthlyIncome(holderId: string, asOf = today()): Promise<number> {
   const sources = await db
-    .select({ monthlyNetCents: schema.incomeSource.monthlyNetCents })
+    .select()
     .from(schema.incomeSource)
     .where(
       and(
@@ -63,7 +65,9 @@ export async function monthlyIncome(holderId: string, asOf = today()): Promise<n
         or(isNull(schema.incomeSource.endsOn), gte(schema.incomeSource.endsOn, asOf))
       )
     );
-  return sources.reduce((sum, source) => sum + source.monthlyNetCents, 0);
+  // A foreign Fonte de Renda counts in reais at today's rate.
+  const amounts = await Promise.all(sources.map(source => monthlyNetBrlCents(source, asOf)));
+  return amounts.reduce((sum, cents) => sum + cents, 0);
 }
 
 export function installmentDueDate(
@@ -181,6 +185,28 @@ export async function upcomingDues(holderId: string, asOf = today()) {
       const dueDate = statementDueDate(card, item.referenceMonth);
       if (inWindow(dueDate)) {
         dues.push({ amountCents: item.amountCents, dueDate, label: `${card.name} · Fatura` });
+      }
+    }
+  }
+
+  // Gastos recorrentes, this month's and next month's charges; one on a Cartão as a reminder.
+  const recurring = await db
+    .select()
+    .from(schema.recurringExpense)
+    .where(eq(schema.recurringExpense.holderId, holderId));
+  for (const item of recurring) {
+    for (const yearMonth of [
+      asOf.slice(0, 7),
+      addMonths(`${asOf.slice(0, 7)}-01`, 1).slice(0, 7),
+    ]) {
+      const dueDate = recurringDueInMonth(item, yearMonth);
+      if (dueDate && inWindow(dueDate)) {
+        dues.push({
+          amountCents: item.amountCents,
+          dueDate,
+          label:
+            item.paymentMethod === 'CARD' ? `${item.description} · no cartão` : item.description,
+        });
       }
     }
   }

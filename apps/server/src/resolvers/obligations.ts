@@ -1,9 +1,7 @@
 import { db, schema } from '@zapbots/database';
 import {
-  ImpliedRateError,
   MODALITIES,
   daysLate,
-  impliedMonthlyRate,
   monthlyToAnnualRate,
   outstandingBalance,
   overdueCents,
@@ -23,6 +21,7 @@ import {
   scheduleInputFor,
   statementDueDate,
 } from '../services/obligations';
+import { createCreditOperation } from '../services/records';
 import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
 
 async function operationById(id: string) {
@@ -216,55 +215,8 @@ export const obligationResolvers: Resolvers = {
         .returning();
       return row!;
     },
-    createCreditOperation: async (_, { input }, context) => {
-      const viewer = requireViewer(context);
-      await findHolder(viewer, input.holderId);
-      if (input.principalCents <= 0) badInput('Valor financiado deve ser positivo');
-      if (input.termMonths <= 0) badInput('Prazo deve ser positivo');
-
-      let monthlyRate: string;
-      let rateSource: 'IMPLIED' | 'INFORMED';
-      if (input.monthlyRate != null) {
-        if (input.monthlyRate < 0) badInput('Taxa não pode ser negativa');
-        monthlyRate = String(input.monthlyRate);
-        rateSource = 'INFORMED';
-      } else if (input.installmentCents != null) {
-        try {
-          monthlyRate = impliedMonthlyRate(
-            input.system,
-            input.principalCents,
-            input.installmentCents,
-            input.termMonths
-          ).toFixed(12);
-        } catch (error) {
-          if (error instanceof ImpliedRateError) badInput(error.message);
-          throw error;
-        }
-        rateSource = 'IMPLIED';
-      } else {
-        badInput('Informe a taxa mensal ou o valor da parcela');
-      }
-
-      const [row] = await db
-        .insert(schema.creditOperation)
-        .values({
-          collateralDescription: input.collateralDescription ?? null,
-          collateralValueCents: input.collateralValueCents ?? null,
-          firstDueDate: input.firstDueDate,
-          holderId: input.holderId,
-          lender: input.lender ?? null,
-          modality: input.modality,
-          monthlyRate,
-          name: input.name,
-          organizationId: viewer.organizationId,
-          principalCents: input.principalCents,
-          rateSource,
-          system: input.system,
-          termMonths: input.termMonths,
-        })
-        .returning();
-      return row!;
-    },
+    createCreditOperation: (_, { input }, context) =>
+      createCreditOperation(requireViewer(context), input),
     deleteCreditOperation: async (_, { id }, context) => {
       const viewer = requireViewer(context);
       const deleted = await db

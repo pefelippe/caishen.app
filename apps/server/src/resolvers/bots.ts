@@ -8,6 +8,13 @@ import { PlanLimitError, requireWithinLimit } from '../services/billing/billing'
 import { botAlerts } from '../services/bots/alerts';
 import { CATALOG, ensureBots } from '../services/bots/catalog';
 import { cancelJob, failStaleJobs, handOverJob, type JobFile } from '../services/bots/jobs';
+import {
+  cancelProposal,
+  confirmProposal,
+  describeProposal,
+  editProposal,
+  proposalFields,
+} from '../services/bots/proposals';
 import { MAX_ROUTINES, nextRunAfter } from '../services/bots/routines';
 import { aiConfigured, defaultModel, listModels } from '../services/models';
 import { badInput, notFound, owned, requireViewer } from './guards';
@@ -118,6 +125,19 @@ export const botResolvers: Resolvers = {
         .where(eq(schema.message.conversationId, conversation.id))
         .orderBy(asc(schema.message.createdAt)),
   },
+  Message: {
+    proposals: message =>
+      db
+        .select()
+        .from(schema.proposal)
+        .where(eq(schema.proposal.messageId, message.id))
+        .orderBy(asc(schema.proposal.createdAt)),
+  },
+  Proposal: {
+    fields: proposal => proposalFields(proposal),
+    lines: proposal => describeProposal(proposal).lines,
+    title: proposal => describeProposal(proposal).title,
+  },
   Routine: {
     paused: routine => routine.pausedAt !== null,
   },
@@ -178,6 +198,9 @@ export const botResolvers: Resolvers = {
       await handOverJob(viewer, { botId: bot.id, files: [], instructions, routineId: routine!.id });
       return routine!;
     },
+    confirmProposal: (_, { id }, context) => confirmProposal(requireViewer(context), id),
+    cancelProposal: (_, { id }, context) => cancelProposal(requireViewer(context), id),
+    editProposal: (_, { id, values }, context) => editProposal(requireViewer(context), id, values),
     deleteConversation: async (_, { id }, context) => {
       const deleted = await db
         .delete(schema.conversation)

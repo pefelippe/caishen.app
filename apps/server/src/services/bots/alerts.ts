@@ -70,7 +70,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
       alerts.push({
         href,
         kind: 'ABOVE_MARKET',
-        message: `A taxa de ${operation.name} está ${points(gap)} ponto(s) percentual(is) ao mês acima da Taxa Média de Mercado: vale tentar renegociar ou portar.`,
+        message: `${operation.name} paga ${points(gap)} p.p. ao mês acima da média do mercado. Vale renegociar ou portar.`,
       });
     }
   }
@@ -79,7 +79,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
   for (const due of await upcomingDues(holder.id, asOf)) {
     if (due.dueDate > until) continue;
     alerts.push({
-      href: '/caishen/report',
+      href: '/caishen/entries',
       kind: 'DUE_SOON',
       message: `${due.label} vence em ${day(due.dueDate)}: ${money(due.amountCents)}.`,
     });
@@ -102,7 +102,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
     const usage = new Decimal(latest.amountCents).div(card.limitCents);
     if (usage.gte(HIGH_UTILIZATION)) {
       alerts.push({
-        href: '/caishen/debts',
+        href: '/caishen/entries/fixed#obligations',
         kind: 'HIGH_UTILIZATION',
         message: `A última Fatura do ${card.name} usa ${usage.times(100).toFixed(0)}% do limite: uma Utilização de Limite alta pesa no Score.`,
       });
@@ -119,7 +119,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
     const madeOn = assessment ? dateOf(assessment.createdAt) : null;
     if (!madeOn || madeOn < addDays(asOf, -STALE_ASSESSMENT_DAYS)) {
       alerts.push({
-        href: '/caishen/report',
+        href: '/caishen/entries',
         kind: 'STALE_ASSESSMENT',
         message: madeOn
           ? `Sua última Avaliação é de ${day(madeOn)}. Gere uma nova para ver o Score com os dados de hoje.`

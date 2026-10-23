@@ -2,6 +2,7 @@ import type { Resolvers } from '@zapbots/graphql/server';
 
 import { billingResolvers } from './billing';
 import { botResolvers } from './bots';
+import { companyResolvers } from './company';
 import { connectionResolvers } from './connections';
 import { documentResolvers } from './documents';
 import { holderResolvers } from './holders';
@@ -12,6 +13,7 @@ import { settingsResolvers } from './settings';
 
 const modules: Resolvers[] = [
   holderResolvers,
+  companyResolvers,
   obligationResolvers,
   scrResolvers,
   botResolvers,
