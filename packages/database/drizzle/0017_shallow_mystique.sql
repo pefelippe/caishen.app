@@ -1,0 +1,1 @@
+ALTER TYPE "public"."proposal_action" ADD VALUE 'DELETE';

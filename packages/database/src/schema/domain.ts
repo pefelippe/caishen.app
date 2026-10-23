@@ -59,22 +59,58 @@ export const holder = pgTable(
   table => [index('holder_organization_idx').on(table.organizationId)]
 );
 
+export const currency = pgEnum('currency', ['BRL', 'USD']);
+
 export const incomeSource = pgTable('income_source', {
+  /** BRL, or the foreign currency it is paid in; then the amounts below are in it. */
+  currency: currency('currency').notNull().default('BRL'),
   description: text('description').notNull(),
   endsOn: date('ends_on'),
   holderId: uuid('holder_id')
     .notNull()
     .references(() => holder.id, { onDelete: 'cascade' }),
   id: uuid('id').primaryKey().defaultRandom(),
+  /** IOF on converting a foreign payment, as a fraction; `null` uses the 0,38% of the law. */
+  iofRate: numeric('iof_rate', { precision: 8, scale: 6 }),
+  /** The month's total in `currency`: each payday gets an equal part. */
   monthlyNetCents: cents('monthly_net_cents').notNull(),
   /** Days of the month it is paid on, e.g. [15, 30]; its length is how many times a month. */
   paydays: integer('paydays')
     .array()
     .notNull()
     .default(sql`'{}'::integer[]`),
+  /** The bank's or app's spread on the exchange rate, as a fraction; `null` for none. */
+  spreadRate: numeric('spread_rate', { precision: 8, scale: 6 }),
   startsOn: date('starts_on').notNull(),
   ...timestamps,
 });
+
+/** The Banco Central's PTAX for a day, kept once fetched: reais per unit of `currency`. */
+export const exchangeRate = pgTable(
+  'exchange_rate',
+  {
+    /** PTAX de compra: what a bank pays for the currency, as when a salary comes in. */
+    buyRate: numeric('buy_rate', { precision: 12, scale: 6 }).notNull(),
+    currency: currency('currency').notNull(),
+    date: date('date').notNull(),
+  },
+  table => [unique('exchange_rate_currency_date_unique').on(table.currency, table.date)]
+);
+
+/** The rate a payment of a foreign Fonte de Renda really got, typed by the User over the PTAX. */
+export const incomeRateOverride = pgTable(
+  'income_rate_override',
+  {
+    date: date('date').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    incomeSourceId: uuid('income_source_id')
+      .notNull()
+      .references(() => incomeSource.id, { onDelete: 'cascade' }),
+    rate: numeric('rate', { precision: 12, scale: 6 }).notNull(),
+    ...timestamps,
+  },
+  table => [unique('income_rate_override_source_date_unique').on(table.incomeSourceId, table.date)]
+);
 
 /** An Imposto: what a Holder pays to the government, monthly or once a year in installments. */
 export const tax = pgTable(
@@ -96,6 +132,72 @@ export const tax = pgTable(
     ...timestamps,
   },
   table => [index('tax_holder_idx').on(table.holderId)]
+);
+
+export const taxRegime = pgEnum('tax_regime', ['MEI', 'SIMPLES', 'PRESUMIDO', 'REAL']);
+export const simplesAnnex = pgEnum('simples_annex', ['I', 'II', 'III', 'IV', 'V']);
+export const companyActivity = pgEnum('company_activity', [
+  'COMMERCE',
+  'INDUSTRY',
+  'SERVICES',
+  'COMMERCE_SERVICES',
+]);
+
+/**
+ * A Titular's company (Empresa): its CNPJ, its tax regime and what the Caishen needs to work out
+ * its taxes (docs/adr/0016). One per Titular.
+ */
+export const company = pgTable(
+  'company',
+  {
+    activity: companyActivity('activity').notNull().default('SERVICES'),
+    /** Simples Nacional: the Anexo it registered; with `fatorR`, III or V by its payroll. */
+    annex: simplesAnnex('annex'),
+    /** 14 characters, digits or (from July 2026) letters, as the Receita writes them. */
+    cnpj: text('cnpj').notNull(),
+    /** Its revenue comes from abroad: exports pay no PIS, Cofins, ISS, ICMS or IPI. */
+    exports: boolean('exports').notNull().default(false),
+    fatorR: boolean('fator_r').notNull().default(false),
+    holderId: uuid('holder_id')
+      .notNull()
+      .unique()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Lucro Presumido: the city's ISS rate, as a fraction. */
+    issRate: numeric('iss_rate', { precision: 8, scale: 6 }),
+    name: text('name'),
+    organizationId: organizationId(),
+    /** The partners' monthly pró-labore, gross; 0 for none. */
+    proLaboreCents: cents('pro_labore_cents').notNull().default(0),
+    regime: taxRegime('regime').notNull(),
+    /** The Fonte de Renda its revenue arrives as, when the Titular is paid through it. */
+    revenueSourceId: uuid('revenue_source_id').references(() => incomeSource.id, {
+      onDelete: 'set null',
+    }),
+    /** The first month whose taxes count. */
+    startsOn: date('starts_on').notNull(),
+    ...timestamps,
+  },
+  table => [index('company_organization_idx').on(table.organizationId)]
+);
+
+/** A company's revenue (Faturamento) for one competência, as declared, and its RBT12 if typed. */
+export const companyRevenue = pgTable(
+  'company_revenue',
+  {
+    amountCents: cents('amount_cents').notNull(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** `YYYY-MM`. */
+    month: text('month').notNull(),
+    organizationId: organizationId(),
+    /** The revenue of the 12 months before, as the PGDAS-D shows it; otherwise worked out. */
+    rbt12Cents: cents('rbt12_cents'),
+    ...timestamps,
+  },
+  table => [unique('company_revenue_company_month_unique').on(table.companyId, table.month)]
 );
 
 /** A Gasto: money that went out on `date`, typed in or imported from a spreadsheet. */
@@ -188,6 +290,40 @@ export const creditCard = pgTable(
   table => [index('credit_card_holder_idx').on(table.holderId)]
 );
 
+export const recurringCycle = pgEnum('recurring_cycle', ['MONTHLY', 'YEARLY']);
+export const paymentMethod = pgEnum('payment_method', ['CARD', 'PIX', 'DEBIT', 'BOLETO', 'OTHER']);
+
+/**
+ * A Gasto recorrente: what goes out by itself every month or year (gym, Netflix, car insurance).
+ * One paid on a Cartão is already in its Fatura, so the month shows it without counting it again.
+ */
+export const recurringExpense = pgTable(
+  'recurring_expense',
+  {
+    /** One charge: a month's when MONTHLY, the year's when YEARLY. */
+    amountCents: cents('amount_cents').notNull(),
+    category: text('category'),
+    /** The Cartão it is charged to, when `paymentMethod` is CARD. */
+    creditCardId: uuid('credit_card_id').references(() => creditCard.id, { onDelete: 'set null' }),
+    cycle: recurringCycle('cycle').notNull().default('MONTHLY'),
+    description: text('description').notNull(),
+    dueDay: integer('due_day').notNull(),
+    /** YEARLY: the month it is charged. */
+    dueMonth: integer('due_month'),
+    /** Cancelled from this day on; `null` while it runs. */
+    endsOn: date('ends_on'),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: organizationId(),
+    paymentMethod: paymentMethod('payment_method'),
+    startsOn: date('starts_on'),
+    ...timestamps,
+  },
+  table => [index('recurring_expense_holder_idx').on(table.holderId)]
+);
+
 export const statement = pgTable(
   'statement',
   {
@@ -253,6 +389,49 @@ export const message = pgTable(
     role: messageRole('role').notNull(),
   },
   table => [index('message_conversation_idx').on(table.conversationId, table.createdAt)]
+);
+
+export const proposalKind = pgEnum('proposal_kind', [
+  'CREDIT_OPERATION',
+  'INCOME_SOURCE',
+  'ONE_OFF_INCOME',
+  'EXPENSE',
+  'RECURRING_EXPENSE',
+]);
+export const proposalStatus = pgEnum('proposal_status', ['PENDING', 'CONFIRMED', 'CANCELLED']);
+export const proposalAction = pgEnum('proposal_action', ['CREATE', 'UPDATE', 'DELETE']);
+
+/**
+ * Proposal: a record a Bot offers to create, or a saved one it offers to correct or delete, from a
+ * Conversation. Nothing is written until the User confirms it; then the same service as the
+ * mutation writes it (docs/adr/0013).
+ */
+export const proposal = pgTable(
+  'proposal',
+  {
+    action: proposalAction('action').notNull().default('CREATE'),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversation.id, { onDelete: 'cascade' }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    decidedById: text('decided_by_id').references(() => user.id, { onDelete: 'set null' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** The mutation's input, already in cents and checked, Holder included. */
+    input: jsonb('input').notNull(),
+    kind: proposalKind('kind').notNull(),
+    /** The Bot's Message that offered it; set once the reply is saved. */
+    messageId: uuid('message_id').references(() => message.id, { onDelete: 'cascade' }),
+    organizationId: organizationId(),
+    /** For an UPDATE or a DELETE, the record's input when it was proposed, to show what changes. */
+    previous: jsonb('previous'),
+    /** The row written on confirmation: the new one, or the corrected one. */
+    recordId: uuid('record_id'),
+    status: proposalStatus('status').notNull().default('PENDING'),
+    /** For an UPDATE or a DELETE, the saved record it acts on. */
+    targetId: uuid('target_id'),
+    ...timestamps,
+  },
+  table => [index('proposal_conversation_idx').on(table.conversationId, table.createdAt)]
 );
 
 /** Routine: the same Job handed to a Bot again every week or month (docs/adr/0010). */
