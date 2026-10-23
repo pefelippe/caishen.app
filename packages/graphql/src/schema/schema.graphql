@@ -102,6 +102,8 @@ type Query {
   viewer: Viewer
   "The Holder the signed-in User is (docs/adr/0007); created or adopted on first use."
   viewerHolder: Holder!
+  "A saved record as fields to correct."
+  recordFields(kind: RecordKind!, id: ID!): [RecordField!]!
   "The Organization's team: every Bot of the catalog."
   bots: [Bot!]!
   bot(key: BotKey!): Bot!
@@ -145,6 +147,11 @@ type Mutation {
   setBotModel(id: ID!, model: String): Bot!
   startConversation(botId: ID!): Conversation!
   deleteConversation(id: ID!): Boolean!
+  "Writes a pending Proposal through the same checks as the matching mutation."
+  confirmProposal(id: ID!): Proposal!
+  "Corrects a pending Proposal; read and checked like the Bot's own call."
+  editProposal(id: ID!, values: [RecordValueInput!]!): Proposal!
+  cancelProposal(id: ID!): Proposal!
   "Hands work to a Bot. It runs in the background; poll `job` for the Deliverable."
   createJob(input: CreateJobInput!): Job!
   "Hands a failed Job over again as a new Job, with the same instructions and files."
@@ -166,11 +173,25 @@ type Mutation {
   removeExtraAmortization(id: ID!): CreditOperation!
   addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
   addTax(input: AddTaxInput!): Tax!
+  addRecurringExpense(input: RecurringExpenseInput!): RecurringExpense!
+  "The rate a foreign payment really got on `date`; null goes back to the PTAX."
+  setIncomeRate(incomeSourceId: ID!, date: Date!, rate: Float): Boolean!
   deleteTax(id: ID!): Boolean!
+  "Registers or changes the Titular's company (one per Titular)."
+  saveCompany(input: CompanyInput!): Company!
+  deleteCompany(id: ID!): Boolean!
+  "Records what was declared for a competência (`YYYY-MM`), and the RBT12 if typed."
+  setCompanyRevenue(input: CompanyRevenueInput!): CompanyMonth!
+  "Forgets a competência's declared revenue; it goes back to the Fonte de Renda, or none."
+  clearCompanyRevenue(companyId: ID!, month: String!): Boolean!
   addExpense(input: ExpenseInput!): Expense!
   "Adds many Gastos at once, from a spreadsheet; returns how many were added."
   importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!): Int!
   deleteExpense(id: ID!): Boolean!
+  "Rewrites a saved record with the same checks as creating it."
+  updateRecord(kind: RecordKind!, id: ID!, values: [RecordValueInput!]!): Boolean!
+  "Deletes a saved record; an Income Source or Operation goes from every month."
+  deleteRecord(kind: RecordKind!, id: ID!): Boolean!
   "Records a Receita avulsa; returns its id."
   addOneOffIncome(input: OneOffIncomeInput!): ID!
   deleteOneOffIncome(id: ID!): Boolean!
@@ -208,10 +229,16 @@ type Holder {
   monthlyIncomeCents: Cents!
   incomeSources: [IncomeSource!]!
   taxes: [Tax!]!
+  "The Titular's company, when a CNPJ was registered; its taxes are worked out (docs/adr/0016)."
+  company: Company
+  "Gastos recorrentes: gym, subscriptions, insurance; cancelled ones included."
+  recurringExpenses: [RecurringExpense!]!
   "Gastos, the latest first."
   expenses: [Expense!]!
   "One month (`YYYY-MM`): Receitas, Compromissos that fall due, Gastos and what is left."
   month(month: String!): MonthStatement!
+  "Any span of days, `from` to `to` inclusive (up to two years), as one sheet; `month` reads `from..to`."
+  period(from: Date!, to: Date!): MonthStatement!
   "The last `last` months (up to 12) through the current one, oldest first, for the Relatório."
   months(last: Int!): [MonthStatement!]!
   creditOperations: [CreditOperation!]!
@@ -310,6 +337,120 @@ type Message {
   role: MessageRole!
   content: String!
   createdAt: DateTime!
+  "Records this Message of the Bot offered to create (docs/adr/0013)."
+  proposals: [Proposal!]!
+}
+
+enum RecordKind {
+  CREDIT_OPERATION
+  INCOME_SOURCE
+  ONE_OFF_INCOME
+  EXPENSE
+  RECURRING_EXPENSE
+}
+
+enum RecurringCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum PaymentMethod {
+  CARD
+  PIX
+  DEBIT
+  BOLETO
+  OTHER
+}
+
+"A Gasto recorrente: what goes out by itself every month or year. On a Cartão, its Fatura counts it."
+type RecurringExpense {
+  id: ID!
+  description: String!
+  "One charge: a month's when MONTHLY, the year's when YEARLY."
+  amountCents: Cents!
+  cycle: RecurringCycle!
+  dueDay: Int!
+  dueMonth: Int
+  paymentMethod: PaymentMethod
+  creditCard: CreditCard
+  category: String
+  startsOn: Date
+  "Cancelled from this day on."
+  endsOn: Date
+}
+
+input RecurringExpenseInput {
+  holderId: ID!
+  description: String!
+  amountCents: Cents!
+  dueDay: Int!
+  cycle: RecurringCycle
+  dueMonth: Int
+  paymentMethod: PaymentMethod
+  creditCardId: ID
+  category: String
+  startsOn: Date
+  endsOn: Date
+}
+
+enum ProposalStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+"One line of a Proposal as the User reviews it, already formatted in pt-BR."
+type ProposalLine {
+  label: String!
+  value: String!
+}
+
+enum RecordFieldKind {
+  TEXT
+  MONEY
+  PERCENT
+  INTEGER
+  DATE
+  SELECT
+}
+
+type RecordOption {
+  value: String!
+  label: String!
+}
+
+"A value of a record (saved or proposed) as the User types it (\"1234,56\")."
+type RecordField {
+  key: String!
+  kind: RecordFieldKind!
+  label: String!
+  value: String!
+  options: [RecordOption!]
+}
+
+input RecordValueInput {
+  key: String!
+  value: String!
+}
+
+"Whether a Proposal adds a record, corrects a saved one or deletes it."
+enum ProposalAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+"A record a Bot offers to create, correct or delete; done only when the User confirms it."
+type Proposal {
+  id: ID!
+  action: ProposalAction!
+  kind: RecordKind!
+  status: ProposalStatus!
+  title: String!
+  lines: [ProposalLine!]!
+  fields: [RecordField!]!
+  "The record written on confirmation."
+  recordId: ID
 }
 
 "Work handed to a Bot, done in the background and finished with a Deliverable."
@@ -407,10 +548,41 @@ type Documents {
   attachments: [Attachment!]!
 }
 
+enum Currency {
+  BRL
+  USD
+}
+
+"Where a payment's exchange rate came from."
+enum RateSource {
+  "The Banco Central's PTAX de compra of the day (or the last business day before it)."
+  PTAX
+  "The rate the User typed for that payment."
+  INFORMED
+}
+
+"A payment in a foreign currency, before it became reais."
+type ForeignAmount {
+  amountCents: Cents!
+  currency: Currency!
+  "Reais per unit; null while there is no rate."
+  rate: Float
+  rateDate: Date
+  rateSource: RateSource!
+}
+
 type IncomeSource {
   id: ID!
   description: String!
+  currency: Currency!
+  "The month's total in `currency`."
   monthlyNetCents: Cents!
+  "The month in reais: the same, or converted at today's PTAX less spread and IOF."
+  monthlyNetBrlCents: Cents!
+  "IOF on converting, as a fraction; null uses 0,38%."
+  iofRate: Float
+  "The bank's spread on the rate, as a fraction."
+  spreadRate: Float
   "Days of the month it is paid on; its length is how many times a month."
   paydays: [Int!]!
   startsOn: Date!
@@ -430,11 +602,14 @@ type Tax {
 }
 
 enum MonthLineKind {
+  "A guide of the Titular's company (DAS, DARF), due the month after its competência."
+  COMPANY_TAX
   SALARY
   ONE_OFF
   INSTALLMENT
   STATEMENT
   TAX
+  RECURRING
 }
 
 "One line of a month: what came in or what fell due, on a date."
@@ -445,12 +620,16 @@ type MonthLine {
   label: String!
   date: Date!
   amountCents: Cents!
+  "A payment in a foreign currency: its amount there and the rate it was converted at."
+  foreign: ForeignAmount
 }
 
 type MonthStatement {
   month: String!
   incomes: [MonthLine!]!
   commitments: [MonthLine!]!
+  "Gastos recorrentes charged to a Cartão this month: shown, not counted, as their Fatura counts them."
+  onCard: [MonthLine!]!
   expenses: [Expense!]!
   incomeCents: Cents!
   commitmentsCents: Cents!
@@ -660,7 +839,11 @@ input CreateHolderInput {
 input AddIncomeSourceInput {
   holderId: ID!
   description: String!
+  currency: Currency
+  "The month's total in `currency`."
   monthlyNetCents: Cents!
+  iofRate: Float
+  spreadRate: Float
   paydays: [Int!]
   startsOn: Date!
   endsOn: Date
@@ -810,4 +993,118 @@ type Billing {
   "From Usage codes redeemed this month."
   credits: Allowance!
   used: Allowance!
+}
+
+enum TaxRegime {
+  MEI
+  SIMPLES
+  PRESUMIDO
+  REAL
+}
+
+enum SimplesAnnex {
+  I
+  II
+  III
+  IV
+  V
+}
+
+enum CompanyActivity {
+  COMMERCE
+  INDUSTRY
+  SERVICES
+  COMMERCE_SERVICES
+}
+
+"Where a competência's revenue comes from."
+enum RevenueOrigin {
+  DECLARED
+  INCOME_SOURCE
+  NONE
+}
+
+"A Titular's company: its CNPJ, tax regime and what its taxes are worked out from."
+type Company {
+  id: ID!
+  cnpj: String!
+  name: String
+  regime: TaxRegime!
+  "Simples Nacional: the Anexo registered."
+  annex: SimplesAnnex
+  "Simples: Anexo III or V by payroll (28% of the RBT12)."
+  fatorR: Boolean!
+  activity: CompanyActivity!
+  "Revenue from abroad: no PIS, Cofins, ISS, ICMS or IPI."
+  exports: Boolean!
+  "Lucro Presumido: the city's ISS rate, as a fraction."
+  issRate: Float
+  proLaboreCents: Cents!
+  "What the monthly pró-labore keeps and pays."
+  proLabore: ProLabore!
+  "The Fonte de Renda the revenue arrives as, if any."
+  revenueSourceId: ID
+  startsOn: Date!
+  "The last `last` competências (up to 24) through `upTo` (`YYYY-MM`), newest first."
+  months(upTo: String!, last: Int!): [CompanyMonth!]!
+}
+
+type ProLabore {
+  grossCents: Cents!
+  "The partner's INSS, 11% up to the ceiling."
+  inssCents: Cents!
+  irrfCents: Cents!
+  netCents: Cents!
+  "The company's 20%, when its regime does not pay it inside the DAS."
+  employerInssCents: Cents!
+}
+
+"One competência of a company: its revenue, RBT12, Simples bracket and the guides it owes."
+type CompanyMonth {
+  month: String!
+  revenueCents: Cents!
+  revenueOrigin: RevenueOrigin!
+  rbt12Cents: Cents!
+  "Whether the RBT12 was typed (as the PGDAS-D shows it) or worked out."
+  rbt12Typed: Boolean!
+  annex: SimplesAnnex
+  bracket: Int
+  nominalRate: Float
+  "The rate on this month's revenue, after the parcela a deduzir and what exports leave out."
+  effectiveRate: Float
+  "The RBT12 is over the Simples limit (R$ 4,8 milhões)."
+  overLimit: Boolean!
+  guides: [TaxGuide!]!
+}
+
+"A guide to pay (DAS, DARF, ISS) for one competência, due the month after."
+type TaxGuide {
+  name: String!
+  detail: String!
+  amountCents: Cents!
+  dueDate: Date!
+  competence: String!
+}
+
+input CompanyInput {
+  holderId: ID!
+  cnpj: String!
+  name: String
+  regime: TaxRegime!
+  annex: SimplesAnnex
+  fatorR: Boolean
+  activity: CompanyActivity
+  exports: Boolean
+  "Percent as typed, e.g. \"2\" for 2%."
+  issRate: String
+  proLaboreCents: Cents
+  revenueSourceId: ID
+  startsOn: Date!
+}
+
+input CompanyRevenueInput {
+  companyId: ID!
+  month: String!
+  amountCents: Cents!
+  rbt12Cents: Cents
 }

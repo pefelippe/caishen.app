@@ -50,7 +50,11 @@ query Holder($id: ID!) {
     incomeSources {
       id
       description
+      currency
       monthlyNetCents
+      monthlyNetBrlCents
+      iofRate
+      spreadRate
       paydays
       startsOn
       endsOn
@@ -63,6 +67,22 @@ query Holder($id: ID!) {
       installments
       dueDay
       dueMonth
+    }
+    recurringExpenses {
+      id
+      description
+      amountCents
+      cycle
+      dueDay
+      dueMonth
+      paymentMethod
+      creditCard {
+        id
+        name
+      }
+      category
+      startsOn
+      endsOn
     }
     creditOperations {
       id
@@ -166,37 +186,64 @@ mutation DeleteTax($id: ID!) {
   deleteTax(id: $id)
 }
 
+fragment StatementFields on MonthStatement {
+  month
+  incomeCents
+  commitmentsCents
+  expensesCents
+  balanceCents
+  incomes {
+    id
+    kind
+    label
+    date
+    amountCents
+    foreign {
+      amountCents
+      currency
+      rate
+      rateDate
+      rateSource
+    }
+  }
+  commitments {
+    id
+    kind
+    label
+    date
+    amountCents
+  }
+  onCard {
+    id
+    kind
+    label
+    date
+    amountCents
+  }
+  expenses {
+    id
+    date
+    description
+    category
+    amountCents
+    imported
+  }
+}
+
 query Month($holderId: ID!, $month: String!) {
   holder(id: $holderId) {
     id
     month(month: $month) {
-      month
-      incomeCents
-      commitmentsCents
-      expensesCents
-      balanceCents
-      incomes {
-        id
-        kind
-        label
-        date
-        amountCents
-      }
-      commitments {
-        id
-        kind
-        label
-        date
-        amountCents
-      }
-      expenses {
-        id
-        date
-        description
-        category
-        amountCents
-        imported
-      }
+      ...StatementFields
+    }
+  }
+}
+
+query Period($holderId: ID!, $from: Date!, $to: Date!) {
+  holder(id: $holderId) {
+    id
+    period(from: $from, to: $to) {
+      ...StatementFields
     }
   }
 }
@@ -282,18 +329,108 @@ mutation DeleteScrSnapshot($id: ID!) {
   deleteScrSnapshot(id: $id)
 }
 
-query PayoffPlan($id: ID!, $monthlyExtraCents: Cents!) {
-  holder(id: $id) {
+query RecordFields($kind: RecordKind!, $id: ID!) {
+  recordFields(kind: $kind, id: $id) {
+    key
+    kind
+    label
+    value
+    options {
+      value
+      label
+    }
+  }
+}
+
+mutation UpdateRecord($kind: RecordKind!, $id: ID!, $values: [RecordValueInput!]!) {
+  updateRecord(kind: $kind, id: $id, values: $values)
+}
+
+mutation DeleteRecord($kind: RecordKind!, $id: ID!) {
+  deleteRecord(kind: $kind, id: $id)
+}
+
+mutation AddRecurringExpense($input: RecurringExpenseInput!) {
+  addRecurringExpense(input: $input) {
     id
-    payoffPlan(monthlyExtraCents: $monthlyExtraCents) {
-      debtFreeOn
-      debtFreeWithoutPlanOn
-      interestSavedCents
-      payoffs {
-        creditOperationId
-        name
-        paidOffOn
+  }
+}
+
+mutation SetIncomeRate($incomeSourceId: ID!, $date: Date!, $rate: Float) {
+  setIncomeRate(incomeSourceId: $incomeSourceId, date: $date, rate: $rate)
+}
+
+fragment CompanyFields on Company {
+  id
+  cnpj
+  name
+  regime
+  annex
+  fatorR
+  activity
+  exports
+  issRate
+  proLaboreCents
+  revenueSourceId
+  startsOn
+  proLabore {
+    grossCents
+    inssCents
+    irrfCents
+    netCents
+    employerInssCents
+  }
+}
+
+query Company($holderId: ID!, $upTo: String!) {
+  holder(id: $holderId) {
+    id
+    incomeSources {
+      id
+      description
+      currency
+    }
+    company {
+      ...CompanyFields
+      months(upTo: $upTo, last: 12) {
+        month
+        revenueCents
+        revenueOrigin
+        rbt12Cents
+        rbt12Typed
+        annex
+        bracket
+        nominalRate
+        effectiveRate
+        overLimit
+        guides {
+          name
+          detail
+          amountCents
+          dueDate
+          competence
+        }
       }
     }
   }
+}
+
+mutation SaveCompany($input: CompanyInput!) {
+  saveCompany(input: $input) {
+    ...CompanyFields
+  }
+}
+
+mutation DeleteCompany($id: ID!) {
+  deleteCompany(id: $id)
+}
+
+mutation SetCompanyRevenue($input: CompanyRevenueInput!) {
+  setCompanyRevenue(input: $input) {
+    month
+  }
+}
+
+mutation ClearCompanyRevenue($companyId: ID!, $month: String!) {
+  clearCompanyRevenue(companyId: $companyId, month: $month)
 }

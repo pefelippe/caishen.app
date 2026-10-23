@@ -22,11 +22,37 @@ query BotAlerts($key: BotKey!) {
   }
 }
 
+fragment ProposalFields on Proposal {
+  id
+  action
+  kind
+  status
+  title
+  lines {
+    label
+    value
+  }
+  fields {
+    key
+    kind
+    label
+    value
+    options {
+      value
+      label
+    }
+  }
+  recordId
+}
+
 fragment MessageFields on Message {
   id
   role
   content
   createdAt
+  proposals {
+    ...ProposalFields
+  }
 }
 
 query Bots {
@@ -105,4 +131,22 @@ mutation StartConversation($botId: ID!) {
 
 mutation DeleteConversation($id: ID!) {
   deleteConversation(id: $id)
+}
+
+mutation ConfirmProposal($id: ID!) {
+  confirmProposal(id: $id) {
+    ...ProposalFields
+  }
+}
+
+mutation EditProposal($id: ID!, $values: [RecordValueInput!]!) {
+  editProposal(id: $id, values: $values) {
+    ...ProposalFields
+  }
+}
+
+mutation CancelProposal($id: ID!) {
+  cancelProposal(id: $id) {
+    ...ProposalFields
+  }
 }
