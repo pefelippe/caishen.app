@@ -59,6 +59,14 @@ _Avoid_: chat (é a página e o painel), thread
 **Mensagem** (`Message`):
 Uma fala do Usuário ou do Bot dentro de uma Conversa.
 
+**Proposta** (`Proposal`):
+Um registro (Operação de Crédito, Fonte de Renda, Receita avulsa ou Gasto) que
+um Bot oferece criar, ou um já gravado que ele oferece corrigir ou apagar, a partir de uma
+Conversa. Fica pendente até o Usuário confirmar ou cancelar; dá para corrigir os
+valores no cartão antes, e só a confirmação grava. Uma Proposta nova na mesma
+Conversa cancela a pendente.
+_Avoid_: ação, sugestão, rascunho
+
 **Modelo** (`Model`):
 O modelo de linguagem que um Bot usa.
 _Avoid_: IA (como sinônimo de modelo), LLM
@@ -208,13 +216,51 @@ _Avoid_: nível de risco AA–H (da Resolução 2.682, revogada em 2025)
 Uma entrada mensal líquida e recorrente de um Titular (salário, pró-labore,
 aluguel), com vigência e os dias do mês em que é paga (`paydays`; quantos dias,
 quantas vezes por mês). Na tela, a página se chama Salário.
+Pode ser em dólar: cada dia de pagamento recebe a sua parte, convertida pela PTAX de
+compra do Banco Central daquele dia (ou do último dia útil), ou pela cotação que o
+Usuário informar, menos o spread do banco e o IOF de câmbio (0,38%).
 _Avoid_: renda (como entidade), receita, salário (no código)
+
+**Gasto recorrente** (`RecurringExpense`):
+O que sai sozinho todo mês ou todo ano, num dia: academia, assinaturas
+(Netflix), seguros, aluguel. Basta nome, valor e dia; ciclo, forma de
+pagamento, Cartão, categoria, início e cancelamento são opcionais. Entra nos
+Compromissos de cada mês, menos quando é pago num Cartão: aí já está na Fatura e
+o mês só o mostra, sem somar de novo.
+_Avoid_: assinatura (como entidade; é um exemplo), despesa fixa, débito automático
 
 **Imposto** (`Tax`):
 O que um Titular paga ao governo: todo mês (DAS, INSS) ou uma vez por ano, à
 vista ou em Parcelas a partir de um mês (IPVA, IPTU). Só registrado; não entra
 na Avaliação.
 _Avoid_: tributo, taxa (taxa é de juros)
+
+**Empresa** (`Company`):
+A empresa de um Titular, pelo CNPJ, com o seu Regime tributário, o Anexo (no
+Simples), se exporta e o Pró-labore. Uma por Titular. O Caishen calcula as Guias
+dela (docs/adr/0016).
+_Avoid_: PJ (como entidade), negócio, firma
+
+**Regime tributário** (`TaxRegime`):
+Como a Empresa paga impostos: MEI, Simples Nacional, Lucro Presumido ou Lucro
+Real. O Lucro Real não é calculado.
+_Avoid_: enquadramento, tributação
+
+**Faturamento** (`CompanyRevenue`):
+O que a Empresa faturou numa competência (`YYYY-MM`), como declarado; sem ele,
+o que a Fonte de Renda ligada à Empresa pagou no mês. Com o RBT12 (os 12 meses
+anteriores), escolhe a faixa do Simples.
+_Avoid_: receita, renda (são da Fonte de Renda), venda
+
+**Pró-labore** (`proLabore`):
+O que a Empresa paga todo mês ao sócio que trabalha nela, bruto. Dele saem o
+INSS (11%, até o teto) e o IRRF, que vão no DARF.
+_Avoid_: salário (é da Fonte de Renda)
+
+**Guia** (`TaxGuide`, linha `COMPANY_TAX`):
+O que a Empresa paga por uma competência: DAS, DARF ou ISS, com valor e
+vencimento, no mês seguinte. Entra nas Saídas de Lançamentos.
+_Avoid_: boleto, imposto (Imposto é o registrado à mão)
 
 ### Avaliação
 
