@@ -2,10 +2,7 @@ import type { BotKey } from '@zapbots/graphql/client';
 import {
   BriefcaseIcon,
   CalendarHeartIcon,
-  ChartColumnIcon,
-  CoinsIcon,
   FolderKanbanIcon,
-  HandCoinsIcon,
   HeartPulseIcon,
   ListTodoIcon,
   ReceiptTextIcon,
@@ -14,6 +11,8 @@ import {
   UserRoundIcon,
   type LucideIcon,
 } from 'lucide-react';
+
+import { CaishenMark } from '../components/Logo';
 
 export interface SectionLink {
   icon: LucideIcon;
@@ -44,7 +43,7 @@ export const TEAM: TeamBot[] = [
     description:
       'Acompanha suas Obrigações de crédito, explica juros e parcelas e devolve análises prontas.',
     field: 'Finanças',
-    icon: CoinsIcon,
+    icon: CaishenMark,
     key: 'FINANCE',
     name: 'Caishen',
     path: '/caishen',
@@ -55,11 +54,7 @@ export const TEAM: TeamBot[] = [
 export const BOT_SECTIONS: Record<BotKey, SectionGroup[]> = {
   FINANCE: [
     {
-      links: [
-        { icon: ReceiptTextIcon, label: 'Lançamentos', to: '/caishen/entries' },
-        { icon: HandCoinsIcon, label: 'Dívidas', to: '/caishen/debts' },
-        { icon: ChartColumnIcon, label: 'Relatório', to: '/caishen/report' },
-      ],
+      links: [{ icon: ReceiptTextIcon, label: 'Lançamentos', to: '/caishen/entries' }],
     },
   ],
 };

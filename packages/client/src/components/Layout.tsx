@@ -8,10 +8,10 @@ import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
 import { ChatPanel, ChatPanelProvider } from './ChatPanel';
 import { PageSkeleton } from './PageSkeleton';
-import { QuickActions } from './QuickActions';
+import type { ProfileUser } from './ProfileMenu';
 
 interface Props {
-  user: { email: string; name: string };
+  user: ProfileUser;
 }
 
 /**
@@ -26,16 +26,15 @@ export function Layout({ user }: Props) {
           className="h-svh flex-col overflow-hidden bg-(image:--header-gradient) print:h-auto print:overflow-visible print:bg-none"
           style={{ '--header-height': '4rem' } as CSSProperties}
         >
-          <AppHeader user={user} />
+          <AppHeader />
           <div className="flex min-h-0 flex-1 px-2 pb-2 md:pl-0 print:p-0">
-            <AppSidebar />
+            <AppSidebar user={user} />
             {/* The screen and the chat panel, one rounded panel inside the frame. */}
             <div className="flex min-w-0 flex-1 overflow-hidden rounded-2xl print:overflow-visible">
               <main className="relative min-w-0 flex-1 overflow-hidden bg-background print:overflow-visible print:bg-white">
                 <Suspense fallback={<PageSkeleton />}>
                   <Outlet />
                 </Suspense>
-                <QuickActions />
               </main>
               <div className="contents print:hidden">
                 <ChatPanel />

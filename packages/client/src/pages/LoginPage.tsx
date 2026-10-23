@@ -69,7 +69,10 @@ export function LoginPage() {
   );
   const [pending, setPending] = useState(false);
   const [methods, setMethods] = useState<Methods>({ google: false, link: 'email' });
-  const [email, setEmail] = useState('');
+  // In development the address comes filled in, so signing in is one click (`VITE_DEV_SIGN_IN_EMAIL`).
+  const [email, setEmail] = useState(
+    import.meta.env.DEV ? (import.meta.env.VITE_DEV_SIGN_IN_EMAIL ?? '') : ''
+  );
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [localLink, setLocalLink] = useState<string | null>(null);
 
@@ -98,7 +101,12 @@ export function LoginPage() {
         body: { email: email.trim() },
         method: 'POST',
       });
-      setLocalLink(data?.url ?? null);
+      // On localhost the link comes back to this page: follow it instead of making the User click.
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      setLocalLink(null);
     }
     setPending(false);
     setSentTo(email.trim());

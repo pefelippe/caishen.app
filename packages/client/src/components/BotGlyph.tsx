@@ -1,11 +1,13 @@
 import type { BotKey } from '@zapbots/graphql/client';
-import { BotIcon, CoinsIcon, type LucideIcon } from 'lucide-react';
+import { BotIcon, type LucideIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
+import { CaishenMark } from './Logo';
+
 /** The icon of each working Bot. */
 const ICONS: Record<BotKey, LucideIcon> = {
-  FINANCE: CoinsIcon,
+  FINANCE: CaishenMark,
 };
 
 interface Props {

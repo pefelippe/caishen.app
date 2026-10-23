@@ -5,6 +5,7 @@ import { Layout, Scrolling } from './components/Layout';
 import { Splash } from './components/Logo';
 import { authClient } from './lib/auth';
 import { isLanguage, useI18n } from './lib/i18n';
+import { useDocumentTitle } from './lib/title';
 import { LoginPage } from './pages/LoginPage';
 
 /** A page loaded on first visit, so the finance screens stay out of the first load. */
@@ -23,14 +24,12 @@ const CreditOperationPage = page(
 );
 const finance = <Name extends string>(name: Name) =>
   page(() => import('./pages/FinancePage') as Promise<Record<Name, ComponentType>>, name);
-const FinanceOverviewPage = finance('FinanceOverviewPage');
+const IncomePage = finance('IncomePage');
 const FixedPage = finance('FixedPage');
-const DebtsPage = finance('DebtsPage');
 const EntriesPage = page(() => import('./pages/EntriesPage'), 'EntriesPage');
+const TaxesPage = page(() => import('./pages/TaxesPage'), 'TaxesPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
-const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
-const DocumentPage = page(() => import('./pages/DocumentPage'), 'DocumentPage');
 const IntegrationsPage = page(() => import('./pages/IntegrationsPage'), 'IntegrationsPage');
 const OrganizationPage = page(() => import('./pages/OrganizationPage'), 'OrganizationPage');
 const PlanPage = page(() => import('./pages/PlanPage'), 'PlanPage');
@@ -42,7 +41,13 @@ function LegacyFinances() {
   return (
     <Navigate
       replace
-      to={hash === '#obligations' ? '/caishen/debts' : `/caishen/entries/fixed${hash}`}
+      to={
+        hash === '#obligations'
+          ? '/caishen/entries/fixed#obligations'
+          : hash === '#income'
+            ? '/caishen/entries/income'
+            : `/caishen/entries/fixed${hash}`
+      }
     />
   );
 }
@@ -57,6 +62,7 @@ export function App() {
   const { data: session, isPending } = authClient.useSession();
   const { setLanguage } = useI18n();
   const language = session?.user.language;
+  useDocumentTitle(Boolean(session));
 
   // Signed in, the User's own language wins over the one this browser remembered.
   useEffect(() => {
@@ -102,40 +108,42 @@ export function App() {
           index
         />
         <Route element={<ChatPage user={session.user} />} path="chat" />
-        {/* Workflows are off until they work end to end; JobsPage and JobPage wait for them. */}
-        <Route element={<Navigate replace to="/" />} path="workflows/*" />
+        {/* Off for now, out of the menu: Workflows (JobsPage, JobPage), Documentos (DocumentsPage,
+            DocumentPage) and Score de crédito (CreditPage) wait here, their addresses sent home. */}
+        {['workflows/*', 'documents/*'].map(path => (
+          <Route element={<Navigate replace to="/" />} key={path} path={path} />
+        ))}
         <Route element={<BotLayout bot="FINANCE" />} path="caishen">
           <Route element={<Navigate replace to="entries" />} index />
           <Route element={<EntriesPage />} path="entries" />
           <Route element={<FixedPage />} path="entries/fixed" />
-          <Route element={<DebtsPage />} path="debts" />
-          <Route element={<FinanceOverviewPage />} path="report" />
-          {/* Old addresses: Visão geral, Mês, Financeiro and its parts. */}
-          <Route element={<Navigate replace to="/caishen/report" />} path="overview" />
+          <Route element={<Navigate replace to="/caishen/entries" />} path="credit" />
+          <Route element={<IncomePage />} path="entries/income" />
+          <Route element={<TaxesPage />} path="entries/taxes" />
+          <Route element={<Navigate replace to="/caishen/entries/income" />} path="income" />
+          {/* Old addresses: Visão geral, Relatório, Mês, Financeiro and its parts. */}
+          {['overview', 'report'].map(path => (
+            <Route element={<Navigate replace to="/caishen/entries" />} key={path} path={path} />
+          ))}
           <Route element={<Navigate replace to="/caishen/entries" />} path="month" />
           <Route element={<LegacyFinances />} path="finances" />
-          {['income', 'taxes'].map(part => (
+          {['taxes'].map(part => (
             <Route
               element={<Navigate replace to={`/caishen/entries/fixed#${part}`} />}
               key={part}
               path={part}
             />
           ))}
-          {['obligations', 'loans', 'financing', 'cards'].map(path => (
-            <Route element={<Navigate replace to="/caishen/debts" />} key={path} path={path} />
+          {['obligations', 'debts', 'loans', 'financing', 'cards'].map(path => (
+            <Route
+              element={<Navigate replace to="/caishen/entries/fixed#obligations" />}
+              key={path}
+              path={path}
+            />
           ))}
           <Route element={<CreditOperationPage />} path="operations/:id" />
           <Route element={<Navigate replace to="/" />} path="jobs/*" />
         </Route>
-        <Route
-          element={
-            <Scrolling>
-              <DocumentsPage />
-            </Scrolling>
-          }
-          path="documents"
-        />
-        <Route element={<DocumentPage />} path="documents/:id" />
         <Route element={<IntegrationsPage />} path="integrations" />
         <Route element={<Navigate replace to="/integrations#ai" />} path="integrations/models" />
         <Route element={<LegacyIntegration />} path="integrations/:group" />

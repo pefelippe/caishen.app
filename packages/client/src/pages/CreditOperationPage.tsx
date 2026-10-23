@@ -7,7 +7,7 @@ import {
   RemoveExtraAmortizationDocument,
   type CreditOperationQuery,
 } from '@zapbots/graphql/client';
-import { XIcon } from 'lucide-react';
+import { PencilIcon, XIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 
 import { BackLink } from '../components/BackLink';
+import { EditRecordDialog } from '../components/EditRecordDialog';
 import { FormError } from '../components/FormError';
 import { InstallmentStatusCell } from '../components/InstallmentStatusCell';
 import { Metric, Metrics } from '../components/Metric';
@@ -37,6 +38,7 @@ export function CreditOperationPage() {
   const navigate = useNavigate();
   const { data, loading } = useQuery(CreditOperationDocument, { variables: { id: id! } });
   const [remove] = useMutation(DeleteCreditOperationDocument);
+  const [editing, setEditing] = useState(false);
 
   if (loading) return <PageSkeleton />;
   const operation = data?.creditOperation;
@@ -47,8 +49,8 @@ export function CreditOperationPage() {
   const vsMarket = market ? operation.monthlyRate / market.monthlyRate - 1 : null;
 
   // Back to the section the Operation is listed in.
-  const section = '/caishen/debts';
-  const sectionLabel = 'Dívidas';
+  const section = '/caishen/entries/fixed#obligations';
+  const sectionLabel = 'Saídas fixas';
 
   const onDelete = async () => {
     await remove({ variables: { id: operation.id } });
@@ -59,13 +61,28 @@ export function CreditOperationPage() {
     <div className="flex flex-col gap-8" data-bot="FINANCE">
       <div>
         <BackLink to={section}>{sectionLabel}</BackLink>
-        <h1>{operation.name}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1>{operation.name}</h1>
+          <Button onClick={() => setEditing(true)} variant="outline">
+            <PencilIcon />
+            Editar
+          </Button>
+        </div>
         <p className="text-muted-foreground">
           {operation.modalityLabel}
           {operation.lender ? ` · ${operation.lender}` : ''} · {operation.system}
           {operation.collateralDescription ? ` · Bem: ${operation.collateralDescription}` : ''}
         </p>
       </div>
+
+      {editing && (
+        <EditRecordDialog
+          id={operation.id}
+          kind="CREDIT_OPERATION"
+          onClose={() => setEditing(false)}
+          title={operation.name}
+        />
+      )}
 
       <Metrics>
         <Metric label="Valor financiado" value={formatCents(operation.principalCents)} />

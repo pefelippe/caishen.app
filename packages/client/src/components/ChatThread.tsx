@@ -6,7 +6,7 @@ import {
   type MessageFieldsFragment,
 } from '@zapbots/graphql/client';
 import { ArrowUpIcon, type LucideIcon } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { Fragment, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,10 @@ import { cn } from '@/lib/utils';
 
 import { streamChat } from '../lib/chat';
 import { BotGlyph } from './BotGlyph';
+import { ChatText } from './ChatText';
 import { FormError } from './FormError';
 import { Logo } from './Logo';
+import { ProposalCard } from './ProposalCard';
 
 /** A question offered while the Conversation is empty; the page shows each with its icon. */
 export interface Suggestion {
@@ -150,7 +152,7 @@ export function ChatThread({
     <div className={cn('flex min-h-0 flex-col', className)}>
       <div
         className={cn(
-          'flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1',
+          'flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1 [scrollbar-width:none]',
           page && 'mx-auto w-full max-w-3xl px-4 pt-8'
         )}
       >
@@ -197,7 +199,12 @@ export function ChatThread({
           </div>
         )}
         {messages.map(message => (
-          <Bubble bot={bot} key={message.id} message={message} />
+          <Fragment key={message.id}>
+            <Bubble bot={bot} message={message} />
+            {message.proposals.map(proposal => (
+              <ProposalCard key={proposal.id} proposal={proposal} />
+            ))}
+          </Fragment>
         ))}
         {pending && (
           <>
@@ -216,8 +223,9 @@ export function ChatThread({
           >
             <Textarea
               aria-label={`Mensagem para ${bot.name}`}
+              data-chat-input
               className="max-h-48 min-h-12 resize-none border-0 bg-transparent px-1 text-base shadow-none focus-visible:ring-0"
-              disabled={Boolean(pending) || Boolean(unavailable)}
+              disabled={Boolean(unavailable)}
               onChange={event => setDraft(event.target.value)}
               onKeyDown={onKeyDown}
               placeholder={`Escreva para ${bot.name}…`}
@@ -247,8 +255,9 @@ export function ChatThread({
         <form className="relative mt-3 shrink-0" onSubmit={onSubmit}>
           <Textarea
             aria-label={`Mensagem para ${bot.name}`}
+            data-chat-input
             className="max-h-40 min-h-[4.25rem] resize-none bg-card pr-11"
-            disabled={Boolean(pending)}
+            disabled={Boolean(unavailable)}
             onChange={event => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={`Escreva para ${bot.name}…`}
@@ -287,7 +296,7 @@ function Bubble({ bot, message }: BubbleProps) {
   return (
     <div className="flex gap-2.5">
       <BotGlyph bot={bot.key} className="mt-0.5" size={22} />
-      <p className="min-w-0 leading-relaxed whitespace-pre-wrap">{message.content}</p>
+      <ChatText text={message.content} />
     </div>
   );
 }

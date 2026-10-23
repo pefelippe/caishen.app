@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 
 import { formatCents } from '../lib/format';
+import { QueryError } from './QueryError';
 import { Sheet } from './Sheet';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -41,16 +42,25 @@ const compact = new Intl.NumberFormat('pt-BR', {
 });
 
 /**
- * The Relatório's charts: six months of Receitas against Compromissos and Gastos, where the
+ * The Visão geral's charts: six months of Receitas against Compromissos and Gastos, where the
  * Gastos go, and what is owed on each Credit Operation. Every chart has its numbers in a table too.
  */
 export function ReportCharts({ holderId }: { holderId: string }) {
-  const { data } = useQuery(ReportDocument, {
+  const { data, error, refetch } = useQuery(ReportDocument, {
+    errorPolicy: 'all',
     fetchPolicy: 'cache-and-network',
     variables: { holderId },
   });
   const holder = data?.holder;
-  if (!holder) return null;
+  if (!holder) {
+    return error ? (
+      <QueryError
+        error={error}
+        onRetry={() => refetch()}
+        title="Não foi possível carregar os gráficos dos últimos meses"
+      />
+    ) : null;
+  }
   const months = holder.months;
 
   const categories = Object.entries(
@@ -70,35 +80,38 @@ export function ReportCharts({ holderId }: { holderId: string }) {
     .sort((a, b) => b[1] - a[1]);
 
   return (
-    <>
+    <div className="grid gap-4 xl:grid-cols-3">
       <Sheet
+        className="xl:col-span-2"
         id="months"
         intro="O que entrou contra o que saiu, mês a mês, nos últimos seis meses."
         title="Receitas e saídas"
       >
         <MonthsChart months={months} />
       </Sheet>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <Sheet
+        id="debts"
+        intro="O que falta pagar de cada empréstimo e financiamento."
+        title="Dívidas"
+      >
+        {debts.length ? (
+          <Bars color="#eb6834" rows={debts} />
+        ) : (
+          <p className="text-muted-foreground">Nenhum empréstimo ou financiamento em aberto.</p>
+        )}
+      </Sheet>
+      {/* Only once there are Gastos: an empty chart says nothing. */}
+      {categories.length > 0 && (
         <Sheet
+          className="xl:col-span-3"
           id="categories"
           intro="Para onde foram os Gastos nos últimos seis meses."
           title="Gastos por categoria"
         >
-          {categories.length ? (
-            <Bars color="#1baf7a" rows={categories} />
-          ) : (
-            <p className="text-muted-foreground">Nenhum gasto registrado ainda.</p>
-          )}
+          <Bars color="#1baf7a" rows={categories} />
         </Sheet>
-        <Sheet id="debts" intro="O Saldo Devedor de cada Operação de Crédito hoje." title="Dívidas">
-          {debts.length ? (
-            <Bars color="#eb6834" rows={debts} />
-          ) : (
-            <p className="text-muted-foreground">Nenhuma Operação de Crédito em aberto.</p>
-          )}
-        </Sheet>
-      </div>
-    </>
+      )}
+    </div>
   );
 }
 

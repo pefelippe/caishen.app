@@ -11,93 +11,23 @@ import { useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 import { connectDrive, pickerConfigured } from '../lib/drive';
+import { INTEGRATION_GROUPS } from '../lib/integrations';
 import { matches } from '../lib/search';
 import { ModelsList } from '../pages/ModelsPage';
 import { FormError } from './FormError';
 import { PageSkeleton } from './PageSkeleton';
-import { Sheet, SheetRow } from './Sheet';
+import { SheetRow } from './Sheet';
 
 type Connection = ConnectionsQuery['connections'][number];
-
-/** An Integration still to come, listed disabled so the User sees where the team is going. */
-interface Upcoming {
-  description: string;
-  name: string;
-}
-
-/** A kind of tool the Bots can enter, with the Integrations that already work for it. */
-interface IntegrationGroup {
-  description: string;
-  /** Anchor of the group on the page. */
-  id: string;
-  /** Integrations that already work, by their kind on the server. */
-  kinds: ConnectionKind[];
-  title: string;
-  upcoming: Upcoming[];
-}
-
-export const INTEGRATION_GROUPS: IntegrationGroup[] = [
-  {
-    description: 'O Modelo de linguagem que o Caishen usa. Só os gratuitos, pelo OpenRouter.',
-    id: 'ai',
-    kinds: [],
-    title: 'Modelos de IA',
-    upcoming: [
-      { description: 'Os Modelos Claude com a sua própria chave.', name: 'Anthropic' },
-      { description: 'Os Modelos GPT com a sua própria chave.', name: 'OpenAI' },
-      { description: 'Os Modelos Gemini com a sua própria chave.', name: 'Google AI' },
-    ],
-  },
-  {
-    description: 'Os arquivos que você entrega ao Caishen para ele ler.',
-    id: 'files',
-    kinds: ['GOOGLE_DRIVE'],
-    title: 'Arquivos',
-    upcoming: [
-      { description: 'Arquivos do OneDrive, só leitura.', name: 'OneDrive' },
-      { description: 'Arquivos do Dropbox, só leitura.', name: 'Dropbox' },
-      { description: 'Arquivos do Box, só leitura.', name: 'Box' },
-    ],
-  },
-  {
-    description: 'Para o Caishen ler faturas, extratos e avisos que chegam por e-mail.',
-    id: 'email',
-    kinds: [],
-    title: 'E-mail',
-    upcoming: [
-      { description: 'Lê os e-mails dos bancos e das contas, sem enviar nada.', name: 'Gmail' },
-      { description: 'Lê os e-mails do Outlook, sem enviar nada.', name: 'Outlook' },
-    ],
-  },
-  {
-    description: 'Para o Caishen acompanhar prazos e vencimentos.',
-    id: 'agenda',
-    kinds: [],
-    title: 'Agenda',
-    upcoming: [
-      { description: 'Lê seus eventos para lembrar o que vence.', name: 'Google Agenda' },
-      { description: 'Lê seus eventos do Outlook.', name: 'Outlook Agenda' },
-    ],
-  },
-  {
-    description: 'Seus dados financeiros direto das instituições, com o seu consentimento.',
-    id: 'bancos',
-    kinds: [],
-    title: 'Bancos',
-    upcoming: [
-      {
-        description: 'Contas, cartões e empréstimos pelo Open Finance, só leitura.',
-        name: 'Open Finance',
-      },
-      {
-        description: 'O relatório do SCR do Bacen, lido sozinho a partir do PDF.',
-        name: 'Registrato',
-      },
-    ],
-  },
-];
 
 const COPY: Record<ConnectionKind, { description: string; name: string }> = {
   GOOGLE_DRIVE: {
@@ -119,23 +49,50 @@ function Status({ connection }: { connection: Connection }) {
   return <Badge variant="secondary">disponível</Badge>;
 }
 
+/** Which Integrations to show: all of them, those that work today, or those still to come. */
+type StatusFilter = 'ALL' | 'LIVE' | 'UPCOMING';
+
 /**
- * Integrações: the tools the Caishen enters for you, one sheet per kind, the Models under
- * OpenRouter, and a search over all of it.
+ * Integrações: the tools the Caishen enters for you. A bar to search and to narrow by status, then one list per kind (each also in the menu, under Integrações), with what works first
+ * and in full, and what is still to come in one line each.
  */
 export function ConnectionsSettings() {
   const { hash } = useLocation();
   const { data, loading } = useQuery(ConnectionsDocument, { fetchPolicy: 'cache-and-network' });
   const [error, setError] = useState<string | null>(null);
   const [term, setTerm] = useState('');
+  const [status, setStatus] = useState<StatusFilter>('ALL');
   const ready = Boolean(data);
   // Opened on one part (an old link, the chat): bring it into view once it is there.
   useEffect(() => {
     if (ready && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
   }, [hash, ready]);
 
-  if (loading && !data) return <PageSkeleton />;
   const search = term.trim().toLocaleLowerCase('pt-BR');
+  const shown = INTEGRATION_GROUPS.map(group => {
+    const groupMatches = matches(search, group.title, group.description);
+    const live =
+      status === 'UPCOMING'
+        ? []
+        : group.kinds
+            .map(kind => data?.connections.find(item => item.kind === kind))
+            .filter((item): item is Connection => Boolean(item))
+            .filter(
+              item =>
+                groupMatches || matches(search, COPY[item.kind].name, COPY[item.kind].description)
+            );
+    const upcoming =
+      status === 'LIVE'
+        ? []
+        : group.upcoming.filter(
+            item => groupMatches || matches(search, item.name, item.description)
+          );
+    // The Models are found by Bot or Model name too, so they show unless only "em breve" is asked.
+    const models = group.id === 'ai' && status !== 'UPCOMING';
+    return { group, live, models, search: groupMatches ? '' : search, upcoming };
+  }).filter(({ live, models, upcoming }) => live.length || upcoming.length || models);
+
+  if (loading && !data) return <PageSkeleton />;
 
   const connect = async () => {
     setError(null);
@@ -143,89 +100,164 @@ export function ConnectionsSettings() {
     setError(await connectDrive());
   };
 
-  const sheets = INTEGRATION_GROUPS.map(group => {
-    const groupMatches = matches(search, group.title, group.description);
-    const live = group.kinds
-      .map(kind => data?.connections.find(item => item.kind === kind))
-      .filter((item): item is Connection => Boolean(item))
-      .filter(
-        item => groupMatches || matches(search, COPY[item.kind].name, COPY[item.kind].description)
-      );
-    const upcoming = group.upcoming.filter(
-      item => groupMatches || matches(search, item.name, item.description)
-    );
-    // The Models are found by Bot or Model name too, so they can match on their own.
-    const models = group.id === 'ai';
-    if (!live.length && !upcoming.length && !models) return null;
-    return { group, live, models, search: groupMatches ? '' : search, upcoming };
-  }).filter(sheet => sheet !== null);
+  const connectedCount = data?.connections.filter(item => item.connected).length ?? 0;
+  const upcomingCount = INTEGRATION_GROUPS.reduce(
+    (total, group) => total + group.upcoming.length,
+    0
+  );
+  const filtered = Boolean(search) || status !== 'ALL';
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1>Integrações</h1>
-          <p className="mt-1 max-w-prose text-muted-foreground">
-            As ferramentas em que o Caishen entra por você. Ele só lê: nada é alterado lá fora.
-          </p>
-        </div>
-        <div className="relative w-full md:max-w-sm">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
+      <header className="flex flex-col gap-1">
+        <h1>Integrações</h1>
+        <p className="max-w-prose text-muted-foreground">
+          As ferramentas em que o Caishen entra por você. Ele só lê: nada é alterado lá fora.{' '}
+          <span className="text-foreground tabular-nums">
+            {connectedCount} {connectedCount === 1 ? 'conectada' : 'conectadas'}, {upcomingCount} em
+            breve.
+          </span>
+        </p>
+      </header>
+
+      {/* Search and the two filters, together, so narrowing the page is one place. */}
+      <div className="flex flex-col gap-2 rounded-2xl bg-card p-3 sm:flex-row sm:items-center">
+        <div className="relative sm:flex-1">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Pesquisar integrações e Modelos"
-            className="h-11 rounded-full border-0 bg-card pl-10"
+            className="h-10 rounded-full bg-secondary/60 pl-10 shadow-none"
             onChange={event => setTerm(event.target.value)}
-            placeholder="Pesquisar integrações e Modelos"
+            placeholder="Pesquisar: Drive, e-mail, Modelo…"
             type="search"
             value={term}
           />
         </div>
-      </header>
+        <FilterSelect
+          label="Situação"
+          onChange={setStatus}
+          options={[
+            { label: 'Todas', value: 'ALL' as const },
+            { label: 'Funcionando', value: 'LIVE' as const },
+            { label: 'Em breve', value: 'UPCOMING' as const },
+          ]}
+          value={status}
+        />
+      </div>
 
-      {sheets.map(({ group, live, models, search: within, upcoming }) => (
-        <Sheet id={group.id} intro={group.description} key={group.id} title={group.title}>
-          {live.length > 0 && (
-            <ul className="flex flex-col gap-2">
-              {live.map(connection => (
-                <SheetRow
-                  action={<Action connection={connection} onConnect={() => void connect()} />}
-                  detail={<Status connection={connection} />}
-                  key={connection.kind}
-                  name={COPY[connection.kind].name}
-                >
-                  <p className="max-w-prose">{COPY[connection.kind].description}</p>
-                  <Details connection={connection} />
-                </SheetRow>
-              ))}
-            </ul>
-          )}
-          {models && <ModelsList search={within} />}
-          {upcoming.length > 0 && (
-            <ul aria-label="Em breve" className="grid gap-2 md:grid-cols-2">
-              {upcoming.map(item => (
-                <SheetRow
-                  action={
-                    <Button disabled size="sm" variant="outline">
-                      Conectar
-                    </Button>
-                  }
-                  className="opacity-60 hover:bg-secondary/60"
-                  detail={<Badge variant="outline">em breve</Badge>}
-                  key={item.name}
-                  name={item.name}
-                >
-                  <p className="text-sm">{item.description}</p>
-                </SheetRow>
-              ))}
-            </ul>
-          )}
-        </Sheet>
-      ))}
-      {search && !sheets.length && (
-        <p className="text-muted-foreground">Nada encontrado para “{term.trim()}”.</p>
+      {!shown.length ? (
+        <div className="flex flex-col items-start gap-3 rounded-2xl bg-card p-8">
+          <p>
+            Nenhuma integração encontrada
+            {search ? ` para “${term.trim()}”` : ' com esses filtros'}.
+          </p>
+          <Button
+            onClick={() => {
+              setTerm('');
+              setStatus('ALL');
+            }}
+            size="sm"
+            variant="outline"
+          >
+            Limpar filtros
+          </Button>
+        </div>
+      ) : (
+        <div className="flex min-w-0 flex-col gap-8">
+          {shown.map(({ group, live, models, search: within, upcoming }) => {
+            return (
+              <section
+                aria-labelledby={`${group.id}-title`}
+                className="flex scroll-mt-6 flex-col gap-3"
+                id={group.id}
+                key={group.id}
+              >
+                <div className="flex flex-col gap-0.5">
+                  <h2 className="text-xl font-semibold tracking-tight" id={`${group.id}-title`}>
+                    {group.title}
+                  </h2>
+                  <p className="max-w-prose text-muted-foreground">{group.description}</p>
+                </div>
+                <div className="flex flex-col gap-2 rounded-2xl bg-card p-2">
+                  {live.length > 0 && (
+                    <ul className="flex flex-col gap-2">
+                      {live.map(connection => (
+                        <SheetRow
+                          action={
+                            <Action connection={connection} onConnect={() => void connect()} />
+                          }
+                          detail={<Status connection={connection} />}
+                          key={connection.kind}
+                          name={COPY[connection.kind].name}
+                        >
+                          <p className="max-w-prose">{COPY[connection.kind].description}</p>
+                          <Details connection={connection} />
+                        </SheetRow>
+                      ))}
+                    </ul>
+                  )}
+                  {models && <ModelsList search={within} />}
+                  {upcoming.length > 0 && (
+                    <ul aria-label="Em breve" className="flex flex-col">
+                      {upcoming.map(item => (
+                        <li
+                          className="flex flex-col gap-0.5 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+                          key={item.name}
+                        >
+                          <span className="font-medium sm:w-36 sm:shrink-0">{item.name}</span>
+                          <span className="text-sm text-muted-foreground">{item.description}</span>
+                          <Badge className="self-start sm:ml-auto sm:self-center" variant="outline">
+                            em breve
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+      {filtered && shown.length > 0 && (
+        <p className="sr-only" role="status">
+          {shown.length} tipos de integração com esses filtros.
+        </p>
       )}
       {error && <FormError message={error} />}
     </div>
+  );
+}
+
+/** One filter of the bar: its name inside, then the choice. */
+function FilterSelect<T extends string>({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: T) => void;
+  options: { label: string; value: T }[];
+  value: T;
+}) {
+  return (
+    <Select onValueChange={next => onChange(next as T)} value={value}>
+      <SelectTrigger
+        aria-label={label}
+        className="h-10 w-full rounded-full bg-secondary/60 shadow-none lg:w-52"
+      >
+        <span className="text-muted-foreground">{label}:</span>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map(option => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

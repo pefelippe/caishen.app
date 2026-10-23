@@ -1,21 +1,29 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, type ProxyOptions } from 'vite';
+import { defineConfig, loadEnv, type ProxyOptions } from 'vite';
 
-const serverUrl = process.env.SERVER_URL ?? 'http://localhost:4000';
+// One `.env` for the whole repo; only `VITE_`-prefixed variables reach the browser.
+const envDir = fileURLToPath(new URL('../..', import.meta.url));
 
-/** Same origin for API and auth, so the session cookie reaches both. */
-const proxy: Record<string, ProxyOptions> = {
-  '/api': { changeOrigin: false, target: serverUrl },
-  '/graphql': { changeOrigin: false, target: serverUrl },
-};
+export default defineConfig(({ mode }) => {
+  // The proxy runs here in Node, so read the server's address from the same `.env` it uses.
+  const env = { ...loadEnv(mode, envDir, ''), ...process.env };
+  const serverUrl = env.SERVER_URL ?? `http://localhost:${env.SERVER_PORT ?? 4000}`;
+  // Serve where the server expects the client, or Better Auth refuses the sign-in as untrusted.
+  const port = Number(new URL(env.CLIENT_ORIGIN ?? 'http://localhost:5173').port) || 5173;
 
-export default defineConfig({
-  // One `.env` for the whole repo; only `VITE_`-prefixed variables reach the browser.
-  envDir: fileURLToPath(new URL('../..', import.meta.url)),
-  plugins: [react(), tailwindcss()],
-  preview: { host: true, port: 5173, proxy },
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  server: { port: 5173, proxy },
+  /** Same origin for API and auth, so the session cookie reaches both. */
+  const proxy: Record<string, ProxyOptions> = {
+    '/api': { changeOrigin: false, target: serverUrl },
+    '/graphql': { changeOrigin: false, target: serverUrl },
+  };
+
+  return {
+    envDir,
+    plugins: [react(), tailwindcss()],
+    preview: { host: true, port, proxy },
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+    server: { port, proxy, strictPort: true },
+  };
 });

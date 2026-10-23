@@ -12,21 +12,23 @@ const EASE = [0.22, 1, 0.36, 1] as const;
  */
 export function Sheet({
   children,
+  className,
   id,
   intro,
   title,
   total,
 }: {
   children: ReactNode;
+  className?: string;
   id: string;
   intro: ReactNode;
-  title: string;
+  title: ReactNode;
   total?: ReactNode;
 }) {
   return (
     <motion.section
       aria-labelledby={`${id}-title`}
-      className="flex scroll-mt-6 flex-col gap-6 rounded-2xl bg-card p-6 md:p-8"
+      className={cn('flex scroll-mt-6 flex-col gap-6 rounded-2xl bg-card p-6 md:p-8', className)}
       id={id}
       initial={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.55, ease: EASE }}

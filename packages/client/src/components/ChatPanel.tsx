@@ -45,6 +45,22 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
   const [blank, setBlank] = useState(0);
   const [firstMessage, setFirstMessage] = useState<string>();
 
+  // ⌘K (Ctrl+K elsewhere) opens the chat from anywhere, ready to type.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'k' || !(event.metaKey || event.ctrlKey)) return;
+      event.preventDefault();
+      setOpen(true);
+      // The panel may still be mounting; focus its input once it is there.
+      setTimeout(
+        () => document.querySelector<HTMLTextAreaElement>('[data-chat-input]')?.focus(),
+        60
+      );
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, open ? 'open' : 'closed');
@@ -107,7 +123,7 @@ export function ChatPanel() {
         <motion.aside
           animate={shown}
           aria-label={t('chat.panel')}
-          className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-background md:static md:z-auto md:shrink-0 md:border-l"
+          className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-card md:static md:z-auto md:shrink-0 md:border-l"
           exit={hidden}
           initial={hidden}
           key="chat"

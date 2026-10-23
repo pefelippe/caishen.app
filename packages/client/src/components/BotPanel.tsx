@@ -73,11 +73,11 @@ export function BotPanel({
 
   return (
     <section className={cn('flex min-h-0 flex-col gap-4', className)} data-bot={key}>
-      <header className="flex items-center gap-3 border-b border-ink/40 pb-3">
-        <BotGlyph bot={key} size={40} />
+      <header className="flex items-center gap-3">
+        <BotGlyph bot={key} size={32} />
         <div className="min-w-0 flex-1 leading-tight">
-          <div className="font-serif text-xl">{bot.name}</div>
-          <div className="text-xs text-muted-foreground">Converse sobre o que está na tela</div>
+          <div className="font-semibold">{bot.name}</div>
+          <div className="truncate text-xs text-muted-foreground">Sobre o que está na tela</div>
         </div>
         {Boolean(list?.conversations.length) && (
           <DropdownMenu>

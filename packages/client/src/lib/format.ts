@@ -8,6 +8,12 @@ const percent = new Intl.NumberFormat('pt-BR', {
 export const formatCents = (cents: number | null | undefined) =>
   cents == null ? '—' : brl.format(cents / 100);
 
+const usd = new Intl.NumberFormat('pt-BR', { currency: 'USD', style: 'currency' });
+
+/** Dollar cents as "US$ 2.500,00". */
+export const formatDollars = (cents: number | null | undefined) =>
+  cents == null ? '—' : usd.format(cents / 100);
+
 export const formatPercent = (ratio: number | null | undefined) =>
   ratio == null ? '—' : percent.format(ratio);
 
