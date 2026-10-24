@@ -11,6 +11,7 @@ import {
   completionHandler,
   modelListHandler,
   mswServer,
+  textOf,
   type Completion,
 } from '../../test/msw/openrouter';
 import app from '../app';
@@ -196,7 +197,7 @@ describe('talking to the Caishen', () => {
       ]
     );
     // The WhatsApp rules are in the prompt.
-    expect(String(log[0]!.messages[0]!.content)).toContain('WhatsApp');
+    expect(textOf(log[0]!.messages[0])).toContain('WhatsApp');
     expect(sent[0]!.text).toBe('Anotei o *mercado*, confira:');
     expect(sent[1]!.text).toContain('Adicionar Gasto');
     expect(sent[1]!.buttons?.map(item => item.title)).toEqual(['Confirmar', 'Cancelar']);

@@ -1,0 +1,25 @@
+{
+  "name": "@zapbots/ai",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The engine Bots talk to Models through: providers, the Model catalog, tools and the agent loop. No database and no domain.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint:tsc": "tsc",
+    "test:unit": "vitest --run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "4.0.87",
+    "@ai-sdk/google": "4.0.104",
+    "@ai-sdk/openai": "4.0.101",
+    "@openrouter/ai-sdk-provider": "3.1.0",
+    "ai": "7.0.150",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@zapbots/typescript-config": "workspace:*",
+    "vitest": "4.1.10"
+  }
+}

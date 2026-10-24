@@ -10,6 +10,7 @@ import {
   modelListHandler,
   MODEL_WITHOUT_TOOLS,
   mswServer,
+  textOf,
   type Completion,
 } from '../../test/msw/openrouter';
 import { ensureBots } from '../services/bots/catalog';
@@ -305,7 +306,7 @@ describe('records proposed in the chat', () => {
 
     expect(log[0]!.tools).toBeDefined();
     expect(log[1]!.tools).toBeUndefined();
-    expect(log[1]!.messages[0]!.content).toContain('Você só lê');
+    expect(textOf(log[1]!.messages[0])).toContain('Você só lê');
     const { data } = await gql(viewer, CONVERSATION, { id: conversationId });
     expect(data.conversation.messages.at(-1).role).toBe('BOT');
   });
@@ -323,7 +324,7 @@ describe('records proposed in the chat', () => {
     ]);
 
     expect(log[0]!.tools).toBeUndefined();
-    expect(log[0]!.messages[0]!.content).toContain('Você só lê');
+    expect(textOf(log[0]!.messages[0])).toContain('Você só lê');
   });
 
   it('proposes a correction to a saved Gasto and writes it only on confirmation', async () => {
@@ -349,7 +350,7 @@ describe('records proposed in the chat', () => {
       },
       { text: 'Pronto, confira abaixo.' },
     ]);
-    expect(log[0]!.messages[0]!.content).toContain(`EXPENSE ${expense!.id}`);
+    expect(textOf(log[0]!.messages[0])).toContain(`EXPENSE ${expense!.id}`);
 
     const [proposal] = await proposalsOf(viewer, conversationId);
     expect(proposal).toMatchObject({ action: 'UPDATE', kind: 'EXPENSE', status: 'PENDING' });

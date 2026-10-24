@@ -55,6 +55,7 @@ Tudo em containers: `docker compose up --build`.
 | `RESEND_API_KEY`, `EMAIL_FROM` | link de acesso enviado por e-mail | o link aparece no terminal do servidor |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | login com Google | sem o botão do Google |
 | `OPENROUTER_API_KEY` | Bots com IA | Bots em silêncio |
+| `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY` | Modelos direto do provedor (ADR 0021) | Só os Modelos do OpenRouter |
 | `VITE_GOOGLE_API_KEY`, `VITE_GOOGLE_APP_ID` | seletor de arquivos do Google Drive | Integração com o Drive desligada |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO`, `STRIPE_WEBHOOK_SECRET` | Plano Pro | tudo no Plano Gratuito |
 

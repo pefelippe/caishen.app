@@ -38,6 +38,16 @@ export interface CompletionRequest {
   tools?: { function: { name: string } }[];
 }
 
+/**
+ * The text of a request message, whether its content came as a string or as text parts (the AI
+ * SDK sends system messages as parts).
+ */
+export function textOf(message: CompletionRequest['messages'][number] | undefined): string {
+  const content = message?.content;
+  if (typeof content === 'string') return content;
+  return (content ?? []).map(part => (typeof part.text === 'string' ? part.text : '')).join('');
+}
+
 /** What a faked completion answers: text, text arriving slowly, a tool call, or an HTTP failure. */
 export type Completion =
   | { text: string }
@@ -71,7 +81,12 @@ function stream(completion: Extract<Completion, { text: string } | { tool: strin
       : [
           {
             tool_calls: [
-              { function: { arguments: '', name: completion.tool }, id: 'call-1', index: 0 },
+              {
+                function: { arguments: '', name: completion.tool },
+                id: 'call-1',
+                index: 0,
+                type: 'function',
+              },
             ],
           },
           {

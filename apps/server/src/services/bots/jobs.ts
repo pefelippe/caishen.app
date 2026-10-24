@@ -4,11 +4,14 @@ import { waitUntil } from '@vercel/functions';
 import { and, eq, inArray, lt } from 'drizzle-orm';
 
 import { attachmentText } from '../drive';
-import { defaultModel, ModelError, streamCompletion } from '../models';
+import { defaultModel, listModels, ModelError, talk } from '../models';
 import { botPrompt } from './prompt';
+import { READ_AGENT_TOOLS, runReadTool } from './tools';
 
 const MAX_ATTACHMENTS = 5;
 const PROGRESS_MS = 1000;
+/** Tool rounds a Job may read in before it writes the Deliverable. */
+const JOB_TOOL_ROUNDS = 6;
 const IN_PROGRESS: ('QUEUED' | 'RUNNING')[] = ['QUEUED', 'RUNNING'];
 /** Past this a Job on Vercel is dead: its function's `maxDuration` (vercel.json) is 5 minutes. */
 const STALE_MS = 10 * 60_000;
@@ -151,22 +154,29 @@ export async function runJob(viewer: Viewer, jobId: string): Promise<void> {
         )
         .catch(() => undefined);
     };
+    const listed = await listModels();
     const messages = [
-      { content: await botPrompt(viewer, bot, { mode: 'job' }), role: 'system' as const },
       { content: [job.instructions, ...files].join('\n\n'), role: 'user' as const },
     ];
     let model = models[0]!;
     for (const [index, candidate] of models.entries()) {
       model = candidate;
       try {
-        await streamCompletion({
+        // A Job reads and simulates with tools but proposes nothing: a Proposta needs a Conversa
+        // to be confirmed in (docs/adr/0021).
+        const canRead = listed.find(entry => entry.id === model)?.supportsTools ?? true;
+        await talk(model, {
+          execute: call => runReadTool(viewer, call),
+          instructions: await botPrompt(viewer, bot, { canRead, mode: 'job' }),
           messages,
-          model,
           onText: text => {
             deliverable += text;
             if (Date.now() - savedAt >= PROGRESS_MS) saveProgress();
           },
           signal: abort.signal,
+          toolRounds: JOB_TOOL_ROUNDS,
+          tools: canRead ? READ_AGENT_TOOLS : undefined,
+          withoutTools: () => botPrompt(viewer, bot, { mode: 'job' }),
         });
         break;
       } catch (error) {

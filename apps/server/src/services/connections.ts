@@ -1,11 +1,12 @@
+import { keysFromEnv } from '@zapbots/ai';
 import type { Viewer } from '@zapbots/auth';
 import { db, schema } from '@zapbots/database';
 import type { ConnectionCategory, ConnectionKind } from '@zapbots/graphql/server';
 import { and, eq } from 'drizzle-orm';
 
 import { driveConnected, googleConfigured } from './drive';
+import { defaultModel, listModels } from './models';
 import { bankLinks, openFinanceUnavailable } from './openFinance';
-import * as openrouter from './openrouter';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
 import { whatsappConfigured } from './whatsapp/meta';
 
@@ -28,7 +29,7 @@ const openRouter: Provider = {
   kind: 'OPENROUTER',
   // One key on the server serves every User (docs/adr/0009), so there is nothing to connect here.
   status: async () => {
-    if (!openrouter.aiConfigured()) {
+    if (!keysFromEnv().openrouter) {
       return {
         available: true,
         connected: false,
@@ -36,12 +37,12 @@ const openRouter: Provider = {
         unavailableReason: 'O servidor está sem a chave do OpenRouter (OPENROUTER_API_KEY).',
       };
     }
-    const models = await openrouter.listModels();
+    const models = await listModels();
     return {
       available: true,
       connected: true,
       detail: models.length
-        ? `${models.length} Modelos, ${models.filter(model => model.free).length} gratuitos. Padrão: ${await openrouter.defaultModel()}.`
+        ? `${models.length} Modelos, ${models.filter(model => model.free).length} gratuitos. Padrão: ${await defaultModel()}.`
         : 'O OpenRouter não respondeu à lista de Modelos.',
       unavailableReason: null,
     };

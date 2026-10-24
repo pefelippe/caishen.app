@@ -8,13 +8,14 @@ import {
   defaultModel,
   listModels,
   ModelError,
-  streamCompletion,
-  type ChatMessage,
+  talk,
+  type ModelMessage,
 } from '../models';
 import { attachedNote, userContent, type ChatAttachment } from './attachments';
 import { CATALOG } from './catalog';
 import { botPrompt } from './prompt';
 import { attachProposals, PROPOSAL_TOOLS, proposalNote, proposeFromToolCall } from './proposals';
+import { isReadTool, READ_AGENT_TOOLS, runReadTool } from './tools';
 
 const HISTORY = 20;
 
@@ -28,8 +29,8 @@ const withoutNotes = (reply: string) =>
     .filter(line => !NOTE.test(line))
     .join('\n')
     .trim();
-/** Tool rounds in one reply before the Model must answer in text. */
-const TOOL_ROUNDS = 3;
+/** Tool rounds in one reply before the Model must answer in text: reading takes a few. */
+const TOOL_ROUNDS = 6;
 const DEFAULT_TITLE = 'Nova conversa';
 
 export type ChatEvent =
@@ -110,9 +111,10 @@ export async function replyInConversation(options: {
         )
     : [];
 
-  // Models that cannot call tools still chat; they just cannot propose records (docs/adr/0013).
+  // Models that cannot call tools still chat; they just cannot read with tools or propose records
+  // (docs/adr/0013, 0021).
   const listed = (await listModels()).find(entry => entry.id === model);
-  let canPropose = listed?.supportsTools ?? true;
+  const canUseTools = listed?.supportsTools ?? true;
   if (listed && !listed.readsImages && attachments.some(file => file.kind === 'IMAGE')) {
     throw new ChatError(
       `O Modelo de ${CATALOG[bot.key].name} não lê imagens. Escolha um com visão em Integrações, ou mande o texto.`
@@ -134,12 +136,14 @@ export async function replyInConversation(options: {
     })
     .where(eq(schema.conversation.id, conversation.id));
 
-  const messages: ChatMessage[] = [
-    {
-      content: await botPrompt(viewer, bot, { canPropose, mode, screen: options.screen }),
-      role: 'system',
-    },
-    ...history.flatMap((message): ChatMessage[] => {
+  const instructions = await botPrompt(viewer, bot, {
+    canPropose: canUseTools,
+    canRead: canUseTools,
+    mode,
+    screen: options.screen,
+  });
+  const messages: ModelMessage[] = [
+    ...history.flatMap((message): ModelMessage[] => {
       if (message.role === 'USER') {
         return [{ content: message.content + attachedNote(message.attachments), role: 'user' }];
       }
@@ -161,46 +165,31 @@ export async function replyInConversation(options: {
   let reply = '';
   let proposed = 0;
   try {
-    for (let round = 0; ; round++) {
-      const tools = canPropose && round < TOOL_ROUNDS ? PROPOSAL_TOOLS : undefined;
-      const ask = () =>
-        streamCompletion({
-          messages,
-          model,
-          onText: piece => {
-            reply += piece;
-            send({ text: piece, type: 'delta' });
-          },
-          signal: options.signal,
-          // The last round goes without tools, so the Model ends in text.
-          tools: canPropose && round < TOOL_ROUNDS ? PROPOSAL_TOOLS : undefined,
-        });
-      let completion: Awaited<ReturnType<typeof ask>>;
-      try {
-        completion = await ask();
-      } catch (error) {
-        // A free router may land on a Model that refuses tools: answer read-only rather than fail.
-        if (!tools || reply || proposed || !(error instanceof ModelError)) throw error;
-        canPropose = false;
-        messages[0] = {
-          content: await botPrompt(viewer, bot, { mode, screen: options.screen }),
-          role: 'system',
-        };
-        completion = await ask();
-      }
-      const { content: text, toolCalls } = completion;
-      if (!toolCalls.length) break;
-      messages.push({ content: text || null, role: 'assistant', tool_calls: toolCalls });
-      for (const call of toolCalls) {
+    await talk(model, {
+      execute: async call => {
+        if (isReadTool(call.name)) return runReadTool(viewer, call);
         const { proposal, result } = await proposeFromToolCall(viewer, conversation.id, call);
         if (proposal) proposed++;
-        messages.push({ content: result, role: 'tool', tool_call_id: call.id });
-      }
-    }
+        return result;
+      },
+      instructions,
+      messages,
+      onText: piece => {
+        reply += piece;
+        send({ text: piece, type: 'delta' });
+      },
+      signal: options.signal,
+      toolRounds: TOOL_ROUNDS,
+      tools: canUseTools ? [...READ_AGENT_TOOLS, ...PROPOSAL_TOOLS] : undefined,
+      // A free router may land on a Model that refuses tools: answer read-only rather than fail.
+      withoutTools: () => botPrompt(viewer, bot, { mode, screen: options.screen }),
+    });
   } catch (error) {
     // Keep what was already written visible, and any Proposal already made with it.
     if (!reply && !proposed) throw error;
-    reply += `\n\n(${error instanceof ModelError ? error.message : 'A resposta foi interrompida.'})`;
+    reply += `
+
+(${error instanceof ModelError ? error.message : 'A resposta foi interrompida.'})`;
   }
 
   const [saved] = await db

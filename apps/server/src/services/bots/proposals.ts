@@ -11,7 +11,7 @@ import { and, desc, eq, gte, isNotNull, isNull } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 
 import { badInput, notFound, owned } from '../../resolvers/guards';
-import type { ToolCall, ToolDefinition } from '../models';
+import type { AgentTool, AgentToolCall, JsonSchema } from '../models';
 import {
   addExpense,
   addIncomeSource,
@@ -45,6 +45,12 @@ import { viewerHolder } from '../viewerHolder';
  */
 
 export type ProposalKind = RecordKind;
+
+/** A tool as these definitions write it, in the shape of the OpenAI API. */
+interface ToolDefinition {
+  function: { description: string; name: string; parameters: JsonSchema };
+  type: 'function';
+}
 
 const DATE = { description: 'Data no formato AAAA-MM-DD.', type: 'string' } as const;
 const AMOUNT = (what: string) =>
@@ -264,7 +270,9 @@ const DELETE_TOOL: ToolDefinition = {
   type: 'function',
 };
 
-export const PROPOSAL_TOOLS = [...Object.values(TOOLS), UPDATE_TOOL, DELETE_TOOL];
+export const PROPOSAL_TOOLS: AgentTool[] = [...Object.values(TOOLS), UPDATE_TOOL, DELETE_TOOL].map(
+  ({ function: definition }) => definition
+);
 
 type ProposalAction = ProposalRow['action'];
 
@@ -372,18 +380,18 @@ function mergedArgs(kind: ProposalKind, current: RecordInput, changes: Args): Ar
 export async function proposeFromToolCall(
   viewer: Viewer,
   conversationId: string,
-  call: ToolCall
+  call: AgentToolCall
 ): Promise<{ proposal: ProposalRow | null; result: string }> {
-  const action = ACTION_OF_TOOL[call.function.name] ?? 'CREATE';
+  const action = ACTION_OF_TOOL[call.name] ?? 'CREATE';
   let args: Args;
   try {
-    args = JSON.parse(call.function.arguments || '{}') as Args;
+    args = JSON.parse(call.arguments || '{}') as Args;
   } catch {
     return { proposal: null, result: 'Argumentos ilegíveis. Tente de novo.' };
   }
-  const kind = action === 'CREATE' ? KIND_OF_TOOL[call.function.name] : (args.kind as ProposalKind);
+  const kind = action === 'CREATE' ? KIND_OF_TOOL[call.name] : (args.kind as ProposalKind);
   if (!kind || !(kind in TOOLS)) {
-    return { proposal: null, result: `Ferramenta ou tipo desconhecido: ${call.function.name}.` };
+    return { proposal: null, result: `Ferramenta ou tipo desconhecido: ${call.name}.` };
   }
 
   let input: object;

@@ -1,4 +1,4 @@
-import type { ContentPart } from '../models';
+import type { FilePart, UserContent } from '../models';
 
 /**
  * A file the User attached to a chat Message (docs/adr/0017). Spreadsheets and text arrive already
@@ -63,10 +63,7 @@ export function readAttachments(raw: unknown): ChatAttachment[] {
  * off as data (it may hold text written to steer the Model; proposals still need Confirmar, docs/
  * adr/0013), then the images and PDFs as parts of their own.
  */
-export function userContent(
-  content: string,
-  attachments: ChatAttachment[]
-): string | ContentPart[] {
+export function userContent(content: string, attachments: ChatAttachment[]): UserContent {
   if (!attachments.length) return content;
   const texts = attachments
     .filter(attachment => attachment.kind === 'TEXT')
@@ -77,14 +74,12 @@ export function userContent(
   const words = [content || 'Veja os arquivos anexados.', ...texts].join('\n\n');
   return [
     { text: words, type: 'text' },
-    ...attachments.flatMap((attachment): ContentPart[] => {
-      if (attachment.kind === 'IMAGE') {
-        return [{ image_url: { url: attachment.data }, type: 'image_url' }];
-      }
-      if (attachment.kind === 'PDF') {
-        return [{ file: { file_data: attachment.data, filename: attachment.name }, type: 'file' }];
-      }
-      return [];
+    ...attachments.flatMap((attachment): FilePart[] => {
+      if (attachment.kind === 'TEXT') return [];
+      // Checked by `readAttachments`: `data:<media type>;base64,<data>`.
+      const [header, data] = attachment.data.split(',') as [string, string];
+      const mediaType = header.slice('data:'.length, header.indexOf(';'));
+      return [{ data, filename: attachment.name, mediaType, type: 'file' }];
     }),
   ];
 }
