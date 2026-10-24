@@ -1,4 +1,3 @@
-import { CombinedGraphQLErrors, ServerError } from '@apollo/client/errors';
 import { RefreshCwIcon, TriangleAlertIcon } from 'lucide-react';
 import { useState } from 'react';
 
@@ -6,16 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/** What went wrong, in the User's words: no connection, a server failure, or the server's reason. */
-export function describeError(error: unknown): string {
-  if (CombinedGraphQLErrors.is(error)) {
-    return error.errors[0]?.message ?? 'O servidor recusou o pedido.';
-  }
-  if (ServerError.is(error)) {
-    return `O servidor respondeu com um erro (${error.statusCode}). Tente de novo em instantes.`;
-  }
-  return 'Não conseguimos falar com o servidor. Confira a sua conexão e tente de novo.';
-}
+import { friendlyError } from '../lib/errors';
 
 /**
  * A part of a page that failed to load, saying why, with a way to try again. The rest of the page
@@ -50,7 +40,7 @@ export function QueryError({
       <TriangleAlertIcon />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="flex flex-col items-start gap-3">
-        <p>{describeError(error)}</p>
+        <p>{friendlyError(error)}</p>
         {onRetry && (
           <Button disabled={retrying} onClick={() => void retry()} size="sm" variant="outline">
             <RefreshCwIcon className={cn(retrying && 'animate-spin')} />

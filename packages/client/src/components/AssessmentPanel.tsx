@@ -67,7 +67,7 @@ export function AssessmentPanel({ holder }: { holder: Holder }) {
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
         {latest ? (
           <>
             <div className="flex flex-wrap items-center gap-4">
@@ -233,7 +233,7 @@ function ReportedScores({ holder, ourScore }: { holder: Holder; ourScore: number
             Adicionar
           </Button>
         </form>
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
       </CardContent>
     </Card>
   );

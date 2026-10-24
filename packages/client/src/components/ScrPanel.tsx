@@ -275,7 +275,7 @@ function ManualEntryForm({ holderId }: { holderId: string }) {
               cancelar
             </Button>
           </div>
-          {error && <FormError message={error.message} />}
+          {error && <FormError error={error} />}
         </form>
       </CardContent>
     </Card>

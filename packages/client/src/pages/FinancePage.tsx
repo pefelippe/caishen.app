@@ -201,7 +201,12 @@ export function IncomePage() {
       {holder => (
         <>
           <Figures
-            figures={[{ label: 'Renda fixa por mês (hoje)', value: holder.monthlyIncomeCents }]}
+            figures={[
+              {
+                label: 'Renda fixa por mês (hoje)',
+                value: holder.monthlyIncomeCents,
+              },
+            ]}
           />
           <IncomeSection holder={holder} />
           <MonthIncomes go={go} holderId={holder.id} month={month} />
@@ -374,7 +379,7 @@ function RateDialog({ line, onClose }: { line: IncomeLine; onClose: () => void }
             />
           </Field>
         </form>
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
         <DialogFooter>
           {line.foreign?.rateSource === 'INFORMED' && (
             <Button className="mr-auto" onClick={() => void save(null)} variant="ghost">
@@ -422,8 +427,10 @@ function useHashScroll(ready: boolean) {
 }
 
 /**
- * Gastos fixos: what goes out every month by itself, the Gastos recorrentes (subscriptions, gym,
- * insurance) and the Titular's own Impostos (IPVA, IPTU). The debts have their own page.
+ * Gastos: what goes out by itself, each kind in its part: the Gastos recorrentes (gym, insurance),
+ * the Assinaturas (Gastos recorrentes filed under that category), the Titular's own Impostos (IPVA,
+ * IPTU), the Empréstimos, the Financiamentos and the Cartões with their Faturas. Each Operation
+ * opens on its own page.
  */
 export function FixedPage() {
   const holder = useHolder();
@@ -431,60 +438,61 @@ export function FixedPage() {
   return (
     <HolderSection
       actions={<AddEntryButton direction="OUT" />}
-      description={() =>
-        'O que sai todo mês sem você digitar: gastos recorrentes e impostos. Entra sozinho em cada mês.'
-      }
-      title="Gastos fixos"
-    >
-      {holder => (
-        <>
-          <Figures
-            figures={[
-              { label: 'Recorrentes por mês', value: recurringPerMonth(holder) },
-              { label: 'Impostos no ano', value: taxesPerYear(holder) },
-            ]}
-          />
-          <RecurringSection holder={holder} />
-          <TaxesSection holder={holder} />
-        </>
-      )}
-    </HolderSection>
-  );
-}
-
-/**
- * Dívidas: the Credit Operations (loans, financing), what is still owed, what goes out in Parcelas
- * every month and what is late. Each Operation opens on its own page; Cartões have theirs.
- */
-export function DebtsPage() {
-  const holder = useHolder();
-  useHashScroll(Boolean(holder));
-  return (
-    <HolderSection
-      actions={<AddEntryButton direction="OUT" />}
       description={() => (
         <>
-          Empréstimos e financiamentos: quanto falta pagar e o que vence. Os cartões ficam em{' '}
-          <Link className="text-primary underline-offset-4 hover:underline" to="/caishen/cards">
-            Cartões
-          </Link>
-          .
+          O que sai todo mês sem você digitar: recorrentes, assinaturas, impostos, parcelas e as
+          faturas dos cartões. Entra sozinho em cada mês.
         </>
       )}
-      title="Dívidas"
+      title="Gastos"
     >
-      {holder => (
-        <>
-          <Figures
-            figures={[
-              { label: 'Saldo devedor', value: outstandingOf(holder) },
-              { label: 'Parcelas por mês', value: installmentsOf(holder) },
-              { label: 'Em atraso', value: overdueOf(holder) },
-            ]}
-          />
-          <ObligationsSection holder={holder} />
-        </>
-      )}
+      {holder => {
+        const subscriptions = holder.recurringExpenses.filter(isSubscription);
+        return (
+          <>
+            <Figures
+              figures={[
+                {
+                  label: 'Recorrentes por mês',
+                  value: recurringPerMonth(holder),
+                },
+                { label: 'Parcelas por mês', value: installmentsOf(holder) },
+                { label: 'Saldo devedor', value: outstandingOf(holder) },
+                { label: 'Impostos no ano', value: taxesPerYear(holder) },
+              ]}
+            />
+            <RecurringSection
+              holder={holder}
+              intro="O que sai sozinho todo mês ou todo ano: academia, seguros, mensalidades."
+              items={holder.recurringExpenses.filter(item => !isSubscription(item))}
+            />
+            <RecurringSection
+              empty="Nenhuma assinatura ainda. Cadastre um gasto recorrente com a categoria Assinaturas."
+              holder={holder}
+              id="subscriptions"
+              intro="Streaming, apps, clubes: os gastos recorrentes na categoria Assinaturas."
+              items={subscriptions}
+              title="Assinaturas"
+            />
+            <TaxesSection holder={holder} />
+            <ObligationsSection
+              empty="Nenhum empréstimo. Crédito pessoal, consignado: adicione pelo botão Adicionar saída."
+              id="loans"
+              intro="Crédito pessoal, consignado e outros, com o que falta pagar."
+              items={holder.creditOperations.filter(item => !isFinancing(item.modality))}
+              title="Empréstimos"
+            />
+            <ObligationsSection
+              empty="Nenhum financiamento. Carro, imóvel: adicione pelo botão Adicionar saída."
+              id="financing"
+              intro="Carro, imóvel e outros bens, com o que falta pagar."
+              items={holder.creditOperations.filter(item => isFinancing(item.modality))}
+              title="Financiamentos"
+            />
+            <CardsSection holder={holder} />
+          </>
+        );
+      }}
     </HolderSection>
   );
 }
@@ -497,70 +505,8 @@ const isSubscription = (item: Recurring) =>
     .toLowerCase()
     .startsWith('assinatura');
 
-/**
- * Assinaturas: the Gastos recorrentes filed under that category (streaming, apps, clubs), what
- * they cost a month and a year, and a quick way to add one already in it.
- */
-export function SubscriptionsPage() {
-  const [adding, setAdding] = useState(false);
-  return (
-    <HolderSection
-      actions={
-        <Button onClick={() => setAdding(true)}>
-          <PlusIcon />
-          Adicionar assinatura
-        </Button>
-      }
-      description={() =>
-        'Streaming, apps, clubes: tudo o que você assina, quanto custa no mês e no ano.'
-      }
-      title="Assinaturas"
-    >
-      {holder => {
-        const items = holder.recurringExpenses.filter(isSubscription);
-        const monthly = perMonth(items);
-        return (
-          <>
-            <Figures
-              figures={[
-                { label: 'Por mês', value: monthly },
-                { label: 'Por ano', value: monthly * 12 },
-              ]}
-            />
-            <RecurringSection
-              empty="Nenhuma assinatura ainda. Cadastre uma, ou ponha a categoria Assinaturas num gasto recorrente."
-              holder={holder}
-              id="subscriptions"
-              intro="Os gastos recorrentes na categoria Assinaturas. Eles também contam em Gastos fixos."
-              items={items}
-              title="Suas assinaturas"
-            />
-            {adding && (
-              <Dialog onOpenChange={open => !open && setAdding(false)} open>
-                <DialogContent className="sm:max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>Nova assinatura</DialogTitle>
-                  </DialogHeader>
-                  <RecurringForm
-                    defaultCategory="Assinaturas"
-                    holder={holder}
-                    onDone={() => setAdding(false)}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
-          </>
-        );
-      }}
-    </HolderSection>
-  );
-}
-
 const installmentsOf = (holder: Holder) =>
   holder.creditOperations.reduce((total, item) => total + item.installmentCents, 0);
-
-const overdueOf = (holder: Holder) =>
-  holder.creditOperations.reduce((total, item) => total + item.overdueCents, 0);
 
 /** Whole cents a year: yearly Taxes as typed, monthly ones twelve times (docs/adr/0004). */
 const taxesPerYear = (holder: Holder) =>
@@ -700,7 +646,9 @@ function daysLabel(days: number[]): string {
 /** A Fonte de Renda: what comes in every month, net, on one or more paydays. */
 export function IncomeForm({ holder, onDone }: { holder: Holder; onDone?: () => void }) {
   // 'active': the month on screen (Entradas, Lançamentos) shows the new payments too.
-  const [addIncome, { error }] = useMutation(AddIncomeSourceDocument, { refetchQueries: 'active' });
+  const [addIncome, { error }] = useMutation(AddIncomeSourceDocument, {
+    refetchQueries: 'active',
+  });
   const [times, setTimes] = useState(1);
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL');
   const dollars = currency === 'USD';
@@ -834,7 +782,7 @@ export function IncomeForm({ holder, onDone }: { holder: Holder; onDone?: () => 
       <Button className="self-start" type="submit">
         Salvar salário
       </Button>
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </form>
   );
 }
@@ -1148,7 +1096,7 @@ export function RecurringForm({
       <Button className="self-start" type="submit">
         Adicionar gasto recorrente
       </Button>
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </form>
   );
 }
@@ -1263,15 +1211,31 @@ const ENTRY_KINDS: Record<'IN' | 'OUT', { hint: string; label: string; value: En
     },
   ],
   OUT: [
-    { hint: 'Mercado, Uber, uma compra: uma vez.', label: 'Gasto', value: 'EXPENSE' },
+    {
+      hint: 'Mercado, Uber, uma compra: uma vez.',
+      label: 'Gasto',
+      value: 'EXPENSE',
+    },
     {
       hint: 'Academia, Netflix, aluguel, seguro: todo mês ou todo ano.',
       label: 'Gasto recorrente',
       value: 'RECURRING',
     },
-    { hint: 'Crédito pessoal, consignado.', label: 'Empréstimo', value: 'LOAN' },
-    { hint: 'Carro, imóvel, outros bens.', label: 'Financiamento', value: 'FINANCING' },
-    { hint: 'O limite, o fechamento e as Faturas.', label: 'Cartão de crédito', value: 'CARD' },
+    {
+      hint: 'Crédito pessoal, consignado.',
+      label: 'Empréstimo',
+      value: 'LOAN',
+    },
+    {
+      hint: 'Carro, imóvel, outros bens.',
+      label: 'Financiamento',
+      value: 'FINANCING',
+    },
+    {
+      hint: 'O limite, o fechamento e as Faturas.',
+      label: 'Cartão de crédito',
+      value: 'CARD',
+    },
     { hint: 'IPVA, IPTU, DAS.', label: 'Imposto', value: 'TAX' },
   ],
 };
@@ -1288,8 +1252,12 @@ function OneOffForm({
   month?: string;
   onDone?: () => void;
 }) {
-  const [addExpense, expense] = useMutation(AddExpenseDocument, { refetchQueries: 'active' });
-  const [addIncome, income] = useMutation(AddOneOffIncomeDocument, { refetchQueries: 'active' });
+  const [addExpense, expense] = useMutation(AddExpenseDocument, {
+    refetchQueries: 'active',
+  });
+  const [addIncome, income] = useMutation(AddOneOffIncomeDocument, {
+    refetchQueries: 'active',
+  });
   const error = expense.error ?? income.error;
   const today = localToday();
   const day = month && !today.startsWith(month) ? `${month}-01` : today;
@@ -1309,7 +1277,9 @@ function OneOffForm({
       if (direction === 'IN') await addIncome({ variables: { input: common } });
       else
         await addExpense({
-          variables: { input: { ...common, category: text(values, 'category') } },
+          variables: {
+            input: { ...common, category: text(values, 'category') },
+          },
         });
       onDone?.();
     } catch {
@@ -1349,7 +1319,7 @@ function OneOffForm({
       <Button className="self-start" type="submit">
         {direction === 'IN' ? 'Adicionar receita' : 'Adicionar gasto'}
       </Button>
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </form>
   );
 }
@@ -1426,7 +1396,7 @@ export function AddEntryDialog({
   );
 }
 
-/** "Adicionar entrada" or "Adicionar saída", at the top of Lançamentos, Entradas, Gastos fixos and Dívidas. */
+/** "Adicionar entrada" or "Adicionar saída", at the top of Lançamentos, Entradas and Gastos. */
 export function AddEntryButton({ direction, month }: { direction: 'IN' | 'OUT'; month?: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -1455,7 +1425,9 @@ function taxLabel(tax: Holder['taxes'][number]): string {
 
 /** An Imposto: monthly, or yearly in one or more installments. */
 export function TaxForm({ holder, onDone }: { holder: Holder; onDone?: () => void }) {
-  const [addTax, { error }] = useMutation(AddTaxDocument, { refetchQueries: [HolderDocument] });
+  const [addTax, { error }] = useMutation(AddTaxDocument, {
+    refetchQueries: [HolderDocument],
+  });
   const [frequency, setFrequency] = useState<TaxFrequency>('YEARLY');
   const [installments, setInstallments] = useState(1);
   const [dueMonth, setDueMonth] = useState(1);
@@ -1572,13 +1544,15 @@ export function TaxForm({ holder, onDone }: { holder: Holder; onDone?: () => voi
       <Button className="self-start" type="submit">
         Adicionar imposto
       </Button>
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </form>
   );
 }
 
 function TaxesSection({ holder }: { holder: Holder }) {
-  const [deleteTax] = useMutation(DeleteTaxDocument, { refetchQueries: [HolderDocument] });
+  const [deleteTax] = useMutation(DeleteTaxDocument, {
+    refetchQueries: [HolderDocument],
+  });
 
   return (
     <Part
@@ -1656,81 +1630,93 @@ const OPERATION_TYPES = {
 
 type OperationType = keyof typeof OPERATION_TYPES;
 
-function ObligationsSection({ holder }: { holder: Holder }) {
+type Operation = Holder['creditOperations'][number];
+
+/** Empréstimos or Financiamentos: the Operations of that kind, with what is still owed. */
+function ObligationsSection({
+  empty,
+  id,
+  intro,
+  items,
+  title,
+}: {
+  empty: string;
+  id: string;
+  intro: string;
+  items: Operation[];
+  title: string;
+}) {
   return (
     <Part
-      count={holder.creditOperations.length}
-      empty="Nenhum empréstimo ou financiamento. Adicione pelo botão Adicionar saída."
-      id="obligations"
-      intro="Empréstimos e financiamentos, com o que falta pagar."
-      title="Empréstimos e financiamentos"
+      count={items.length}
+      empty={empty}
+      id={id}
+      intro={intro}
+      title={title}
       total={
-        holder.creditOperations.length ? (
+        items.length ? (
           <>
-            {formatCents(outstandingOf(holder))}
+            {formatCents(items.reduce((total, item) => total + item.outstandingBalanceCents, 0))}
             <span className="block text-sm font-normal text-muted-foreground">saldo devedor</span>
           </>
         ) : undefined
       }
     >
-      <OperationsTable holder={holder} />
+      <OperationsTable operations={items} />
     </Part>
   );
 }
 
-function OperationsTable({ holder }: { holder: Holder }) {
+function OperationsTable({ operations }: { operations: Operation[] }) {
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold">Operações de Crédito</h3>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Operação</TableHead>
-            <TableHead>Modalidade</TableHead>
-            <TableHead className="text-right">Taxa a.m.</TableHead>
-            <TableHead className="text-right">Parcela</TableHead>
-            <TableHead className="text-right">Pagas</TableHead>
-            <TableHead>Estágio</TableHead>
-            <TableHead className="text-right">Saldo devedor</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {holder.creditOperations.map(operation => (
-            <TableRow key={operation.id}>
-              <TableCell>
-                <Link
-                  className="font-medium text-ink underline-offset-4 hover:underline"
-                  to={`/caishen/operations/${operation.id}`}
-                >
-                  {operation.name}
-                </Link>
-                {operation.lender && (
-                  <span className="text-muted-foreground"> · {operation.lender}</span>
-                )}
-              </TableCell>
-              <TableCell>{operation.modalityLabel}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatPercent(operation.monthlyRate)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatCents(operation.installmentCents)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {operation.paidInstallments}/{operation.termMonths}
-              </TableCell>
-              <TableCell
-                className={operation.stage > 1 ? 'text-destructive' : 'text-muted-foreground'}
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Operação</TableHead>
+          <TableHead>Modalidade</TableHead>
+          <TableHead className="text-right">Taxa a.m.</TableHead>
+          <TableHead className="text-right">Parcela</TableHead>
+          <TableHead className="text-right">Pagas</TableHead>
+          <TableHead>Estágio</TableHead>
+          <TableHead className="text-right">Saldo devedor</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {operations.map(operation => (
+          <TableRow key={operation.id}>
+            <TableCell>
+              <Link
+                className="font-medium text-ink underline-offset-4 hover:underline"
+                to={`/caishen/operations/${operation.id}`}
               >
-                {operation.stage}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatCents(operation.outstandingBalanceCents)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+                {operation.name}
+              </Link>
+              {operation.lender && (
+                <span className="text-muted-foreground"> · {operation.lender}</span>
+              )}
+            </TableCell>
+            <TableCell>{operation.modalityLabel}</TableCell>
+            <TableCell className="text-right tabular-nums">
+              {formatPercent(operation.monthlyRate)}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">
+              {formatCents(operation.installmentCents)}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">
+              {operation.paidInstallments}/{operation.termMonths}
+            </TableCell>
+            <TableCell
+              className={operation.stage > 1 ? 'text-destructive' : 'text-muted-foreground'}
+            >
+              {operation.stage}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">
+              {formatCents(operation.outstandingBalanceCents)}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -1752,7 +1738,10 @@ function impliedRatePreview(
   }
   try {
     const monthly = impliedMonthlyRate(system, principalCents, installmentCents, termMonths);
-    return { annual: monthlyToAnnualRate(monthly).toNumber(), monthly: monthly.toNumber() };
+    return {
+      annual: monthlyToAnnualRate(monthly).toNumber(),
+      monthly: monthly.toNumber(),
+    };
   } catch (error) {
     if (error instanceof ImpliedRateError) return { error: error.message };
     throw error;
@@ -1773,7 +1762,12 @@ export function OperationForm({
     refetchQueries: [HolderDocument],
   });
   const [system, setSystem] = useState<'PRICE' | 'SAC'>('PRICE');
-  const [typed, setTyped] = useState({ installment: '', principal: '', rate: '', term: '' });
+  const [typed, setTyped] = useState({
+    installment: '',
+    principal: '',
+    rate: '',
+    term: '',
+  });
   const preview = typed.rate.trim()
     ? null
     : impliedRatePreview(system, typed.principal, typed.term, typed.installment);
@@ -1913,7 +1907,7 @@ export function OperationForm({
           )}
         </p>
       )}
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </>
   );
 }
@@ -1969,7 +1963,7 @@ export function CardForm({ holder, onDone }: { holder: Holder; onDone?: () => vo
           Adicionar cartão
         </Button>
       </form>
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </>
   );
 }
@@ -1992,84 +1986,46 @@ export function dueMonthOf(lastDate: string, card: Pick<Card, 'closingDay' | 'du
 }
 
 /**
- * Cartões: each Cartão with its limit, its Faturas, what is charged on it every month and the way
- * to save or import (OFX) a Fatura. The Faturas count in Lançamentos and in Dívidas' totals.
+ * Gastos › Cartões: each Cartão with its Faturas and the Gastos recorrentes charged on it, or, with
+ * none yet, a way to add one.
  */
-export function CardsPage() {
+function CardsSection({ holder }: { holder: Holder }) {
   const [adding, setAdding] = useState(false);
-  useHashScroll(Boolean(useHolder()));
+  const onCards = holder.recurringExpenses.filter(item => item.creditCard);
   return (
-    <HolderSection
-      actions={
-        <Button onClick={() => setAdding(true)}>
-          <PlusIcon />
-          Adicionar cartão
-        </Button>
-      }
-      description={() =>
-        'Seus cartões de crédito, as Faturas de cada um e o que é cobrado neles todo mês.'
-      }
-      title="Cartões"
-    >
-      {holder => {
-        const month = monthOf(localToday());
-        const onCards = holder.recurringExpenses.filter(item => item.creditCard);
-        return (
-          <>
-            <Figures
-              figures={[
-                {
-                  label: 'Limite total',
-                  value: holder.creditCards.reduce((total, card) => total + card.limitCents, 0),
-                },
-                {
-                  label: 'Faturas deste mês',
-                  value: holder.creditCards.reduce(
-                    (total, card) =>
-                      total +
-                      (card.statements.find(item => item.referenceMonth === month)?.amountCents ??
-                        0),
-                    0
-                  ),
-                },
-                { label: 'Recorrentes nos cartões', value: perMonth(onCards) },
-              ]}
-            />
-            {holder.creditCards.length === 0 && (
-              <Sheet
-                id="cards"
-                intro="Cadastre um cartão para guardar as Faturas e ver o uso do limite."
-                title="Nenhum cartão ainda"
-              >
-                <div>
-                  <Button onClick={() => setAdding(true)} variant="outline">
-                    <PlusIcon />
-                    Adicionar cartão
-                  </Button>
-                </div>
-              </Sheet>
-            )}
-            {holder.creditCards.map(card => (
-              <CardSheet
-                card={card}
-                key={card.id}
-                recurring={onCards.filter(item => item.creditCard?.id === card.id)}
-              />
-            ))}
-            {adding && (
-              <Dialog onOpenChange={open => !open && setAdding(false)} open>
-                <DialogContent className="sm:max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Novo cartão</DialogTitle>
-                  </DialogHeader>
-                  <CardForm holder={holder} onDone={() => setAdding(false)} />
-                </DialogContent>
-              </Dialog>
-            )}
-          </>
-        );
-      }}
-    </HolderSection>
+    <div className="flex flex-col gap-6" id="cards">
+      {holder.creditCards.length === 0 && (
+        <Sheet
+          id="no-cards"
+          intro="Cadastre um cartão para guardar as Faturas e ver o uso do limite."
+          title="Nenhum cartão ainda"
+        >
+          <div>
+            <Button onClick={() => setAdding(true)} variant="outline">
+              <PlusIcon />
+              Adicionar cartão
+            </Button>
+          </div>
+        </Sheet>
+      )}
+      {holder.creditCards.map(card => (
+        <CardSheet
+          card={card}
+          key={card.id}
+          recurring={onCards.filter(item => item.creditCard?.id === card.id)}
+        />
+      ))}
+      {adding && (
+        <Dialog onOpenChange={open => !open && setAdding(false)} open>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Novo cartão</DialogTitle>
+            </DialogHeader>
+            <CardForm holder={holder} onDone={() => setAdding(false)} />
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 }
 
@@ -2098,7 +2054,8 @@ function CardSheet({ card, recurring }: { card: Card; recurring: Recurring[] }) 
           <>
             {formatCents(current.amountCents)}
             <span className="block text-sm font-normal text-muted-foreground">
-              Fatura deste mês{used != null && ` · ${formatPercent(used)} do limite`}
+              Fatura deste mês
+              {used != null && ` · ${formatPercent(used)} do limite`}
             </span>
           </>
         ) : undefined
@@ -2210,7 +2167,7 @@ function StatementForm({ card }: { card: Card }) {
           Salvar Fatura
         </Button>
       </form>
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </div>
   );
 }
@@ -2242,7 +2199,7 @@ function ImportStatementButton({ card }: { card: Card }) {
       );
       if (!statement) {
         setReadError(
-          'Esse OFX não é a fatura de um cartão. O extrato da conta se importa em Lançamentos.'
+          'Esse OFX não é a fatura de um cartão. O extrato da conta se importa no Fluxo de caixa.'
         );
         return;
       }
@@ -2317,7 +2274,7 @@ function ImportStatementButton({ card }: { card: Card }) {
             <p className="text-sm text-muted-foreground">
               Se já houver uma Fatura nesse mês, ela é trocada por esta.
             </p>
-            {error && <FormError message={error.message} />}
+            {error && <FormError error={error} />}
             <DialogFooter>
               <Button onClick={() => setReading(null)} variant="ghost">
                 Cancelar
@@ -2355,7 +2312,7 @@ function DeleteCardDialog({ card, onClose }: { card: Card; onClose: () => void }
             cartão. Não dá para desfazer.
           </DialogDescription>
         </DialogHeader>
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
             Cancelar

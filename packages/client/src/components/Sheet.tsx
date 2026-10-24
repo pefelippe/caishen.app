@@ -81,7 +81,7 @@ export function SheetRow({
         <span className="font-medium">{name}</span>
         {detail && <span className="text-muted-foreground">{detail}</span>}
         {amount && <span className="ml-auto text-lg font-semibold tabular-nums">{amount}</span>}
-        {action && <span className={cn(!amount && 'ml-auto')}>{action}</span>}
+        {action && <span className={cn('min-w-0 max-w-full', !amount && 'ml-auto')}>{action}</span>}
       </div>
       {children}
     </li>

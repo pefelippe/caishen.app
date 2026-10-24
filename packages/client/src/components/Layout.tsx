@@ -1,4 +1,4 @@
-import { Suspense, type CSSProperties, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -8,6 +8,7 @@ import { isRailPath } from '../lib/nav';
 import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
 import { ChatPanel, ChatPanelProvider } from './ChatPanel';
+import { MobileNav } from './MobileNav';
 import { PageSkeleton } from './PageSkeleton';
 import type { ProfileUser } from './ProfileMenu';
 
@@ -15,22 +16,55 @@ interface Props {
   user: ProfileUser;
 }
 
+const MENU_KEY = 'zapbots.menu.open';
+
+function storedMenuOpen(): boolean {
+  try {
+    return localStorage.getItem(MENU_KEY) !== 'closed';
+  } catch {
+    return true;
+  }
+}
+
 /**
- * The app as in Hostinger's hPanel: the navy header across the top, the grey menu under it on the
- * left, rounded at the top, and the open screen square beside it, out to the edges, with the chat
- * panel docked on its right when open.
+ * The app: the navy header across the top, the grey menu under it on the left, rounded at the top
+ * and collapsing to its icons, and the open screen square beside it, with the chat panel docked on
+ * its right when open. On a phone the menu is a bar of tabs along the bottom (`MobileNav`). This
+ * browser remembers whether the menu was collapsed; a screen with a
+ * column of its own (`isRailPath`) collapses it while open.
  */
 export function Layout({ user }: Props) {
   const { pathname } = useLocation();
-  // Beside a screen with its own column the menu is a rail of icons (`AppSidebar`).
-  const sidebarWidth = isRailPath(pathname) ? '6.5rem' : '17rem';
+  const rail = isRailPath(pathname);
+  const [open, setOpen] = useState(() => !rail && storedMenuOpen());
+
+  useEffect(() => {
+    setOpen(!rail && storedMenuOpen());
+  }, [rail]);
+
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    try {
+      localStorage.setItem(MENU_KEY, next ? 'open' : 'closed');
+    } catch {
+      // Without storage it opens again next time.
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={300}>
       <ChatPanelProvider>
         <SidebarProvider
           className="h-svh flex-col overflow-hidden bg-(image:--header-gradient) print:h-auto print:overflow-visible print:bg-none"
-          style={{ '--header-height': '4rem', '--sidebar-width': sidebarWidth } as CSSProperties}
+          onOpenChange={changeOpen}
+          open={open}
+          style={
+            {
+              '--header-height': '3.5rem',
+              '--sidebar-width': '17rem',
+              '--sidebar-width-icon': '4.25rem',
+            } as CSSProperties
+          }
         >
           <AppHeader user={user} />
           <div className="flex min-h-0 flex-1">
@@ -47,6 +81,7 @@ export function Layout({ user }: Props) {
               </div>
             </div>
           </div>
+          <MobileNav />
         </SidebarProvider>
       </ChatPanelProvider>
     </TooltipProvider>

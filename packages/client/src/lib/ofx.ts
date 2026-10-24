@@ -1,4 +1,4 @@
-import { isBillPayment } from '@zapbots/finance';
+import { importedCategory, isBillPayment, isInvestmentMove, isOwnTransfer } from '@zapbots/finance';
 
 import { readCents, type ExpenseLine } from './spreadsheet';
 
@@ -89,26 +89,37 @@ export interface OfxReading {
   billPayments: number;
   /** Money coming in (salary, transfers), left out. */
   credits: number;
+  /** Money moved to the Titular's investments (a CDB, a caixinha), left out. */
+  investments: number;
   lines: ExpenseLine[];
+  /** Money the Titular sent to an account of their own, left out. */
+  ownTransfers: number;
 }
 
-/** The Gastos of bank statements: the debits, but not the payments of a Fatura. */
-export function ofxExpenses(statements: OfxStatement[]): OfxReading {
+/**
+ * The Gastos of bank statements: the debits, but not the payments of a Fatura nor money moved to
+ * the Titular's investments or own accounts (`owner` is their name). A Pix is filed under "Pix".
+ */
+export function ofxExpenses(statements: OfxStatement[], owner = ''): OfxReading {
   const all = statements.filter(item => item.kind === 'BANK').flatMap(item => item.transactions);
   const debits = all.filter(line => line.amountCents < 0);
-  const lines = debits
+  const invested = debits.filter(line => !isInvestmentMove(line.description));
+  const kept = invested.filter(line => !owner || !isOwnTransfer(line.description, owner));
+  const lines = kept
     .filter(line => !isBillPayment(line.description))
     .map(line => ({
       amountCents: -line.amountCents,
-      category: null,
+      category: importedCategory(line.description),
       date: line.date,
       description: line.description,
       externalId: line.externalId,
     }));
   return {
-    billPayments: debits.length - lines.length,
+    billPayments: kept.length - lines.length,
     credits: all.length - debits.length,
+    investments: debits.length - invested.length,
     lines,
+    ownTransfers: invested.length - kept.length,
   };
 }
 

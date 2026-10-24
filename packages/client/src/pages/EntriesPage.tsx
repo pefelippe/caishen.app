@@ -2,10 +2,12 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import {
   DeleteExpenseDocument,
   DeleteOneOffIncomeDocument,
+  ExpenseImportsDocument,
   ImportExpensesDocument,
   PeriodDocument,
   UpdateRecordDocument,
   ViewerHolderDocument,
+  type ImportAccountKind,
   type MonthLineKind,
   type PeriodQuery,
 } from '@zapbots/graphql/client';
@@ -63,13 +65,16 @@ import {
 import { cn } from '@/lib/utils';
 
 import { ConfirmDelete } from '../components/ConfirmDelete';
+import { ACCOUNT_KINDS, ImportsCard } from '../components/ImportsCard';
 import { MonthSummary } from '../components/MonthSummary';
 import { QueryError } from '../components/QueryError';
 import { AddEntryButton } from './FinancePage';
 import { FormError } from '../components/FormError';
 import { localToday } from '../lib/bots';
+import { friendlyError } from '../lib/errors';
 import { formatCents, formatDate } from '../lib/format';
 import { ofxExpenses, parseOfx, readOfxText, type OfxStatement } from '../lib/ofx';
+import { PdfError, readPdfTable } from '../lib/pdf';
 import {
   guessColumns,
   readExpenses,
@@ -213,7 +218,7 @@ interface Entry {
   removable: { id: string; kind: 'EXPENSE' | 'ONE_OFF' } | null;
   /** What it is: Salário, Avulsa, Parcela, Fatura, Imposto or Gasto. */
   source: string;
-  /** Where it is managed, for the lines that come from Gastos fixos or Dívidas. */
+  /** Where it is managed, for the lines that come from Gastos. */
   to: string | null;
   /** The Fonte de Renda, Operação or Gasto recorrente a line comes from, deleted as a whole from here. */
   owner: {
@@ -263,8 +268,8 @@ function entriesOf(statement: Statement): Entry[] {
               : line.kind === 'RECURRING'
                 ? '/caishen/fixed#recurring'
                 : line.kind === 'STATEMENT'
-                  ? '/caishen/cards'
-                  : '/caishen/debts',
+                  ? '/caishen/fixed#cards'
+                  : '/caishen/fixed#loans',
     })),
     ...statement.onCard.map(line => ({
       amountCents: line.amountCents,
@@ -382,7 +387,7 @@ function SheetCell({
 
 /**
  * Lançamentos: one month of money as one spreadsheet. Salários, Parcelas, Faturas and Impostos show
- * up by themselves (from Gastos fixos and Dívidas); Receitas avulsas and Gastos are typed in here, and
+ * up by themselves (from Gastos); Receitas avulsas and Gastos are typed in here, and
  * Gastos also come in from a .csv or .xlsx. It filters, totals, and exports as CSV or PDF.
  */
 export function EntriesPage() {
@@ -440,6 +445,7 @@ export function EntriesPage() {
       )}
       <MonthSummary figures={statement} />
       <Ledger statement={statement} />
+      {holderId && <ImportsCard holderId={holderId} />}
     </>
   );
 
@@ -516,7 +522,11 @@ export function EntriesPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2 @3xl:ml-auto print:hidden">
-          <ImportButton holderId={holderId} onError={setReadError} />
+          <ImportButton
+            holderId={holderId}
+            onError={setReadError}
+            owner={viewer.data?.viewerHolder.name ?? ''}
+          />
           <Export file={file} statement={statement} />
           <AddEntryButton direction="IN" month={isMonth ? month : undefined} />
           <AddEntryButton direction="OUT" month={isMonth ? month : undefined} />
@@ -551,27 +561,33 @@ const plain = (text: string) =>
     .toLowerCase();
 
 /**
- * A .csv, .xlsx or .ofx of Gastos picked, read and handed to the dialog: a sheet to map its
- * columns, an OFX straight to what comes in. A Cartão's OFX is its Fatura, imported in Cartões.
+ * A .csv, .xlsx, .ofx or .pdf of Gastos picked, read and handed to the dialog: a sheet (or a PDF
+ * statement, read into one) to map its columns, an OFX straight to what comes in. A Cartão's OFX is its Fatura, imported in Cartões.
  */
 function ImportButton({
   holderId,
   onError,
+  owner,
 }: {
   holderId: string | undefined;
   onError: (message: string | null) => void;
+  /** The Titular's name, to tell money sent to their own accounts. */
+  owner: string;
 }) {
   const file = useRef<HTMLInputElement>(null);
   const [table, setTable] = useState<{ name: string; source: ImportSource } | null>(null);
 
   const read = async (picked: File): Promise<ImportSource | string> => {
+    if (/\.pdf$/i.test(picked.name)) {
+      return { kind: 'table', table: await readPdfTable(picked) };
+    }
     if (!/\.ofx$/i.test(picked.name)) {
       return { kind: 'table', table: await readTable(picked) };
     }
     const statements = parseOfx(await readOfxText(picked));
     if (statements.some(item => item.kind === 'BANK')) return { kind: 'ofx', statements };
     return statements.length
-      ? 'Esse OFX é a fatura de um cartão: importe em Cartões, no cartão dela.'
+      ? 'Esse OFX é a fatura de um cartão: importe em Gastos, no cartão dela.'
       : 'Esse OFX não tem extrato.';
   };
 
@@ -582,8 +598,12 @@ function ImportButton({
       const source = await read(picked);
       if (typeof source === 'string') onError(source);
       else setTable({ name: picked.name, source });
-    } catch {
-      onError('Não foi possível ler esse arquivo. Use .csv, .xlsx ou .ofx.');
+    } catch (error) {
+      onError(
+        error instanceof PdfError
+          ? error.message
+          : 'Não foi possível ler esse arquivo. Use .csv, .xlsx, .ofx ou .pdf.'
+      );
     }
     if (file.current) file.current.value = '';
   };
@@ -600,7 +620,7 @@ function ImportButton({
         Importar
       </Button>
       <input
-        accept=".csv,.txt,.xlsx,.ofx"
+        accept=".csv,.txt,.xlsx,.ofx,.pdf"
         className="hidden"
         onChange={event => void open(event.target.files?.[0])}
         ref={file}
@@ -611,6 +631,7 @@ function ImportButton({
           holderId={holderId}
           name={table.name}
           onClose={() => setTable(null)}
+          owner={owner}
           source={table.source}
         />
       )}
@@ -618,9 +639,54 @@ function ImportButton({
   );
 }
 
+/** Banks whose name shows in their statements' files, as the User would write it. */
+const BANKS: [RegExp, string][] = [
+  [/\binter\b/, 'Inter'],
+  [/\bnubank|nu pagamentos\b/, 'Nubank'],
+  [/\bita[uú]\b/, 'Itaú'],
+  [/\bbradesco\b/, 'Bradesco'],
+  [/\bsantander\b/, 'Santander'],
+  [/\bcaixa econ[oô]mica|\bcef\b/, 'Caixa'],
+  [/\bbanco do brasil\b/, 'Banco do Brasil'],
+  [/\bc6\b/, 'C6 Bank'],
+  [/\bbtg\b/, 'BTG Pactual'],
+  [/\bpicpay\b/, 'PicPay'],
+  [/\bmercado pago\b/, 'Mercado Pago'],
+  [/\bsicoob\b/, 'Sicoob'],
+  [/\bsicredi\b/, 'Sicredi'],
+];
+
+/**
+ * The bank a file is most likely from: named in the file's name, or most often in its first lines
+ * ("Cdb Porq Obj Banco Inter"); empty when none is, for the User to fill in.
+ */
+function guessBank(fileName: string, source: ImportSource): string {
+  const sample = (
+    source.kind === 'table'
+      ? [source.table.headers, ...source.table.rows.slice(0, 200)].flat().map(String).join(' ')
+      : source.statements
+          .flatMap(item => item.transactions.slice(0, 200).map(line => line.description))
+          .join(' ')
+  ).toLowerCase();
+  // "itau_extrato_072026.pdf": underscores and digits would hold the name inside one word.
+  const words = fileName.toLowerCase().replace(/[_\d.]+/g, ' ');
+  const named = BANKS.find(([pattern]) => pattern.test(words));
+  if (named) return named[1];
+  let best = '';
+  let most = 0;
+  for (const [pattern, bank] of BANKS) {
+    const times = sample.match(new RegExp(pattern.source, 'g'))?.length ?? 0;
+    if (times > most) {
+      most = times;
+      best = bank;
+    }
+  }
+  return best;
+}
+
 /**
  * The period's spreadsheet, straight under the summary: a search and filters, then every line with
- * its category and the balance as it runs through the period.
+ * its category and amount.
  */
 function Ledger({ statement }: { statement: Statement }) {
   const [removeExpense] = useMutation(DeleteExpenseDocument, {
@@ -648,16 +714,6 @@ function Ledger({ statement }: { statement: Statement }) {
   const filtered = filter !== 'ALL' || category !== 'ALL' || query !== '';
   // Dates show without their year when it is the period's own.
   const year = (statement.incomes[0]?.date ?? localToday()).slice(0, 4);
-  // What is left after each line, from the start of the period; a Gasto recorrente on a Cartão is
-  // in its Fatura already, so it is listed and not counted.
-  const running = new Map<Entry, number>();
-  entries.reduce((balance, entry) => {
-    const next = entry.informative
-      ? balance
-      : balance + (entry.direction === 'IN' ? entry.amountCents : -entry.amountCents);
-    running.set(entry, next);
-    return next;
-  }, 0);
   const shown = entries.filter(
     entry =>
       (filter === 'ALL' || entry.direction === filter) &&
@@ -703,7 +759,7 @@ function Ledger({ statement }: { statement: Statement }) {
       });
       return true;
     } catch (failure) {
-      setSaveError(failure instanceof Error ? failure.message : 'Não foi possível salvar.');
+      setSaveError(friendlyError(failure, 'Não foi possível salvar.'));
       return false;
     }
   };
@@ -733,7 +789,7 @@ function Ledger({ statement }: { statement: Statement }) {
 
   return (
     <motion.section
-      aria-label="Lançamentos"
+      aria-label="Fluxo de caixa"
       className="flex flex-col gap-4 rounded-2xl bg-card p-6 md:p-8"
       id="entries"
       initial={{ opacity: 0, y: 20 }}
@@ -848,8 +904,6 @@ function Ledger({ statement }: { statement: Statement }) {
             <TableHead className="px-4">Descrição</TableHead>
             <TableHead className="w-48 px-4">Categoria</TableHead>
             <TableHead className="w-36 text-right">Valor</TableHead>
-            {/* A running balance means nothing over lines picked out by a filter. */}
-            {!filtered && <TableHead className="w-36 text-right">Saldo</TableHead>}
             <TableHead className="w-12 print:hidden" />
           </TableRow>
         </TableHeader>
@@ -857,7 +911,6 @@ function Ledger({ statement }: { statement: Statement }) {
           {shown.map((entry, index) => {
             const own = entry.removable;
             const sign = entry.direction === 'IN' ? '+' : '−';
-            const balance = running.get(entry)!;
             return (
               <TableRow
                 className="group border-0 hover:bg-secondary/70 data-[state=selected]:bg-accent [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl"
@@ -958,16 +1011,6 @@ function Ledger({ statement }: { statement: Statement }) {
                     `${sign} ${formatCents(entry.amountCents)}`
                   )}
                 </TableCell>
-                {!filtered && (
-                  <TableCell
-                    className={cn(
-                      'text-right tabular-nums text-muted-foreground',
-                      balance < 0 && 'text-destructive'
-                    )}
-                  >
-                    {formatCents(balance)}
-                  </TableCell>
-                )}
                 <TableCell className="print:hidden">
                   {(own || entry.owner) && (
                     // Out of sight until the row is pointed at or reached by keyboard.
@@ -1017,25 +1060,32 @@ function ImportDialog({
   holderId,
   name,
   onClose,
+  owner,
   source,
 }: {
   holderId: string;
   name: string;
   onClose: () => void;
+  owner: string;
   source: ImportSource;
 }) {
   const table = source.kind === 'table' ? source.table : NO_TABLE;
   const [columns, setColumns] = useState<Columns>(() => guessColumns(table.headers));
+  const [bankName, setBankName] = useState(() => guessBank(name, source));
+  const [accountKind, setAccountKind] = useState<ImportAccountKind>('CHECKING');
+  // The Titular's name as banks write it, to tell money sent to their own accounts; a one-word
+  // name (an e-mail's, from signing up) tells nothing, so the User types it.
+  const [ownerName, setOwnerName] = useState(() => (/\S\s+\S/.test(owner.trim()) ? owner : ''));
   const [added, setAdded] = useState<number | null>(null);
   const [importRows, { error, loading }] = useMutation(ImportExpensesDocument, {
-    refetchQueries: [PeriodDocument],
+    refetchQueries: [PeriodDocument, ExpenseImportsDocument],
   });
   const ready = columns.date >= 0 && columns.description >= 0 && columns.amount >= 0;
   const reading =
     source.kind === 'ofx'
-      ? { invalid: 0, ...ofxExpenses(source.statements) }
+      ? { invalid: 0, ...ofxExpenses(source.statements, ownerName) }
       : ready
-        ? readExpenses(table, columns)
+        ? readExpenses(table, columns, ownerName)
         : null;
   const lineCount =
     source.kind === 'ofx'
@@ -1072,7 +1122,25 @@ function ImportDialog({
   const confirm = async () => {
     if (!reading?.lines.length) return;
     try {
-      const result = await importRows({ variables: { holderId, rows: reading.lines } });
+      const result = await importRows({
+        variables: {
+          file: {
+            accountKind,
+            bankName: bankName.trim() || null,
+            fileName: name,
+            source:
+              source.kind === 'ofx'
+                ? 'OFX'
+                : /\.xlsx$/i.test(name)
+                  ? 'XLSX'
+                  : /\.pdf$/i.test(name)
+                    ? 'PDF'
+                    : 'CSV',
+          },
+          holderId,
+          rows: reading.lines,
+        },
+      });
       const count = result.data?.importExpenses ?? 0;
       // All new: nothing to tell. Some were there already: say so before closing.
       if (count === reading.lines.length) onClose();
@@ -1090,7 +1158,8 @@ function ImportDialog({
             <DialogTitle>Importado</DialogTitle>
             <DialogDescription>
               {added === 1 ? '1 gasto novo' : `${added} gastos novos`}.{' '}
-              {reading.lines.length - added} já tinham sido importados antes e ficaram como estavam.
+              {reading.lines.length - added} já estavam no Fluxo de caixa (de uma importação
+              anterior) e não entraram de novo.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1103,9 +1172,9 @@ function ImportDialog({
 
   return (
     <Dialog onOpenChange={open => !open && onClose()} open>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Importar {name}</DialogTitle>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader className="min-w-0">
+          <DialogTitle className="break-all">Importar {name}</DialogTitle>
           <DialogDescription>
             {lineCount} linhas.{' '}
             {source.kind === 'table'
@@ -1113,21 +1182,64 @@ function ImportDialog({
               : 'Um lançamento importado antes não entra de novo.'}
           </DialogDescription>
         </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="import-bank">Banco</Label>
+            <Input
+              id="import-bank"
+              onChange={event => setBankName(event.target.value)}
+              placeholder="Ex.: Inter"
+              value={bankName}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Tipo da conta</Label>
+            <Select
+              onValueChange={value => setAccountKind(value as ImportAccountKind)}
+              value={accountKind}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCOUNT_KINDS.map(kind => (
+                  <SelectItem key={kind.value} value={kind.value}>
+                    {kind.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor="import-owner">Seu nome no extrato</Label>
+            <Input
+              id="import-owner"
+              onChange={event => setOwnerName(event.target.value)}
+              placeholder="Nome e sobrenome, para deixar de fora o que você manda para suas contas"
+              value={ownerName}
+            />
+          </div>
+        </div>
         {source.kind === 'table' && (
           <div className="grid gap-3 sm:grid-cols-2">
             {pick('date', 'Data')}
             {pick('description', 'Descrição')}
             {pick('amount', 'Valor')}
             {pick('category', 'Categoria', true)}
+            {pick('kind', 'Tipo do lançamento', true)}
           </div>
         )}
         {reading && (
-          <div className="flex flex-col gap-3">
+          <div className="flex min-w-0 flex-col gap-3">
             <p>
               <strong>{reading.lines.length}</strong> gastos para importar
               {reading.credits > 0 && `, ${reading.credits} entradas de dinheiro deixadas de fora`}
               {reading.billPayments > 0 &&
                 `, ${reading.billPayments} pagamentos de fatura deixados de fora (a Fatura já conta)`}
+              {reading.investments > 0 &&
+                `, ${reading.investments} aplicações em investimentos e caixinhas deixadas de fora`}
+              {reading.ownTransfers > 0 &&
+                `, ${reading.ownTransfers} transferências para contas suas deixadas de fora (o gasto conta de onde ele sai)`}
               {reading.invalid > 0 && `, ${reading.invalid} linhas sem data, descrição ou valor`}.
             </p>
             {reading.lines.length > 0 && (
@@ -1136,7 +1248,10 @@ function ImportDialog({
                   {reading.lines.slice(0, 5).map((line, index) => (
                     <TableRow key={index}>
                       <TableCell className="tabular-nums">{formatDate(line.date)}</TableCell>
-                      <TableCell>{line.description}</TableCell>
+                      {/* Long bank descriptions are cut, not allowed to widen the dialog. */}
+                      <TableCell className="w-full max-w-0 truncate" title={line.description}>
+                        {line.description}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {line.category ?? '—'}
                       </TableCell>
@@ -1150,7 +1265,7 @@ function ImportDialog({
             )}
           </div>
         )}
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
             Cancelar

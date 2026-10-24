@@ -50,7 +50,7 @@ export function ConfirmDelete({ id, kind, name, onClose }: Props) {
           <DialogTitle>Apagar “{name}”?</DialogTitle>
           <DialogDescription>{CONSEQUENCES[kind]} Não dá para desfazer.</DialogDescription>
         </DialogHeader>
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
             Cancelar

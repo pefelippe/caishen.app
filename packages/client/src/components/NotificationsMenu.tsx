@@ -32,6 +32,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
+import { HEADER_ICON } from '../lib/header';
+
 import { useI18n, type StringKey } from '../lib/i18n';
 
 /** Each kind of Aviso: its mark, its short title and how loud it is. */
@@ -114,11 +116,11 @@ export function NotificationsMenu() {
               ? `${t('notifications.label')} (${unread.length})`
               : t('notifications.label')
           }
-          className="relative size-9 rounded-full border border-white/15 bg-white/8 text-header-foreground hover:bg-white/15 hover:text-header-foreground"
+          className={cn(HEADER_ICON, 'relative')}
           size="icon"
           variant="ghost"
         >
-          <BellIcon className="size-5" />
+          <BellIcon className="size-[18px]" />
           {unread.length > 0 && (
             <span className="absolute -top-0.5 -right-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[11px] font-semibold text-white ring-2 ring-header tabular-nums">
               {unread.length > 9 ? '9+' : unread.length}

@@ -2,13 +2,13 @@
 @import 'tw-animate-css';
 @import '@fontsource-variable/inter';
 
-/* Nothing sets `.dark`: this keeps shadcn's `dark:` classes from following the OS setting. */
+/* `.dark` on <html> (lib/theme.ts), set from the avatar's menu, makes the app dark. */
 @custom-variant dark (&:is(.dark *));
 
 /*
  * "Painel", after Hostinger's hPanel: a deep navy header, a light grey menu rounded at the top, the
  * screen square beside it on a clean slate white with white cards and soft borders, and one bright
- * blue for what acts. There is no dark theme.
+ * blue for what acts. The dark theme keeps the navy header and puts the rest on near black.
  */
 :root {
   --radius: 0.5rem;
@@ -68,6 +68,38 @@
   /* One ink per Bot, and a neutral one outside them. */
   --ink-neutral: var(--navy);
   --bot-finance: var(--blue);
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #141416;
+  --card-foreground: #fafafa;
+  --popover: #141416;
+  --popover-foreground: #fafafa;
+  --primary: #3b82f6;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #fafafa;
+  --muted: #1c1c1f;
+  --muted-foreground: #a1a1aa;
+  --accent: #172554;
+  --accent-foreground: #bfdbfe;
+  --destructive: oklch(0.65 0.2 25);
+  --success: oklch(0.68 0.14 155);
+  --warning: oklch(0.75 0.14 70);
+  --border: #27272a;
+  --input: #3f3f46;
+  --ring: #3b82f6;
+
+  --sidebar: #111113;
+  --sidebar-foreground: #e4e4e7;
+  --sidebar-accent: #1f1f23;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #27272a;
+
+  --ink-neutral: #fafafa;
+  --bot-finance: #3b82f6;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -229,8 +261,8 @@
   }
 }
 
-/* The menu growing and shrinking (the rail beside the Agente): one easing for the menu, the gap it
-   leaves and the header's mark above it, in place of shadcn's linear 200ms. */
+/* The menu growing and shrinking to its icons: one easing for the menu and the gap it leaves, in
+   place of shadcn's linear 200ms. */
 :root {
   --ease-sidebar: cubic-bezier(0.32, 0.72, 0, 1);
 }

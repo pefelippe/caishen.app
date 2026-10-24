@@ -11,12 +11,12 @@ import {
   type AlertKind,
   type RoutineCadence,
 } from '@zapbots/graphql/client';
+import { ArrowUpRightIcon, InboxIcon, RepeatIcon, SendIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 import { BotPage } from '../components/BotPage';
 import { DriveFiles } from '../components/DriveFiles';
@@ -46,7 +47,7 @@ const FROM_ALERTS: Partial<Record<AlertKind, string>> = {
 const EXAMPLES = [
   'Monte um plano para eu quitar minhas dívidas, começando pela mais cara.',
   'Compare a taxa de cada Operação de Crédito com a do mercado e diga onde vale renegociar.',
-  'Leia a Fatura anexada e diga quanto dela é parcelado.',
+  'Analise meus gastos dos últimos 3 meses e diga onde dá para cortar.',
 ];
 
 /** Jobs an Organization may have in progress at once, as the server enforces. */
@@ -61,7 +62,10 @@ const shortDate = new Intl.DateTimeFormat('pt-BR', {
   month: '2-digit',
 });
 
-/** Work handed to Caishen: a form to hand over more, and what came back so far. */
+/**
+ * Work handed to Caishen: one panel to ask (the request, how often, and the button), suggestions
+ * from the Alerts under it, the Routines, and what came back so far.
+ */
 export function JobsPage() {
   const navigate = useNavigate();
   const { data: panel } = useQuery(BotPanelDocument, { variables: { key: 'FINANCE' } });
@@ -136,33 +140,34 @@ export function JobsPage() {
       description={`Peça uma análise ou um plano. ${bot.name} trabalha sozinho e avisa aqui quando a Entrega estiver pronta.`}
       title="Workflows"
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Novo Workflow</CardTitle>
-          <CardDescription>
-            {bot.name} lê suas Finanças e os arquivos que você entregar. Ele não altera nada nem
-            movimenta dinheiro.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {panel.aiStatus.configured ? (
-            <form className="flex flex-col gap-3" onSubmit={submit}>
+      <Card className="md:p-8">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold tracking-tight">O que {bot.name} deve fazer?</h2>
+          <p className="max-w-prose text-muted-foreground">
+            Ele lê suas Finanças e os arquivos que você entregar. Não altera nada nem movimenta
+            dinheiro.
+          </p>
+        </div>
+        {panel.aiStatus.configured ? (
+          <>
+            <form
+              className="flex flex-col gap-3 rounded-xl bg-secondary/60 p-3 focus-within:bg-secondary"
+              onSubmit={submit}
+            >
               <Textarea
                 aria-label="O que precisa ser feito"
-                className="min-h-24 bg-card"
+                className="min-h-32 resize-none bg-card text-base"
                 onChange={event => setInstructions(event.target.value)}
+                onKeyDown={event => {
+                  // ⌘/Ctrl + Enter hands it over, as in the chat.
+                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
                 placeholder={EXAMPLES[0]}
                 value={instructions}
               />
-              {cadence === 'ONCE' ? (
-                <DriveFiles files={files} onChange={setFiles} />
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  A primeira Entrega sai agora; depois {bot.name} refaz o Workflow{' '}
-                  {ROUTINE_CADENCE[cadence]} com os dados do dia. Rotinas não levam arquivos.
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Select onValueChange={value => setCadence(value as Cadence)} value={cadence}>
                   <SelectTrigger aria-label="Frequência" className="w-40 bg-card">
                     <SelectValue />
@@ -173,64 +178,88 @@ export function JobsPage() {
                     <SelectItem value="MONTHLY">Todo mês</SelectItem>
                   </SelectContent>
                 </Select>
+                {cadence === 'ONCE' && <DriveFiles files={files} onChange={setFiles} />}
                 <Button
+                  className="ml-auto"
                   disabled={creating || scheduling || full || !instructions.trim()}
                   type="submit"
                 >
+                  <SendIcon />
                   Entregar a {bot.name}
                 </Button>
-                {examples.map(example => (
-                  <Button
-                    className="h-auto px-0 text-left text-xs whitespace-normal text-ink"
-                    key={example}
-                    onClick={() => setInstructions(example)}
-                    type="button"
-                    variant="link"
-                  >
-                    {example}
-                  </Button>
-                ))}
               </div>
-              {full && (
-                <p className="text-xs text-muted-foreground">
-                  {bot.name} já está com {MAX_WORKING_JOBS} Workflows em andamento. Espere um
-                  terminar para pedir outro.
-                </p>
-              )}
-              {(error ?? routineError) && <FormError message={(error ?? routineError)!.message} />}
             </form>
-          ) : (
-            <p className="text-muted-foreground">
-              Falta a chave do OpenRouter no servidor (OPENROUTER_API_KEY) para {bot.name}{' '}
-              trabalhar.
-            </p>
-          )}
-        </CardContent>
+            {cadence !== 'ONCE' && (
+              <p className="text-sm text-muted-foreground">
+                A primeira Entrega sai agora; depois {bot.name} refaz o Workflow{' '}
+                {ROUTINE_CADENCE[cadence]} com os dados do dia.
+              </p>
+            )}
+            {full && (
+              <p className="text-sm text-muted-foreground">
+                {bot.name} já está com {MAX_WORKING_JOBS} Workflows em andamento. Espere um terminar
+                para pedir outro.
+              </p>
+            )}
+            {(error ?? routineError) && <FormError error={error ?? routineError} />}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-muted-foreground">Ou comece por um destes:</span>
+              <ul className="grid gap-2 md:grid-cols-3">
+                {examples.map(example => (
+                  <li key={example}>
+                    <Button
+                      className="h-full w-full items-start justify-between gap-3 rounded-xl bg-secondary/60 px-4 py-3 text-left font-normal whitespace-normal hover:bg-secondary"
+                      onClick={() => setInstructions(example)}
+                      type="button"
+                      variant="ghost"
+                    >
+                      {example}
+                      <ArrowUpRightIcon className="mt-0.5 shrink-0 text-ink" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        ) : (
+          <p className="rounded-xl bg-secondary/60 px-4 py-3.5 text-muted-foreground">
+            {bot.name} ainda não tem um Modelo de IA ligado neste servidor, então não pode
+            trabalhar. Veja em{' '}
+            <Link className="text-ink underline-offset-4 hover:underline" to="/integrations#ai">
+              Integrações
+            </Link>
+            .
+          </p>
+        )}
       </Card>
 
       {Boolean(routines?.routines.length) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Rotinas</CardTitle>
-            <CardDescription>Workflows que {bot.name} refaz sozinho.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col gap-1">
-              {routines!.routines.map(routine => (
-                <li className="flex items-baseline gap-3 py-2" key={routine.id}>
-                  <span className="min-w-0 flex-1 truncate">{routine.instructions}</span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {routine.paused ? (
-                      'pausada'
-                    ) : (
-                      <>
-                        {ROUTINE_CADENCE[routine.cadence]}, próxima em{' '}
-                        <span className="tabular-nums">
-                          {day.format(new Date(routine.nextRunAt))}
-                        </span>
-                      </>
-                    )}
-                  </span>
+        <Card className="md:p-8">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">Rotinas</h2>
+            <p className="text-muted-foreground">Workflows que {bot.name} refaz sozinho.</p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {routines!.routines.map(routine => (
+              <li
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-secondary/60 px-4 py-3"
+                key={routine.id}
+              >
+                <RepeatIcon className="size-4 shrink-0 text-ink" />
+                <span className="min-w-0 flex-1 truncate">{routine.instructions}</span>
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  {routine.paused ? (
+                    'Pausada'
+                  ) : (
+                    <>
+                      {ROUTINE_CADENCE[routine.cadence]}, próxima em{' '}
+                      <span className="tabular-nums">
+                        {day.format(new Date(routine.nextRunAt))}
+                      </span>
+                    </>
+                  )}
+                </span>
+                <span className="flex gap-1">
                   <Button
                     onClick={() =>
                       void setPaused({ variables: { id: routine.id, paused: !routine.paused } })
@@ -247,41 +276,47 @@ export function JobsPage() {
                   >
                     Parar
                   </Button>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
+                </span>
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Entregues e em andamento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data?.jobs.length ? (
-            <ul className="flex flex-col gap-1">
-              {data.jobs.map(job => (
-                <li className="flex items-baseline gap-3 py-2" key={job.id}>
-                  <Link
-                    className="min-w-0 flex-1 truncate underline-offset-4 hover:underline"
-                    to={`/workflows/${job.id}`}
-                  >
-                    {job.instructions}
-                  </Link>
-                  <Badge variant={JOB_STATUS[job.status].variant}>
-                    {JOB_STATUS[job.status].label}
-                  </Badge>
-                  <span className="w-24 shrink-0 text-right text-muted-foreground tabular-nums">
+      <Card className="md:p-8">
+        <h2 className="text-lg font-semibold tracking-tight">Entregues e em andamento</h2>
+        {data?.jobs.length ? (
+          <ul className="flex flex-col gap-2">
+            {data.jobs.map(job => (
+              <li key={job.id}>
+                <Link
+                  className="flex items-center gap-4 rounded-xl bg-secondary/60 px-4 py-3 transition-colors hover:bg-secondary"
+                  to={`/workflows/${job.id}`}
+                >
+                  <span className="min-w-0 flex-1 truncate">{job.instructions}</span>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
+                    <span
+                      aria-hidden
+                      className={cn('size-2 rounded-full', JOB_STATUS[job.status].dot)}
+                    />
+                    <span className="first-letter:uppercase">{JOB_STATUS[job.status].label}</span>
+                  </span>
+                  <span className="hidden w-24 shrink-0 text-right text-sm text-muted-foreground tabular-nums sm:block">
                     {shortDate.format(new Date(job.createdAt))}
                   </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground">Nenhum Workflow ainda.</p>
-          )}
-        </CardContent>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex items-center gap-4 rounded-xl bg-secondary/60 px-5 py-6">
+            <InboxIcon className="size-6 shrink-0 text-muted-foreground" />
+            <p className="text-muted-foreground">
+              Nada por aqui ainda. Cada pedido que você entregar aparece nesta lista, com o
+              andamento e, quando ficar pronta, a Entrega.
+            </p>
+          </div>
+        )}
       </Card>
     </BotPage>
   );

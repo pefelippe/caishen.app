@@ -5,8 +5,9 @@ import { Layout, Scrolling } from './components/Layout';
 import { Splash } from './components/Logo';
 import { authClient } from './lib/auth';
 import { isLanguage, useI18n } from './lib/i18n';
+import { useAppliedTheme } from './lib/theme';
 import { useDocumentTitle } from './lib/title';
-import { LoginPage } from './pages/LoginPage';
+import { LoginPage, ResetPasswordPage } from './pages/LoginPage';
 
 /** A page loaded on first visit, so the finance screens stay out of the first load. */
 function page<Name extends string, Props>(
@@ -26,15 +27,10 @@ const finance = <Name extends string>(name: Name) =>
   page(() => import('./pages/FinancePage') as Promise<Record<Name, ComponentType>>, name);
 const IncomePage = finance('IncomePage');
 const FixedPage = finance('FixedPage');
-const DebtsPage = finance('DebtsPage');
-const CardsPage = finance('CardsPage');
-const SubscriptionsPage = finance('SubscriptionsPage');
-const CreditPage = finance('CreditPage');
 const EntriesPage = page(() => import('./pages/EntriesPage'), 'EntriesPage');
 const TaxesPage = page(() => import('./pages/TaxesPage'), 'TaxesPage');
 const PayoffPage = page(() => import('./pages/PayoffPage'), 'PayoffPage');
 const CalculatorsPage = page(() => import('./pages/CalculatorsPage'), 'CalculatorsPage');
-const BudgetPage = page(() => import('./pages/BudgetPage'), 'BudgetPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
 const JobsPage = page(() => import('./pages/JobsPage'), 'JobsPage');
@@ -42,11 +38,11 @@ const JobPage = page(() => import('./pages/JobPage'), 'JobPage');
 const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
 const DocumentPage = page(() => import('./pages/DocumentPage'), 'DocumentPage');
 const IntegrationsPage = page(() => import('./pages/IntegrationsPage'), 'IntegrationsPage');
-const OrganizationPage = page(() => import('./pages/OrganizationPage'), 'OrganizationPage');
-const PlanPage = page(() => import('./pages/PlanPage'), 'PlanPage');
+const SettingsPage = page(() => import('./pages/SettingsPage'), 'SettingsPage');
 const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage');
+const PlanPage = page(() => import('./pages/PlanPage'), 'PlanPage');
 
-/** Financeiro was split: its Obrigações went to Dívidas, Salário to Entradas, the rest to Gastos fixos. */
+/** Financeiro was split: Salário went to Entradas, the rest (Obrigações too) to Gastos. */
 function LegacyFinances() {
   const { hash } = useLocation();
   return (
@@ -54,7 +50,7 @@ function LegacyFinances() {
       replace
       to={
         hash === '#obligations'
-          ? '/caishen/debts'
+          ? '/caishen/fixed#loans'
           : hash === '#income'
             ? '/caishen/income'
             : `/caishen/fixed${hash}`
@@ -63,28 +59,42 @@ function LegacyFinances() {
   );
 }
 
-/** Saídas fixas held the debts too; their old anchor now opens Dívidas. */
+/** Saídas fixas held the debts too; their old anchor now opens the Empréstimos in Gastos. */
 function LegacyFixed() {
   const { hash, search } = useLocation();
   return (
     <Navigate
       replace
-      to={hash === '#obligations' ? '/caishen/debts' : `/caishen/fixed${search}${hash}`}
+      to={hash === '#obligations' ? '/caishen/fixed#loans' : `/caishen/fixed${search}${hash}`}
     />
   );
+}
+
+/** Cartões had a page; each card's anchor (`#card-<id>`) now lives in Gastos. */
+function LegacyCards() {
+  const { hash } = useLocation();
+  return <Navigate replace to={`/caishen/fixed${hash || '#cards'}`} />;
+}
+
+/** Plano was a tab of Configurações; its old address keeps Stripe's `?checkout=`. */
+function LegacyPlan() {
+  const { search } = useLocation();
+  return <Navigate replace to={`/plan${search}`} />;
 }
 
 /** Integrações used to be one page per kind; the old links land on its part of the one page. */
 function LegacyIntegration() {
   const { group } = useParams<{ group: string }>();
-  return <Navigate replace to={group === 'files' ? '/integrations#files' : '/integrations#ai'} />;
+  return <Navigate replace to={group === 'models' ? '/integrations#ai' : '/integrations'} />;
 }
 
 export function App() {
   const { data: session, isPending } = authClient.useSession();
   const { setLanguage } = useI18n();
+  const { pathname } = useLocation();
   const language = session?.user.language;
   useDocumentTitle(Boolean(session));
+  useAppliedTheme(Boolean(session) && pathname !== '/landing');
 
   // Signed in, the User's own language wins over the one this browser remembered.
   useEffect(() => {
@@ -102,6 +112,7 @@ export function App() {
           <Route element={<LandingPage />} index />
           <Route element={<LandingPage />} path="landing" />
           <Route element={<LoginPage />} path="sign-in" />
+          <Route element={<ResetPasswordPage />} path="reset-password" />
           <Route element={<Navigate replace to="/sign-in" />} path="*" />
         </Routes>
       </Suspense>
@@ -120,6 +131,8 @@ export function App() {
         }
         path="landing"
       />
+      {/* A reset link opened while signed in still works; choosing the password signs out. */}
+      <Route element={<ResetPasswordPage />} path="reset-password" />
       <Route element={<Layout user={session.user} />}>
         <Route
           element={
@@ -160,26 +173,30 @@ export function App() {
           <Route element={<EntriesPage />} path="entries" />
           <Route element={<IncomePage />} path="income" />
           <Route element={<FixedPage />} path="fixed" />
-          <Route element={<DebtsPage />} path="debts" />
-          <Route element={<CardsPage />} path="cards" />
-          <Route element={<SubscriptionsPage />} path="subscriptions" />
+          <Route element={<LegacyCards />} path="cards" />
+          <Route
+            element={<Navigate replace to="/caishen/fixed#subscriptions" />}
+            path="subscriptions"
+          />
           <Route element={<TaxesPage />} path="taxes" />
           <Route element={<Navigate replace to="/caishen/entries" />} path="reports" />
           <Route element={<PayoffPage />} path="payoff" />
           <Route element={<CalculatorsPage />} path="calculators" />
-          <Route element={<BudgetPage />} path="budget" />
-          {/* Old addresses: the tabs of Lançamentos, Visão geral, Relatório, Mês, Financeiro. */}
+          {/* Old addresses: the tabs of Lançamentos, Visão geral, Relatório, Mês, Financeiro, Orçamento, Score. */}
           <Route element={<Navigate replace to="/caishen/income" />} path="entries/income" />
           <Route element={<LegacyFixed />} path="entries/fixed" />
           <Route element={<Navigate replace to="/caishen/taxes" />} path="entries/taxes" />
           <Route element={<Navigate replace to="/caishen/entries" />} path="report" />
-          <Route element={<CreditPage />} path="credit" />
-          {['overview', 'month'].map(path => (
+          {['overview', 'month', 'budget', 'credit'].map(path => (
             <Route element={<Navigate replace to="/caishen/entries" />} key={path} path={path} />
           ))}
           <Route element={<LegacyFinances />} path="finances" />
-          {['obligations', 'loans', 'financing'].map(path => (
-            <Route element={<Navigate replace to="/caishen/debts" />} key={path} path={path} />
+          {['debts', 'obligations', 'loans', 'financing'].map(path => (
+            <Route
+              element={<Navigate replace to="/caishen/fixed#loans" />}
+              key={path}
+              path={path}
+            />
           ))}
           <Route element={<CreditOperationPage />} path="operations/:id" />
           <Route element={<Navigate replace to="/" />} path="jobs/*" />
@@ -190,11 +207,13 @@ export function App() {
         <Route
           element={
             <Scrolling>
-              <OrganizationPage />
+              <SettingsPage />
             </Scrolling>
           }
-          path="organization"
+          path="settings"
         />
+        <Route element={<LegacyPlan />} path="settings/plan" />
+        <Route element={<Navigate replace to="/settings" />} path="organization" />
         <Route element={<Navigate replace to="/integrations#ai" />} path="models" />
         <Route
           element={

@@ -26,7 +26,9 @@ const TITLE_KEYS = {
 function recordPath(proposal: ProposalFieldsFragment): string {
   switch (proposal.kind) {
     case 'CREDIT_OPERATION':
-      return proposal.recordId ? `/caishen/operations/${proposal.recordId}` : '/caishen/debts';
+      return proposal.recordId
+        ? `/caishen/operations/${proposal.recordId}`
+        : '/caishen/fixed#loans';
     case 'INCOME_SOURCE':
       return '/caishen/income';
     case 'EXPENSE':
@@ -96,7 +98,7 @@ export function ProposalCard({ proposal }: { proposal: ProposalFieldsFragment })
             ))}
           </dl>
         )}
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
       </CardContent>
       <CardFooter className="flex-wrap gap-2 px-4">
         {proposal.status === 'PENDING' && draft ? (

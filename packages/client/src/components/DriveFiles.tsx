@@ -2,11 +2,11 @@ import { useQuery } from '@apollo/client/react';
 import { ConnectionsDocument } from '@zapbots/graphql/client';
 import { PaperclipIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 
 import { pickDriveFile, type PickedFile } from '../lib/drive';
+import { friendlyError } from '../lib/errors';
 
 interface Props {
   files: PickedFile[];
@@ -26,7 +26,7 @@ export function DriveFiles({ files, onChange }: Props) {
       const file = await pickDriveFile();
       if (file && !files.some(picked => picked.fileId === file.fileId)) onChange([...files, file]);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível anexar');
+      setError(friendlyError(cause, 'Não foi possível anexar.'));
     }
   };
 
@@ -49,23 +49,18 @@ export function DriveFiles({ files, onChange }: Props) {
           </Button>
         </span>
       ))}
-      {drive?.connected ? (
+      {/* Drive is no longer offered on Integrações: only an old Connection can still attach. */}
+      {drive?.connected && (
         <Button
-          className="h-auto px-0 text-xs text-muted-foreground"
+          className="text-muted-foreground"
           onClick={() => void attach()}
+          size="sm"
           type="button"
-          variant="link"
+          variant="ghost"
         >
-          <PaperclipIcon className="size-3" />
+          <PaperclipIcon />
           Anexar do Drive
         </Button>
-      ) : (
-        <Link
-          className="text-muted-foreground underline-offset-4 hover:underline"
-          to="/integrations/files"
-        >
-          Conecte o Google Drive para entregar arquivos
-        </Link>
       )}
       {error && <span className="text-destructive">{error}</span>}
     </div>

@@ -77,7 +77,7 @@ export function EditRecordDialog({ id, kind, onClose, title }: Props) {
             />
           </form>
         )}
-        {updating.error && <FormError message={updating.error.message} />}
+        {updating.error && <FormError error={updating.error} />}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
             Cancelar

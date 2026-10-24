@@ -67,27 +67,30 @@ export function OpenFinanceLinker() {
         <BankLinkRow item={item} key={item.id} onNotice={setNotice} />
       ))}
       {notice && <p className="text-sm">{notice}</p>}
-      <form className="flex flex-col gap-2 rounded-xl bg-card p-4" onSubmit={submit}>
-        <Label htmlFor="pluggy-item">Id do item na Pluggy</Label>
-        <div className="flex flex-wrap gap-2">
+      <form className="flex flex-col gap-3 rounded-xl bg-secondary/60 p-4" onSubmit={submit}>
+        <Label htmlFor="pluggy-item">Conectar um banco pelo id do item na Pluggy</Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
-            className="min-w-64 flex-1"
+            className="min-w-0 flex-1 bg-card"
             id="pluggy-item"
             onChange={event => setItemId(event.target.value)}
             placeholder="00000000-0000-0000-0000-000000000000"
             required
             value={itemId}
           />
-          <Button disabled={linking.loading || !itemId.trim()} size="sm" type="submit">
+          <Button disabled={linking.loading || !itemId.trim()} type="submit">
             {linking.loading ? 'Conectando…' : 'Conectar banco'}
           </Button>
         </div>
+        <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-muted-foreground">
+          <li>Autorize o banco no Meu Pluggy.</li>
+          <li>No painel da Pluggy, conecte o MeuPluggy na aba Demo da sua aplicação.</li>
+          <li>Copie o id em Itens Conectados e cole aqui.</li>
+        </ol>
         <p className="text-sm text-muted-foreground">
-          Autorize o banco no Meu Pluggy, conecte o MeuPluggy na aba Demo da sua aplicação no painel
-          da Pluggy e copie o id em Itens Conectados. Os primeiros 90 dias entram como Gastos; o que
-          já entrou não se repete.
+          Os primeiros 90 dias entram como Gastos; o que já entrou não se repete.
         </p>
-        {linking.error && <FormError message={linking.error.message} />}
+        {linking.error && <FormError error={linking.error} />}
       </form>
     </div>
   );
@@ -97,8 +100,8 @@ const added = (count: number) =>
   count === 0
     ? 'Nenhum gasto novo.'
     : count === 1
-      ? '1 gasto novo em Lançamentos.'
-      : `${count} gastos novos em Lançamentos.`;
+      ? '1 gasto novo no Fluxo de caixa.'
+      : `${count} gastos novos no Fluxo de caixa.`;
 
 /** One bank: its state, its accounts, and reading it again or unlinking it. */
 function BankLinkRow({ item, onNotice }: { item: BankLink; onNotice: (text: string) => void }) {
@@ -108,7 +111,7 @@ function BankLinkRow({ item, onNotice }: { item: BankLink; onNotice: (text: stri
   });
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-card p-4">
+    <div className="flex flex-col gap-3 rounded-xl bg-secondary/60 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-medium">
           {item.institution}{' '}
@@ -161,7 +164,7 @@ function BankLinkRow({ item, onNotice }: { item: BankLink; onNotice: (text: stri
           Desconectar
         </Button>
       </div>
-      {syncing.error && <FormError message={syncing.error.message} />}
+      {syncing.error && <FormError error={syncing.error} />}
       {unlinking && <UnlinkDialog item={item} onClose={() => setUnlinking(false)} />}
     </div>
   );
@@ -185,7 +188,7 @@ function UnlinkDialog({ item, onClose }: { item: BankLink; onClose: () => void }
             termina no Meu Pluggy, onde foi dada.
           </DialogDescription>
         </DialogHeader>
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
             Cancelar

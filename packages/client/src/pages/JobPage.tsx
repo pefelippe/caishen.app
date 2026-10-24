@@ -154,7 +154,7 @@ export function JobPage() {
               <Button disabled={retrying} onClick={() => void onRetry()} variant="outline">
                 Pedir de novo
               </Button>
-              {retryError && <FormError message={retryError.message} />}
+              {retryError && <FormError error={retryError} />}
             </div>
           )}
           {working && (
