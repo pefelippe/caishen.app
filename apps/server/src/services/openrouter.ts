@@ -6,6 +6,8 @@ export interface Model {
   free: boolean;
   id: string;
   name: string;
+  /** Takes images as input (`architecture.input_modalities`). */
+  readsImages: boolean;
   supportsTools: boolean;
 }
 
@@ -20,8 +22,15 @@ export interface ToolCall {
   type: 'function';
 }
 
+/** A piece of a User's turn: text, an image, or a file such as a PDF (as data URLs). */
+export type ContentPart =
+  | { text: string; type: 'text' }
+  | { image_url: { url: string }; type: 'image_url' }
+  | { file: { file_data: string; filename: string }; type: 'file' };
+
 export type ChatMessage =
-  | { content: string; role: 'system' | 'user' }
+  | { content: string; role: 'system' }
+  | { content: string | ContentPart[]; role: 'user' }
   | { content: string | null; role: 'assistant'; tool_calls?: ToolCall[] }
   | { content: string; role: 'tool'; tool_call_id: string };
 
@@ -44,6 +53,7 @@ export class OpenRouterError extends Error {
 export const aiConfigured = () => Boolean(process.env.OPENROUTER_API_KEY);
 
 interface RawModel {
+  architecture?: { input_modalities?: string[] };
   id: string;
   name: string;
   pricing?: { completion?: string; prompt?: string };
@@ -64,6 +74,7 @@ export async function listModels(): Promise<Model[]> {
         free: Number(model.pricing?.prompt) === 0 && Number(model.pricing?.completion) === 0,
         id: model.id,
         name: model.name,
+        readsImages: model.architecture?.input_modalities?.includes('image') ?? false,
         supportsTools: model.supported_parameters?.includes('tools') ?? false,
       }))
       .sort((a, b) => Number(b.free) - Number(a.free) || a.name.localeCompare(b.name));
@@ -120,6 +131,9 @@ interface StreamDelta {
   }[];
 }
 
+const hasFile = (message: ChatMessage) =>
+  Array.isArray(message.content) && message.content.some(part => part.type === 'file');
+
 /**
  * One streamed completion. Calls `onText` for each piece of text and resolves with the full text
  * plus any tool calls the Model asked for.
@@ -137,6 +151,10 @@ export async function streamCompletion(options: {
       model: options.model,
       stream: true,
       ...(options.tools?.length ? { tools: options.tools } : {}),
+      // PDFs go through OpenRouter's free parser, so any Model reads them (docs/adr/0017).
+      ...(options.messages.some(hasFile)
+        ? { plugins: [{ id: 'file-parser', pdf: { engine: 'cloudflare-ai' } }] }
+        : {}),
     }),
     headers: {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,

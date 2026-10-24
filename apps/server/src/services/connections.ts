@@ -5,6 +5,8 @@ import { and, eq } from 'drizzle-orm';
 
 import { driveConnected, googleConfigured } from './drive';
 import * as openrouter from './openrouter';
+import { maskPhone, whatsappLinkOf } from './whatsapp/link';
+import { whatsappConfigured } from './whatsapp/meta';
 
 interface Status {
   /** False for Connections that are not built yet. */
@@ -69,8 +71,31 @@ const googleDrive: Provider = {
   },
 };
 
+const whatsapp: Provider = {
+  category: 'MESSAGING',
+  kind: 'WHATSAPP',
+  // One number, the Caishen's, for every User; each links theirs with a code (docs/adr/0019).
+  status: async viewer => {
+    if (!whatsappConfigured()) {
+      return {
+        available: false,
+        connected: false,
+        detail: null,
+        unavailableReason: 'O WhatsApp ainda não está ligado neste servidor.',
+      };
+    }
+    const link = await whatsappLinkOf(viewer);
+    return {
+      available: true,
+      connected: Boolean(link),
+      detail: link ? `Conectado ao número ${maskPhone(link.phone)}.` : null,
+      unavailableReason: null,
+    };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
-const PROVIDERS: Provider[] = [openRouter, googleDrive];
+const PROVIDERS: Provider[] = [openRouter, googleDrive, whatsapp];
 
 export function connections(viewer: Viewer) {
   return Promise.all(

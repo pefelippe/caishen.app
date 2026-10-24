@@ -9,17 +9,19 @@ export const mswServer = setupServer();
 export const MODEL_WITH_TOOLS = 'test/with-tools';
 export const MODEL_WITHOUT_TOOLS = 'test/plain';
 
-/** The public Model list: one Model that can call tools, one that cannot. */
+/** The public Model list: one Model that calls tools and reads images, one that does neither. */
 export const modelListHandler = http.get(`${BASE_URL}/models`, () =>
   HttpResponse.json({
     data: [
       {
+        architecture: { input_modalities: ['text', 'image'] },
         id: MODEL_WITH_TOOLS,
         name: 'With tools',
         pricing: { completion: '0', prompt: '0' },
         supported_parameters: ['tools'],
       },
       {
+        architecture: { input_modalities: ['text'] },
         id: MODEL_WITHOUT_TOOLS,
         name: 'Plain',
         pricing: { completion: '0.01', prompt: '0.01' },
@@ -30,8 +32,9 @@ export const modelListHandler = http.get(`${BASE_URL}/models`, () =>
 );
 
 export interface CompletionRequest {
-  messages: { content: string | null; role: string }[];
+  messages: { content: string | null | Record<string, unknown>[]; role: string }[];
   model: string;
+  plugins?: { id: string }[];
   tools?: { function: { name: string } }[];
 }
 

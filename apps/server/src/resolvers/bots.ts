@@ -5,8 +5,8 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 
 import { PlanLimitError, requireWithinLimit } from '../services/billing/billing';
-import { botAlerts } from '../services/bots/alerts';
-import { CATALOG, ensureBots } from '../services/bots/catalog';
+import { markAlerts, viewerAlerts } from '../services/bots/alerts';
+import { CATALOG, ensureBots, type BotKey } from '../services/bots/catalog';
 import { cancelJob, failStaleJobs, handOverJob, type JobFile } from '../services/bots/jobs';
 import {
   cancelProposal,
@@ -91,9 +91,19 @@ async function botById(id: string) {
   return row!;
 }
 
+/** The Viewer's Organization's Bot with this key. */
+async function viewerBot(viewer: Viewer, key: BotKey) {
+  const bots = await ensureBots(viewer.organizationId);
+  return bots.find(bot => bot.key === key) ?? notFound('Bot');
+}
+
 export const botResolvers: Resolvers = {
   Bot: {
-    alerts: (bot, _, context) => botAlerts(requireViewer(context), bot.key),
+    alerts: async (bot, _, context) =>
+      (await viewerAlerts(requireViewer(context), bot.key)).map(alert => ({
+        ...alert,
+        id: alert.key,
+      })),
     description: bot => CATALOG[bot.key].description,
     model: async bot => bot.model ?? (await defaultModel()),
     name: bot => CATALOG[bot.key].name,
@@ -126,6 +136,7 @@ export const botResolvers: Resolvers = {
         .orderBy(asc(schema.message.createdAt)),
   },
   Message: {
+    attachments: message => message.attachments ?? [],
     proposals: message =>
       db
         .select()
@@ -200,6 +211,16 @@ export const botResolvers: Resolvers = {
     },
     confirmProposal: (_, { id }, context) => confirmProposal(requireViewer(context), id),
     cancelProposal: (_, { id }, context) => cancelProposal(requireViewer(context), id),
+    dismissAlert: async (_, { bot, id }, context) => {
+      const viewer = requireViewer(context);
+      await markAlerts(viewer, bot, [id], 'DISMISSED');
+      return viewerBot(viewer, bot);
+    },
+    markAlertsRead: async (_, { bot, ids }, context) => {
+      const viewer = requireViewer(context);
+      await markAlerts(viewer, bot, ids, 'READ');
+      return viewerBot(viewer, bot);
+    },
     editProposal: (_, { id, values }, context) => editProposal(requireViewer(context), id, values),
     deleteConversation: async (_, { id }, context) => {
       const deleted = await db
@@ -304,10 +325,7 @@ export const botResolvers: Resolvers = {
   },
   Query: {
     aiStatus: async () => ({ configured: aiConfigured(), defaultModel: await defaultModel() }),
-    bot: async (_, { key }, context) => {
-      const bots = await ensureBots(requireViewer(context).organizationId);
-      return bots.find(bot => bot.key === key) ?? notFound('Bot');
-    },
+    bot: (_, { key }, context) => viewerBot(requireViewer(context), key),
     bots: (_, __, context) => ensureBots(requireViewer(context).organizationId),
     conversation: async (_, { id }, context) => {
       const [row] = await db

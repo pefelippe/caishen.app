@@ -13,6 +13,11 @@ export default defineConfig({
       GOOGLE_CLIENT_SECRET: 'test-client-secret',
       OPENROUTER_API_KEY: 'test-key',
       OPENROUTER_DEFAULT_MODEL: 'test/with-tools',
+      WHATSAPP_APP_SECRET: 'test-app-secret',
+      WHATSAPP_NUMBER: '5511999990000',
+      WHATSAPP_PHONE_NUMBER_ID: 'test-phone-number-id',
+      WHATSAPP_TOKEN: 'test-token',
+      WHATSAPP_VERIFY_TOKEN: 'test-verify-token',
     },
     // One database: files must not interleave.
     fileParallelism: false,

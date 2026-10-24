@@ -6,4 +6,4 @@ export {
   OpenRouterError as ModelError,
   streamCompletion,
 } from './openrouter';
-export type { ChatMessage, Model, ToolCall, ToolDefinition } from './openrouter';
+export type { ChatMessage, ContentPart, Model, ToolCall, ToolDefinition } from './openrouter';

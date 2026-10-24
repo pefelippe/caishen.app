@@ -79,6 +79,13 @@ async function alertSection(viewer: Viewer, bot: BotRow): Promise<string> {
 
 const MODE = {
   chat: 'Responda de forma curta e direta.',
+  // Meta accepts only single-purpose bots on its API, and every part of a reply counts against the
+  // month's free cap (docs/adr/0019).
+  whatsapp: [
+    'Você está no WhatsApp, onde cuida só das finanças desta pessoa: registrar lançamentos, confirmar Propostas e responder sobre o dinheiro dela.',
+    'Recuse com gentileza qualquer outro assunto, em uma frase, e lembre o que você faz aqui.',
+    'Responda em poucas linhas. Uma Proposta aparece logo depois da sua resposta, com os botões Confirmar e Cancelar.',
+  ].join(' '),
   job: 'Você recebeu um Workflow. Entregue o resultado completo e pronto para usar, organizado em seções curtas. Não faça perguntas: se faltar algum dado, diga no fim o que faltou.',
 } as const;
 

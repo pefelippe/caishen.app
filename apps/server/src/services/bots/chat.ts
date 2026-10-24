@@ -11,6 +11,7 @@ import {
   streamCompletion,
   type ChatMessage,
 } from '../models';
+import { attachedNote, userContent, type ChatAttachment } from './attachments';
 import { CATALOG } from './catalog';
 import { botPrompt } from './prompt';
 import { attachProposals, PROPOSAL_TOOLS, proposalNote, proposeFromToolCall } from './proposals';
@@ -44,8 +45,12 @@ export class ChatError extends Error {}
  * Both Messages are saved; a failed reply leaves the User's Message in place.
  */
 export async function replyInConversation(options: {
+  /** Files sent with the Message, already checked by `readAttachments`. */
+  attachments?: ChatAttachment[];
   content: string;
   conversationId: string;
+  /** Where the Conversation happens: the app's chat (the default) or WhatsApp (docs/adr/0019). */
+  mode?: 'chat' | 'whatsapp';
   /** Where the User is in the app, e.g. "/caishen". */
   screen?: string;
   send: (event: ChatEvent) => void;
@@ -53,8 +58,10 @@ export async function replyInConversation(options: {
   viewer: Viewer;
 }): Promise<void> {
   const { send, viewer } = options;
+  const mode = options.mode ?? 'chat';
   const content = options.content.trim();
-  if (!content) throw new ChatError('Escreva uma mensagem.');
+  const attachments = options.attachments ?? [];
+  if (!content && !attachments.length) throw new ChatError('Escreva uma mensagem.');
   if (!aiConfigured()) {
     throw new ChatError('Os Bots ainda não estão ligados: falta OPENROUTER_API_KEY no servidor.');
   }
@@ -106,24 +113,36 @@ export async function replyInConversation(options: {
   // Models that cannot call tools still chat; they just cannot propose records (docs/adr/0013).
   const listed = (await listModels()).find(entry => entry.id === model);
   let canPropose = listed?.supportsTools ?? true;
-  await db
-    .insert(schema.message)
-    .values({ content, conversationId: conversation.id, role: 'USER' });
+  if (listed && !listed.readsImages && attachments.some(file => file.kind === 'IMAGE')) {
+    throw new ChatError(
+      `O Modelo de ${CATALOG[bot.key].name} não lê imagens. Escolha um com visão em Integrações, ou mande o texto.`
+    );
+  }
+  await db.insert(schema.message).values({
+    attachments: attachments.length ? attachments.map(({ kind, name }) => ({ kind, name })) : null,
+    content,
+    conversationId: conversation.id,
+    role: 'USER',
+  });
   await db
     .update(schema.conversation)
     .set({
       updatedAt: new Date(),
-      ...(conversation.title === DEFAULT_TITLE ? { title: content.slice(0, 60) } : {}),
+      ...(conversation.title === DEFAULT_TITLE
+        ? { title: (content || attachments[0]!.name).slice(0, 60) }
+        : {}),
     })
     .where(eq(schema.conversation.id, conversation.id));
 
   const messages: ChatMessage[] = [
     {
-      content: await botPrompt(viewer, bot, { canPropose, mode: 'chat', screen: options.screen }),
+      content: await botPrompt(viewer, bot, { canPropose, mode, screen: options.screen }),
       role: 'system',
     },
     ...history.flatMap((message): ChatMessage[] => {
-      if (message.role === 'USER') return [{ content: message.content, role: 'user' }];
+      if (message.role === 'USER') {
+        return [{ content: message.content + attachedNote(message.attachments), role: 'user' }];
+      }
       const notes = proposals
         .filter(proposal => proposal.messageId === message.id)
         .map(proposalNote);
@@ -136,7 +155,7 @@ export async function replyInConversation(options: {
           : []),
       ];
     }),
-    { content, role: 'user' },
+    { content: userContent(content, attachments), role: 'user' },
   ];
 
   let reply = '';
@@ -164,7 +183,7 @@ export async function replyInConversation(options: {
         if (!tools || reply || proposed || !(error instanceof ModelError)) throw error;
         canPropose = false;
         messages[0] = {
-          content: await botPrompt(viewer, bot, { mode: 'chat', screen: options.screen }),
+          content: await botPrompt(viewer, bot, { mode, screen: options.screen }),
           role: 'system',
         };
         completion = await ask();

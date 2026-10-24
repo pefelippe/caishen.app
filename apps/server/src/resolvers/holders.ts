@@ -11,6 +11,7 @@ import {
   upcomingDues,
 } from '../services/obligations';
 import { monthlyNetBrlCents } from '../services/income';
+import { budgetFor, saveBudget } from '../services/budget';
 import { MAX_PERIOD_DAYS, monthStatement, periodStatement } from '../services/month';
 import { fieldsFor, inputFor } from '../services/recordForms';
 import {
@@ -88,6 +89,10 @@ export const holderResolvers: Resolvers = {
         .where(eq(schema.recurringExpense.holderId, holder.id))
         .orderBy(schema.recurringExpense.dueDay),
     upcomingDues: holder => upcomingDues(holder.id),
+    budget: (holder, { month }) => {
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) badInput('Mês inválido: use AAAA-MM');
+      return budgetFor(holder.id, month);
+    },
     month: (holder, { month }) => {
       if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) badInput('Mês inválido: use AAAA-MM');
       return monthStatement(holder.id, month);
@@ -121,6 +126,7 @@ export const holderResolvers: Resolvers = {
         .orderBy(desc(schema.reportedScore.consultedOn)),
   },
   Mutation: {
+    saveBudget: (_, { input }, context) => saveBudget(requireViewer(context), input),
     addReportedScore: async (_, { input }, context) => {
       const viewer = requireViewer(context);
       await findHolder(viewer, input.holderId);
