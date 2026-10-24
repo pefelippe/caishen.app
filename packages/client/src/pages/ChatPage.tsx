@@ -3,18 +3,59 @@ import {
   BillingDocument,
   BotPanelDocument,
   ConversationsDocument,
+  DeleteConversationDocument,
   StartConversationDocument,
+  type ConversationsQuery,
 } from '@zapbots/graphql/client';
-import { InfoIcon, MessageSquareIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import {
+  CpuIcon,
+  FileSpreadsheetIcon,
+  HistoryIcon,
+  MoreHorizontalIcon,
+  PlusIcon,
+  SearchIcon,
+  SparklesIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import { CHAT_SUGGESTIONS } from '../components/ChatPanel';
-import { ChatThread } from '../components/ChatThread';
+import { ChatThread, type Suggestion } from '../components/ChatThread';
+import { FormError } from '../components/FormError';
+import { localToday } from '../lib/bots';
+
+type Conversation = ConversationsQuery['conversations'][number];
+
+/** On the page there is room for four: the panel's three, and one for a statement to attach. */
+const PAGE_SUGGESTIONS: Suggestion[] = [
+  ...CHAT_SUGGESTIONS,
+  {
+    icon: FileSpreadsheetIcon,
+    text: 'Vou anexar meu extrato: organize os gastos por categoria.',
+  },
+];
 
 const BANNER_KEY = 'zapbots.agentBanner';
 
@@ -42,11 +83,11 @@ function PlanBanner() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-xl bg-header/5 px-4 py-3">
-      <InfoIcon className="size-5 shrink-0 text-header" />
+    <div className="flex items-center gap-3 rounded-2xl bg-accent px-4 py-2.5 text-sm">
+      <SparklesIcon className="size-4 shrink-0 text-primary" />
       <p className="min-w-0 flex-1">
         Mais Workflows e mensagens por mês no Plano Pro.{' '}
-        <Link className="font-medium text-header underline underline-offset-4" to="/plan">
+        <Link className="font-medium text-primary hover:underline" to="/plan">
           Ver planos
         </Link>
       </p>
@@ -57,8 +98,186 @@ function PlanBanner() {
   );
 }
 
+/** Deletes a Conversation, with its Messages, after asking; it cannot be undone. */
+function ConfirmDeleteConversation({
+  conversation,
+  onClose,
+  onDeleted,
+}: {
+  conversation: { id: string; title: string };
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [remove, { error, loading }] = useMutation(DeleteConversationDocument, {
+    refetchQueries: [ConversationsDocument],
+  });
+
+  const confirm = async () => {
+    const result = await remove({ variables: { id: conversation.id } }).catch(() => null);
+    if (!result?.data) return;
+    onDeleted();
+    onClose();
+  };
+
+  return (
+    <Dialog onOpenChange={open => !open && onClose()} open>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Excluir “{conversation.title}”?</DialogTitle>
+          <DialogDescription>
+            A conversa sai da lista com todas as mensagens. Não dá para desfazer.
+          </DialogDescription>
+        </DialogHeader>
+        {error && <FormError message={error.message} />}
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost">
+            Cancelar
+          </Button>
+          <Button disabled={loading} onClick={() => void confirm()} variant="destructive">
+            {loading ? 'Excluindo…' : 'Excluir'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The local day (`YYYY-MM-DD`) a moment fell on. */
+function localDay(moment: string | Date): string {
+  const at = new Date(moment);
+  return new Date(at.getTime() - at.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
+/** Conversations by when they last moved: today, yesterday, this week, before. */
+function byAge(conversations: Conversation[]): { items: Conversation[]; label: string }[] {
+  const today = localToday();
+  const daysAgo = (count: number) => {
+    const at = new Date(`${today}T12:00:00`);
+    at.setDate(at.getDate() - count);
+    return localDay(at);
+  };
+  const yesterday = daysAgo(1);
+  const weekAgo = daysAgo(7);
+  const groups: { items: Conversation[]; label: string; test: (day: string) => boolean }[] = [
+    { items: [], label: 'Hoje', test: day => day === today },
+    { items: [], label: 'Ontem', test: day => day === yesterday },
+    { items: [], label: 'Últimos 7 dias', test: day => day >= weekAgo },
+    { items: [], label: 'Mais antigas', test: () => true },
+  ];
+  for (const conversation of conversations) {
+    const day = localDay(conversation.updatedAt);
+    groups.find(group => group.test(day))!.items.push(conversation);
+  }
+  return groups.filter(group => group.items.length > 0);
+}
+
 /**
- * The Agente page: on the left a new chat and the earlier Conversations; on the right the open Conversation, greeting the User while it is empty.
+ * The column of Conversations: a new one on top, a search, then the earlier ones by age, each
+ * with its ⋯ menu.
+ */
+function Conversations({
+  chosen,
+  conversations,
+  onDelete,
+  onOpen,
+}: {
+  chosen: string | null;
+  conversations: Conversation[] | undefined;
+  onDelete: (conversation: Conversation) => void;
+  onOpen: (id: string | null) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const groups = useMemo(() => {
+    const words = search.trim().toLocaleLowerCase('pt-BR');
+    const found = (conversations ?? []).filter(
+      conversation =>
+        !words ||
+        conversation.title.toLocaleLowerCase('pt-BR').includes(words) ||
+        (conversation.lastMessage?.content.toLocaleLowerCase('pt-BR').includes(words) ?? false)
+    );
+    return byAge(found.slice(0, 60));
+  }, [conversations, search]);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <Button className="h-11 rounded-full text-[0.9375rem]" onClick={() => onOpen(null)}>
+        <PlusIcon />
+        Nova conversa
+      </Button>
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          aria-label="Buscar conversas"
+          className="h-10 rounded-full border-0 bg-muted pl-10 shadow-none"
+          onChange={event => setSearch(event.target.value)}
+          placeholder="Buscar conversas"
+          value={search}
+        />
+      </div>
+
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1 [scrollbar-width:none]">
+        {!conversations ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3].map(index => (
+              <Skeleton className="h-9 rounded-xl" key={index} />
+            ))}
+          </div>
+        ) : groups.length === 0 ? (
+          <p className="px-3 text-sm text-muted-foreground">
+            {search ? 'Nenhuma conversa com essas palavras.' : 'Suas conversas aparecem aqui.'}
+          </p>
+        ) : (
+          groups.map(group => (
+            <section className="flex flex-col gap-0.5" key={group.label}>
+              <h2 className="px-3 pb-1 text-xs font-medium text-muted-foreground">{group.label}</h2>
+              {group.items.map(conversation => (
+                <div className="group relative" key={conversation.id}>
+                  <Button
+                    className={cn(
+                      'h-10 w-full justify-start rounded-xl px-3 pr-9 text-sm font-normal',
+                      conversation.id === chosen
+                        ? 'bg-accent font-medium text-primary hover:bg-accent hover:text-primary'
+                        : 'hover:bg-muted'
+                    )}
+                    onClick={() => onOpen(conversation.id)}
+                    variant="ghost"
+                  >
+                    <span className="truncate">{conversation.title}</span>
+                  </Button>
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        aria-label={`Opções de “${conversation.title}”`}
+                        className="absolute top-1.5 right-1 size-7 rounded-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <MoreHorizontalIcon className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-44">
+                      <DropdownMenuItem
+                        onSelect={() => onDelete(conversation)}
+                        variant="destructive"
+                      >
+                        <Trash2Icon />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ))}
+            </section>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Agente page: a white column of Conversations (a drawer on a phone) beside the open one,
+ * which has its title and Model on top and greets the User while it is empty.
  */
 export function ChatPage({ user }: { user: { name: string } }) {
   const { data } = useQuery(BotPanelDocument, { variables: { key: 'FINANCE' } });
@@ -70,15 +289,20 @@ export function ChatPage({ user }: { user: { name: string } }) {
   const [start] = useMutation(StartConversationDocument, {
     refetchQueries: [ConversationsDocument],
   });
-  // `null` is a blank Conversation not yet saved; the page opens on one.
-  const [chosen, setChosen] = useState<string | null>(null);
+  // `null` is a blank Conversation not yet saved; the page opens on one, or on `?c=`, as the
+  // Dashboard's recent ones link.
+  const [searchParams] = useSearchParams();
+  const [chosen, setChosen] = useState<string | null>(() => searchParams.get('c'));
   // Remounts the thread when the User picks another Conversation, not when the first Message
   // saves a blank one (that would drop the reply being streamed).
   const [thread, setThread] = useState(0);
+  const [deleting, setDeleting] = useState<{ id: string; title: string } | null>(null);
+  const [drawer, setDrawer] = useState(false);
 
   const open = (id: string | null) => {
     setChosen(id);
-    setThread(current => current + 1);
+    setThread(count => count + 1);
+    setDrawer(false);
   };
 
   const ensureConversation = async () => {
@@ -89,53 +313,81 @@ export function ChatPage({ user }: { user: { name: string } }) {
     return id;
   };
 
-  return (
-    <div className="flex h-full min-h-0">
-      <aside className="hidden w-72 shrink-0 flex-col gap-4 overflow-y-auto border-r bg-card p-3 md:flex">
-        <Button
-          className="h-10 rounded-xl bg-header/10 font-medium text-header hover:bg-header/15"
-          onClick={() => open(null)}
-          variant="ghost"
-        >
-          Novo chat
-        </Button>
-        <div className="flex flex-col gap-0.5">
-          <span className="px-3 pb-1 text-[0.8125rem] font-medium text-muted-foreground">
-            Conversas
-          </span>
-          {!list?.conversations.length && (
-            <p className="px-3 text-muted-foreground">Nenhuma conversa ainda.</p>
-          )}
-          {list?.conversations.slice(0, 30).map(conversation => (
-            <Button
-              className={cn(
-                'h-10 justify-start gap-3 px-3 text-[0.9375rem] font-normal',
-                conversation.id === chosen && 'bg-accent'
-              )}
-              key={conversation.id}
-              onClick={() => open(conversation.id)}
-              variant="ghost"
-            >
-              <MessageSquareIcon />
-              <span className="truncate">{conversation.title}</span>
-            </Button>
-          ))}
-        </div>
-      </aside>
+  const current = list?.conversations.find(conversation => conversation.id === chosen);
+  const column = (
+    <Conversations
+      chosen={chosen}
+      conversations={list?.conversations}
+      onDelete={setDeleting}
+      onOpen={open}
+    />
+  );
 
-      <section className="page-enter flex min-w-0 flex-1 flex-col pt-6" data-bot="FINANCE">
-        <div className="px-4">
+  return (
+    <div className="flex h-full min-h-0 gap-4 p-3 md:p-4">
+      <aside className="hidden w-72 shrink-0 flex-col rounded-2xl bg-card p-4 shadow-[0_1px_3px_rgb(15_23_42/0.06)] md:flex">
+        {column}
+      </aside>
+      <Sheet onOpenChange={setDrawer} open={drawer}>
+        <SheetContent className="flex w-80 flex-col p-4 pt-12" side="left">
+          <SheetTitle className="sr-only">Conversas</SheetTitle>
+          {column}
+        </SheetContent>
+      </Sheet>
+      {deleting && (
+        <ConfirmDeleteConversation
+          conversation={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => deleting.id === chosen && open(null)}
+        />
+      )}
+
+      <section className="page-enter flex min-w-0 flex-1 flex-col" data-bot="FINANCE">
+        <header className="mx-auto flex w-full max-w-3xl items-center gap-2 px-1 pb-3">
+          <Button
+            aria-label="Conversas"
+            className="rounded-full md:hidden"
+            onClick={() => setDrawer(true)}
+            size="icon"
+            variant="ghost"
+          >
+            <HistoryIcon />
+          </Button>
+          <h1 className="min-w-0 flex-1 truncate text-base font-semibold">
+            {current?.title ?? 'Nova conversa'}
+          </h1>
+          {bot && (
+            <Link
+              className="inline-flex max-w-56 items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-[0_1px_3px_rgb(15_23_42/0.06)] hover:text-foreground"
+              title="Trocar o Modelo em Integrações"
+              to="/integrations#ai"
+            >
+              <CpuIcon className="size-3.5 shrink-0" />
+              <span className="truncate">{bot.model}</span>
+            </Link>
+          )}
+          <Button
+            aria-label="Nova conversa"
+            className="rounded-full md:hidden"
+            onClick={() => open(null)}
+            size="icon"
+            variant="ghost"
+          >
+            <PlusIcon />
+          </Button>
+        </header>
+        <div className="mx-auto w-full max-w-3xl px-1">
           <PlanBanner />
         </div>
         {bot ? (
           <ChatThread
             bot={bot}
-            className="flex-1"
+            className="min-h-0 flex-1"
             conversationId={chosen}
             ensureConversation={ensureConversation}
             greeting={user.name.split(' ')[0]}
             key={thread}
-            suggestions={CHAT_SUGGESTIONS}
+            suggestions={PAGE_SUGGESTIONS}
             unavailable={
               data.aiStatus.configured
                 ? undefined
@@ -144,7 +396,7 @@ export function ChatPage({ user }: { user: { name: string } }) {
             variant="page"
           />
         ) : (
-          <Skeleton className="m-6 flex-1" />
+          <Skeleton className="mx-auto mt-6 w-full max-w-3xl flex-1 rounded-2xl" />
         )}
       </section>
     </div>

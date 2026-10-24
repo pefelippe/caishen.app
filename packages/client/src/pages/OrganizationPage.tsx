@@ -64,7 +64,7 @@ export function OrganizationPage() {
           {error && <FormError message={error.message} />}
         </div>
       </form>
-      <section className="flex flex-col gap-4 border-t pt-8">
+      <section className="flex flex-col gap-4 rounded-2xl bg-card p-6 shadow-[0_1px_3px_rgb(15_23_42/0.06)]">
         <div>
           <h2 className="text-lg font-semibold">{t('users.title')}</h2>
           <p className="mt-1 max-w-prose text-muted-foreground">{t('users.subtitle')}</p>

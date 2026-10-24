@@ -11,12 +11,12 @@ import {
 } from '@zapbots/graphql/client';
 import { addDays, addMonths } from '@zapbots/finance';
 import {
-  CalendarRangeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
   FileSpreadsheetIcon,
   PrinterIcon,
+  SearchIcon,
   Trash2Icon,
   UploadIcon,
   XIcon,
@@ -63,12 +63,10 @@ import {
 import { cn } from '@/lib/utils';
 
 import { ConfirmDelete } from '../components/ConfirmDelete';
+import { MonthSummary } from '../components/MonthSummary';
 import { QueryError } from '../components/QueryError';
-import { ReportCharts } from '../components/ReportCharts';
 import { AddEntryButton } from './FinancePage';
 import { FormError } from '../components/FormError';
-import { EntriesTabs } from '../components/EntriesTabs';
-import { Sheet } from '../components/Sheet';
 import { localToday } from '../lib/bots';
 import { formatCents, formatDate } from '../lib/format';
 import {
@@ -165,6 +163,28 @@ function monthName(month: string) {
   return name[0]!.toUpperCase() + name.slice(1);
 }
 
+const SHORT_MONTHS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+/** "05 out", and "05 out 2025" when the line is not in `year`. */
+function shortDate(iso: string, year: string) {
+  const [y, m, d] = iso.slice(0, 10).split('-') as [string, string, string];
+  const day = `${d} ${SHORT_MONTHS[Number(m) - 1]}`;
+  return y === year ? day : `${day} ${y}`;
+}
+
 /** Where each kind of line is filed when it has no category of its own. */
 const KIND_CATEGORIES: Record<MonthLineKind, string> = {
   COMPANY_TAX: 'Impostos da empresa',
@@ -187,10 +207,13 @@ interface Entry {
   removable: { id: string; kind: 'EXPENSE' | 'ONE_OFF' } | null;
   /** What it is: Salário, Avulsa, Parcela, Fatura, Imposto or Gasto. */
   source: string;
-  /** Where it is managed, for the lines that come from Fixos or Obrigações. */
+  /** Where it is managed, for the lines that come from Gastos fixos or Dívidas. */
   to: string | null;
   /** The Fonte de Renda, Operação or Gasto recorrente a line comes from, deleted as a whole from here. */
-  owner: { id: string; kind: 'CREDIT_OPERATION' | 'INCOME_SOURCE' | 'RECURRING_EXPENSE' } | null;
+  owner: {
+    id: string;
+    kind: 'CREDIT_OPERATION' | 'INCOME_SOURCE' | 'RECURRING_EXPENSE';
+  } | null;
   /** A Gasto recorrente on a Cartão: shown, but its Fatura is what counts. */
   informative?: boolean;
 }
@@ -206,7 +229,7 @@ function entriesOf(statement: Statement): Entry[] {
       removable:
         line.kind === 'ONE_OFF' && line.id ? { id: line.id, kind: 'ONE_OFF' as const } : null,
       source: KIND_LABELS[line.kind],
-      to: line.kind === 'SALARY' ? '/caishen/entries/income' : null,
+      to: line.kind === 'SALARY' ? '/caishen/income' : null,
       owner:
         line.kind === 'SALARY' && line.id ? { id: line.id, kind: 'INCOME_SOURCE' as const } : null,
     })),
@@ -228,12 +251,12 @@ function entriesOf(statement: Statement): Entry[] {
         line.kind === 'INSTALLMENT' && line.id
           ? `/caishen/operations/${line.id}`
           : line.kind === 'TAX'
-            ? '/caishen/entries/fixed#taxes'
+            ? '/caishen/fixed#taxes'
             : line.kind === 'COMPANY_TAX'
-              ? '/caishen/entries/taxes'
+              ? '/caishen/taxes'
               : line.kind === 'RECURRING'
-                ? '/caishen/entries/fixed#recurring'
-                : '/caishen/entries/fixed#obligations',
+                ? '/caishen/fixed#recurring'
+                : '/caishen/debts',
     })),
     ...statement.onCard.map(line => ({
       amountCents: line.amountCents,
@@ -245,7 +268,7 @@ function entriesOf(statement: Statement): Entry[] {
       owner: line.id ? { id: line.id, kind: 'RECURRING_EXPENSE' as const } : null,
       removable: null,
       source: 'No cartão',
-      to: '/caishen/entries/fixed#recurring',
+      to: '/caishen/fixed#recurring',
     })),
     ...statement.expenses.map(item => ({
       amountCents: item.amountCents,
@@ -285,11 +308,15 @@ function SheetCell({
   cell,
   label,
   list,
+  className,
   onCommit,
+  placeholder,
   type = 'text',
   value,
 }: {
   align?: 'right';
+  className?: string;
+  placeholder?: string;
   /** "column:row", for moving between cells with Enter. */
   cell: string;
   label: string;
@@ -329,7 +356,8 @@ function SheetCell({
       className={cn(
         'h-8 rounded-md border-transparent bg-transparent px-2 shadow-none hover:border-border focus-visible:border-ring focus-visible:bg-card print:border-0',
         align === 'right' && 'text-right tabular-nums',
-        saving && 'opacity-60'
+        saving && 'opacity-60',
+        className
       )}
       data-cell={cell}
       inputMode={align === 'right' ? 'decimal' : undefined}
@@ -337,6 +365,7 @@ function SheetCell({
       onBlur={() => void commit()}
       onChange={event => setDraft(event.target.value)}
       onKeyDown={onKeyDown}
+      placeholder={placeholder}
       type={type}
       value={draft}
     />
@@ -345,7 +374,7 @@ function SheetCell({
 
 /**
  * Lançamentos: one month of money as one spreadsheet. Salários, Parcelas, Faturas and Impostos show
- * up by themselves (from Fixos and Dívidas); Receitas avulsas and Gastos are typed in here, and
+ * up by themselves (from Gastos fixos and Dívidas); Receitas avulsas and Gastos are typed in here, and
  * Gastos also come in from a .csv or .xlsx. It filters, totals, and exports as CSV or PDF.
  */
 export function EntriesPage() {
@@ -372,6 +401,7 @@ export function EntriesPage() {
     if (ISO_DATE.test(value)) setParams({ from, p: 'custom', to, [part]: value });
   };
   const name = isMonth ? monthName(month) : PRESETS.find(item => item.value === preset)!.label;
+  const [readError, setReadError] = useState<string | null>(null);
   const file = isMonth ? month : `${from}_${to}`;
 
   // Only the month's part of the page waits or fails; the header and the tabs always show.
@@ -400,105 +430,94 @@ export function EntriesPage() {
           title="Parte do período não carregou; o resto está abaixo"
         />
       )}
-      <Totals isMonth={isMonth} statement={statement} />
-      <Ledger file={file} holderId={holderId!} isMonth={isMonth} statement={statement} />
-      <ReportCharts holderId={holderId!} />
+      <MonthSummary figures={statement} />
+      <Ledger statement={statement} />
     </>
   );
 
   return (
-    <div className="flex flex-col gap-6" data-bot="FINANCE">
-      <div>
-        <EntriesTabs />
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              {isMonth && (
-                <Button
-                  aria-label="Mês anterior"
-                  className="print:hidden"
-                  onClick={() => go(-1)}
-                  size="icon"
-                  variant="ghost"
-                >
-                  <ChevronLeftIcon />
-                </Button>
-              )}
-              <motion.h1
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(isMonth && 'min-w-56 text-center')}
-                initial={{ opacity: 0, y: 6 }}
-                key={`${from}..${to}`}
-              >
-                {name}
-              </motion.h1>
-              {isMonth && (
-                <Button
-                  aria-label="Próximo mês"
-                  className="print:hidden"
-                  onClick={() => go(1)}
-                  size="icon"
-                  variant="ghost"
-                >
-                  <ChevronRightIcon />
-                </Button>
-              )}
-            </div>
-            {!isMonth && (
-              <p className="text-sm text-muted-foreground tabular-nums">{spanName(from, to)}</p>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2 print:hidden">
-            <AddEntryButton direction="IN" month={isMonth ? month : undefined} />
-            <AddEntryButton direction="OUT" month={isMonth ? month : undefined} />
-          </div>
-        </header>
-        {/* What span the sheet covers: a month walked with the arrows, the last days or months, or any two dates. */}
-        <div className="mt-4 flex flex-wrap items-end gap-3 print:hidden">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="period">Período</Label>
-            <Select onValueChange={value => choose(value as Preset)} value={preset}>
-              <SelectTrigger className="w-52 bg-card" id="period">
-                <CalendarRangeIcon />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRESETS.map(item => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {preset === 'custom' && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="period-from">De</Label>
-                <Input
-                  className="w-44 bg-card"
-                  id="period-from"
-                  max={to}
-                  onChange={event => setSpan('from', event.target.value)}
-                  type="date"
-                  value={from}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="period-to">Até</Label>
-                <Input
-                  className="w-44 bg-card"
-                  id="period-to"
-                  min={from}
-                  onChange={event => setSpan('to', event.target.value)}
-                  type="date"
-                  value={to}
-                />
-              </div>
-            </>
+    // Laid out by the panel's own width (`@container`), which the menu and the chat both narrow.
+    <div className="@container flex flex-col gap-6" data-bot="FINANCE">
+      {/* One bar: the period on the left, everything that puts lines in or takes them out on the right. */}
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {isMonth && (
+            <Button
+              aria-label="Mês anterior"
+              className="rounded-full bg-card print:hidden"
+              onClick={() => go(-1)}
+              size="icon"
+              variant="outline"
+            >
+              <ChevronLeftIcon />
+            </Button>
+          )}
+          <motion.h1
+            animate={{ opacity: 1, y: 0 }}
+            className="min-w-0"
+            initial={{ opacity: 0, y: 6 }}
+            key={`${from}..${to}`}
+          >
+            {name}
+          </motion.h1>
+          {isMonth && (
+            <Button
+              aria-label="Próximo mês"
+              className="rounded-full bg-card print:hidden"
+              onClick={() => go(1)}
+              size="icon"
+              variant="outline"
+            >
+              <ChevronRightIcon />
+            </Button>
           )}
         </div>
-      </div>
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <Select onValueChange={value => choose(value as Preset)} value={preset}>
+            <SelectTrigger aria-label="Período" className="h-9 rounded-full border-0 bg-secondary">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PRESETS.map(item => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {preset === 'custom' && (
+            <div className="flex items-center gap-2">
+              <Input
+                aria-label="De"
+                className="w-40 rounded-full bg-card"
+                max={to}
+                onChange={event => setSpan('from', event.target.value)}
+                type="date"
+                value={from}
+              />
+              <span className="text-muted-foreground">até</span>
+              <Input
+                aria-label="Até"
+                className="w-40 rounded-full bg-card"
+                min={from}
+                onChange={event => setSpan('to', event.target.value)}
+                type="date"
+                value={to}
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 @3xl:ml-auto print:hidden">
+          <ImportButton holderId={holderId} onError={setReadError} />
+          <Export file={file} statement={statement} />
+          <AddEntryButton direction="IN" month={isMonth ? month : undefined} />
+          <AddEntryButton direction="OUT" month={isMonth ? month : undefined} />
+        </div>
+      </header>
+      {!isMonth && preset !== 'custom' && (
+        <p className="-mt-3 text-muted-foreground tabular-nums">{spanName(from, to)}</p>
+      )}
+      {readError && <FormError message={readError} />}
 
       {body}
     </div>
@@ -510,64 +529,82 @@ function MonthSkeleton() {
   return (
     <div aria-busy className="flex flex-col gap-6" role="status">
       <span className="sr-only">Carregando o mês…</span>
-      <Skeleton className="h-28 w-full rounded-2xl" />
+      <Skeleton className="h-44 w-full rounded-2xl" />
       <Skeleton className="h-96 w-full rounded-2xl" />
     </div>
   );
 }
 
-function Totals({ isMonth, statement }: { isMonth: boolean; statement: Statement }) {
-  const balance = isMonth ? 'Saldo do mês' : 'Saldo do período';
-  const figures = [
-    { detail: 'Renda fixa e receitas avulsas', label: 'Entradas', value: statement.incomeCents },
-    {
-      detail: `Compromissos ${formatCents(statement.commitmentsCents)} · Gastos ${formatCents(statement.expensesCents)}`,
-      label: 'Saídas',
-      value: statement.commitmentsCents + statement.expensesCents,
-    },
-    {
-      detail:
-        statement.balanceCents < 0
-          ? `${isMonth ? 'O mês fecha' : 'O período fecha'} no vermelho`
-          : `O que sobra no ${isMonth ? 'mês' : 'período'}`,
-      label: balance,
-      value: statement.balanceCents,
-    },
-  ];
+/** Lower case and without accents, so "agua" finds "Água". */
+const plain = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+
+/** A .csv or .xlsx of Gastos picked, read and handed to the dialog that maps its columns. */
+function ImportButton({
+  holderId,
+  onError,
+}: {
+  holderId: string | undefined;
+  onError: (message: string | null) => void;
+}) {
+  const file = useRef<HTMLInputElement>(null);
+  const [table, setTable] = useState<{
+    name: string;
+    table: SpreadsheetTable;
+  } | null>(null);
+
+  const open = async (picked: File | undefined) => {
+    onError(null);
+    if (!picked) return;
+    try {
+      setTable({ name: picked.name, table: await readTable(picked) });
+    } catch {
+      onError('Não foi possível ler esse arquivo. Use .csv ou .xlsx.');
+    }
+    if (file.current) file.current.value = '';
+  };
+
   return (
-    <div className="grid gap-px overflow-hidden rounded-2xl bg-border sm:grid-cols-3">
-      {figures.map(figure => (
-        <div className="flex flex-col gap-1 bg-card p-5" key={figure.label}>
-          <span className="text-sm text-muted-foreground">{figure.label}</span>
-          <strong
-            className={cn(
-              'text-3xl font-semibold tracking-tight tabular-nums',
-              figure.label === balance && (figure.value < 0 ? 'text-destructive' : 'text-success')
-            )}
-          >
-            {formatCents(figure.value)}
-          </strong>
-          <span className="text-[13px] text-muted-foreground tabular-nums">{figure.detail}</span>
-        </div>
-      ))}
-    </div>
+    <>
+      <Button
+        className="rounded-full"
+        disabled={!holderId}
+        onClick={() => file.current?.click()}
+        variant="secondary"
+      >
+        <UploadIcon />
+        Importar
+      </Button>
+      <input
+        accept=".csv,.txt,.xlsx"
+        className="hidden"
+        onChange={event => void open(event.target.files?.[0])}
+        ref={file}
+        type="file"
+      />
+      {table && holderId && (
+        <ImportDialog
+          holderId={holderId}
+          name={table.name}
+          onClose={() => setTable(null)}
+          table={table.table}
+        />
+      )}
+    </>
   );
 }
 
-/** The period's spreadsheet: every line, filterable, with the file going in and out. */
-function Ledger({
-  file: fileName,
-  holderId,
-  isMonth,
-  statement,
-}: {
-  /** The period in the exported file's name: `2026-10` or `2026-05-01_2026-10-31`. */
-  file: string;
-  holderId: string;
-  isMonth: boolean;
-  statement: Statement;
-}) {
-  const [removeExpense] = useMutation(DeleteExpenseDocument, { refetchQueries: [PeriodDocument] });
+/**
+ * The period's spreadsheet, straight under the summary: a search and filters, then every line with
+ * its category and the balance as it runs through the period.
+ */
+function Ledger({ statement }: { statement: Statement }) {
+  const [removeExpense] = useMutation(DeleteExpenseDocument, {
+    refetchQueries: [PeriodDocument],
+  });
   const [removeIncome] = useMutation(DeleteOneOffIncomeDocument, {
     refetchQueries: [PeriodDocument],
   });
@@ -582,35 +619,36 @@ function Ledger({
   const [deleting, setDeleting] = useState<Entry | null>(null);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [category, setCategory] = useState('ALL');
-  const file = useRef<HTMLInputElement>(null);
-  const [table, setTable] = useState<{ name: string; table: SpreadsheetTable } | null>(null);
-  const [readError, setReadError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const entries = entriesOf(statement);
   const categories = [...new Set(entries.map(entry => entry.category))].sort();
+  const query = plain(search.trim());
+  const filtered = filter !== 'ALL' || category !== 'ALL' || query !== '';
+  // Dates show without their year when it is the period's own.
+  const year = (statement.incomes[0]?.date ?? localToday()).slice(0, 4);
+  // What is left after each line, from the start of the period; a Gasto recorrente on a Cartão is
+  // in its Fatura already, so it is listed and not counted.
+  const running = new Map<Entry, number>();
+  entries.reduce((balance, entry) => {
+    const next = entry.informative
+      ? balance
+      : balance + (entry.direction === 'IN' ? entry.amountCents : -entry.amountCents);
+    running.set(entry, next);
+    return next;
+  }, 0);
   const shown = entries.filter(
     entry =>
       (filter === 'ALL' || entry.direction === filter) &&
-      (category === 'ALL' || entry.category === category)
+      (category === 'ALL' || entry.category === category) &&
+      (!query || plain(`${entry.description} ${entry.category}`).includes(query))
   );
-  // A Gasto recorrente on a Cartão is in its Fatura already: listed, not counted.
   const shownTotal = shown
     .filter(entry => !entry.informative)
     .reduce(
       (total, entry) => total + (entry.direction === 'IN' ? entry.amountCents : -entry.amountCents),
       0
     );
-
-  const open = async (picked: File | undefined) => {
-    setReadError(null);
-    if (!picked) return;
-    try {
-      setTable({ name: picked.name, table: await readTable(picked) });
-    } catch {
-      setReadError('Não foi possível ler esse arquivo. Use .csv ou .xlsx.');
-    }
-    if (file.current) file.current.value = '';
-  };
 
   const remove = (entry: Entry) => {
     if (!entry.removable) return;
@@ -673,17 +711,27 @@ function Ledger({
   };
 
   return (
-    <Sheet
+    <motion.section
+      aria-label="Lançamentos"
+      className="flex flex-col gap-4 rounded-2xl bg-card p-6 md:p-8"
       id="entries"
-      intro={`Tudo o que entrou e saiu no ${isMonth ? 'mês' : 'período'}. Salários, Parcelas, Faturas e Impostos aparecem sozinhos; o resto você digita ou importa.`}
-      title={isMonth ? 'Planilha do mês' : 'Planilha do período'}
-      total={
-        <span className={shownTotal < 0 ? 'text-destructive' : undefined}>
-          {formatCents(shownTotal)}
-        </span>
-      }
+      initial={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ amount: 0.15, once: true }}
+      whileInView={{ opacity: 1, y: 0 }}
     >
       <div className="flex flex-wrap items-center gap-2 print:hidden">
+        <div className="relative w-full @xl:w-64">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Buscar lançamentos"
+            className="h-10 rounded-full border-0 bg-secondary pl-10 shadow-none"
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Buscar"
+            type="search"
+            value={search}
+          />
+        </div>
         <div className="flex gap-1 rounded-full bg-secondary p-1">
           {(
             [
@@ -693,6 +741,7 @@ function Ledger({
             ] as const
           ).map(([value, label]) => (
             <Button
+              aria-pressed={filter === value}
               className={cn('h-8 rounded-full px-4', filter === value && 'bg-card shadow-xs')}
               key={value}
               onClick={() => setFilter(value)}
@@ -704,7 +753,10 @@ function Ledger({
           ))}
         </div>
         <Select onValueChange={setCategory} value={category}>
-          <SelectTrigger aria-label="Categoria" className="h-10 w-52 rounded-full bg-card">
+          <SelectTrigger
+            aria-label="Categoria"
+            className="h-10 w-52 rounded-full border-0 bg-secondary"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -716,23 +768,21 @@ function Ledger({
             ))}
           </SelectContent>
         </Select>
-        {/* The sheet in and out of a file, together on the right. */}
-        <div className="ml-auto flex gap-2">
-          <Button onClick={() => file.current?.click()} variant="outline">
-            <UploadIcon />
-            Importar planilha
-          </Button>
-          <Export file={fileName} statement={statement} />
-        </div>
-        <input
-          accept=".csv,.txt,.xlsx"
-          className="hidden"
-          onChange={event => void open(event.target.files?.[0])}
-          ref={file}
-          type="file"
-        />
+        {/* The whole period is in the summary above; here only what a filter leaves. */}
+        {filtered && (
+          <p className="ml-auto text-muted-foreground tabular-nums">
+            {shown.length} {shown.length === 1 ? 'lançamento' : 'lançamentos'} ·{' '}
+            <strong
+              className={cn(
+                'font-semibold',
+                shownTotal < 0 ? 'text-destructive' : 'text-foreground'
+              )}
+            >
+              {formatCents(shownTotal)}
+            </strong>
+          </p>
+        )}
       </div>
-      {readError && <FormError message={readError} />}
 
       {selected.size > 0 && (
         <div className="flex items-center gap-3 rounded-lg bg-secondary px-4 py-2 print:hidden">
@@ -760,9 +810,9 @@ function Ledger({
           <option key={name} value={name} />
         ))}
       </datalist>
-      <Table>
-        <TableHeader>
-          <TableRow>
+      <Table className="border-separate border-spacing-y-0.5">
+        <TableHeader className="[&_tr]:border-0">
+          <TableRow className="hover:bg-transparent [&>th]:text-xs [&>th]:font-medium [&>th]:text-muted-foreground">
             <TableHead className="w-10 print:hidden">
               <Checkbox
                 aria-label="Selecionar todos os lançamentos editáveis"
@@ -773,11 +823,12 @@ function Ledger({
                 }
               />
             </TableHead>
-            <TableHead className="w-40">Data</TableHead>
-            <TableHead>Descrição</TableHead>
-            <TableHead className="w-48">Categoria</TableHead>
-            <TableHead className="w-28">Tipo</TableHead>
+            <TableHead className="w-32 px-4">Data</TableHead>
+            <TableHead className="px-4">Descrição</TableHead>
+            <TableHead className="w-48 px-4">Categoria</TableHead>
             <TableHead className="w-36 text-right">Valor</TableHead>
+            {/* A running balance means nothing over lines picked out by a filter. */}
+            {!filtered && <TableHead className="w-36 text-right">Saldo</TableHead>}
             <TableHead className="w-12 print:hidden" />
           </TableRow>
         </TableHeader>
@@ -785,8 +836,10 @@ function Ledger({
           {shown.map((entry, index) => {
             const own = entry.removable;
             const sign = entry.direction === 'IN' ? '+' : '−';
+            const balance = running.get(entry)!;
             return (
               <TableRow
+                className="group border-0 hover:bg-secondary/70 data-[state=selected]:bg-accent [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl"
                 data-state={own && selected.has(own.id) ? 'selected' : undefined}
                 key={`${entry.source}-${own?.id ?? entry.description}-${entry.date}-${index}`}
               >
@@ -801,7 +854,7 @@ function Ledger({
                 </TableCell>
                 {own ? (
                   <>
-                    <TableCell className="py-1">
+                    <TableCell className="py-1.5">
                       <SheetCell
                         cell={`date:${index}`}
                         label={`Data de ${entry.description}`}
@@ -810,49 +863,56 @@ function Ledger({
                         value={entry.date}
                       />
                     </TableCell>
-                    <TableCell className="py-1">
+                    <TableCell className="py-1.5">
                       <SheetCell
                         cell={`description:${index}`}
+                        className="font-medium"
                         label={`Descrição de ${entry.description}`}
                         onCommit={value => save(entry, 'description', value)}
                         value={entry.description}
                       />
                     </TableCell>
-                    <TableCell className="py-1">
-                      {own.kind === 'EXPENSE' ? (
-                        <SheetCell
-                          cell={`category:${index}`}
-                          label={`Categoria de ${entry.description}`}
-                          list="entry-categories"
-                          onCommit={value => save(entry, 'category', value)}
-                          value={entry.category === 'Sem categoria' ? '' : entry.category}
-                        />
-                      ) : (
-                        <span className="px-2 text-muted-foreground">{entry.category}</span>
-                      )}
-                    </TableCell>
                   </>
                 ) : (
                   <>
-                    <TableCell className="tabular-nums">{formatDate(entry.date)}</TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 tabular-nums">
+                      {shortDate(entry.date, year)}
+                    </TableCell>
+                    <TableCell className="py-3">
                       {entry.to ? (
                         <Link
-                          className="underline-offset-4 hover:underline"
+                          className="block px-2 font-medium underline-offset-4 hover:underline"
                           title="Gerenciado em outra página"
                           to={entry.to}
                         >
                           {entry.description}
                         </Link>
                       ) : (
-                        entry.description
+                        <span className="block px-2 font-medium">{entry.description}</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{entry.category}</TableCell>
                   </>
                 )}
-                <TableCell>
-                  <Badge variant="secondary">{entry.source}</Badge>
+                <TableCell className="px-4 py-1.5">
+                  {own?.kind === 'EXPENSE' ? (
+                    <SheetCell
+                      cell={`category:${index}`}
+                      className="-mx-2 text-muted-foreground"
+                      label={`Categoria de ${entry.description}`}
+                      list="entry-categories"
+                      onCommit={value => save(entry, 'category', value)}
+                      placeholder="Sem categoria"
+                      value={entry.category === 'Sem categoria' ? '' : entry.category}
+                    />
+                  ) : (
+                    <Badge
+                      className="bg-card font-normal text-muted-foreground"
+                      title={entry.informative ? 'Já contado na Fatura do cartão' : undefined}
+                      variant="outline"
+                    >
+                      {entry.informative ? 'No cartão' : entry.category}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell
                   className={cn(
@@ -877,10 +937,22 @@ function Ledger({
                     `${sign} ${formatCents(entry.amountCents)}`
                   )}
                 </TableCell>
+                {!filtered && (
+                  <TableCell
+                    className={cn(
+                      'text-right tabular-nums text-muted-foreground',
+                      balance < 0 && 'text-destructive'
+                    )}
+                  >
+                    {formatCents(balance)}
+                  </TableCell>
+                )}
                 <TableCell className="print:hidden">
                   {(own || entry.owner) && (
+                    // Out of sight until the row is pointed at or reached by keyboard.
                     <Button
                       aria-label={`Apagar ${entry.description}`}
+                      className="pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
                       onClick={() => (own ? remove(entry) : setDeleting(entry))}
                       size="icon-sm"
                       variant="ghost"
@@ -894,7 +966,13 @@ function Ledger({
           })}
         </TableBody>
       </Table>
-      {!shown.length && <p className="text-muted-foreground">Nenhum lançamento aqui.</p>}
+      {!shown.length && (
+        <p className="rounded-xl bg-secondary/60 px-4 py-8 text-center text-muted-foreground">
+          {filtered
+            ? 'Nenhum lançamento com esse filtro.'
+            : 'Nenhum lançamento neste período. Salários, Parcelas, Faturas e Impostos entram sozinhos; Gastos e Receitas avulsas você adiciona ou importa.'}
+        </p>
+      )}
       {saveError && <FormError message={saveError} />}
       {deleting?.owner && (
         <ConfirmDelete
@@ -904,16 +982,7 @@ function Ledger({
           onClose={() => setDeleting(null)}
         />
       )}
-
-      {table && (
-        <ImportDialog
-          holderId={holderId}
-          name={table.name}
-          onClose={() => setTable(null)}
-          table={table.table}
-        />
-      )}
-    </Sheet>
+    </motion.section>
   );
 }
 
@@ -1030,8 +1099,9 @@ function ImportDialog({
 }
 
 /** The period as a spreadsheet (CSV, opened by Excel and Google Sheets) or printed to PDF. */
-function Export({ file, statement }: { file: string; statement: Statement }) {
+function Export({ file, statement }: { file: string; statement: Statement | undefined }) {
   const csv = () => {
+    if (!statement) return;
     const cents = (value: number) => (value / 100).toFixed(2).replace('.', ',');
     const quote = (text: string) => `"${text.replace(/"/g, '""')}"`;
     const lines = [
@@ -1074,7 +1144,7 @@ function Export({ file, statement }: { file: string; statement: Statement }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="print:hidden" variant="outline">
+        <Button className="rounded-full print:hidden" disabled={!statement} variant="secondary">
           <DownloadIcon />
           Exportar
         </Button>

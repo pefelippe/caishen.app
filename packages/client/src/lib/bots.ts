@@ -1,30 +1,7 @@
 import type { BotKey } from '@zapbots/graphql/client';
-import {
-  BriefcaseIcon,
-  CalendarHeartIcon,
-  FolderKanbanIcon,
-  HeartPulseIcon,
-  ListTodoIcon,
-  ReceiptTextIcon,
-  RepeatIcon,
-  TimerIcon,
-  UserRoundIcon,
-  type LucideIcon,
-} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 import { CaishenMark } from '../components/Logo';
-
-export interface SectionLink {
-  icon: LucideIcon;
-  label: string;
-  to: string;
-}
-
-/** A set of links in the menu on the left; groups without a label sit at the top. */
-export interface SectionGroup {
-  label?: string;
-  links: SectionLink[];
-}
 
 /** A Bot on the team as the app shows it. */
 export interface TeamBot {
@@ -50,18 +27,9 @@ export const TEAM: TeamBot[] = [
   },
 ];
 
-/** The sections of each Bot's page, in its white menu: what its field needs. */
-export const BOT_SECTIONS: Record<BotKey, SectionGroup[]> = {
-  FINANCE: [
-    {
-      links: [{ icon: ReceiptTextIcon, label: 'Lançamentos', to: '/caishen/entries' }],
-    },
-  ],
-};
-
 /**
- * Bots still being built, shown disabled under "Em breve" in the menu's Bot switcher with the
- * sections they will have. They are not in `TEAM` and have no `BotKey` until they work.
+ * Bots still being built, shown under "Em breve" on the landing page with the sections they will
+ * have. They are not in `TEAM` and have no `BotKey` until they work.
  */
 export interface UpcomingBot {
   description: string;
@@ -72,32 +40,7 @@ export interface UpcomingBot {
   sections: { icon: LucideIcon; label: string }[];
 }
 
-export const UPCOMING_BOTS: UpcomingBot[] = [
-  {
-    description: 'Hábitos, rotina, saúde e agenda do dia a dia.',
-    field: 'Pessoal',
-    icon: UserRoundIcon,
-    key: 'personal',
-    name: 'Caishen Personal',
-    sections: [
-      { icon: RepeatIcon, label: 'Rotina e hábitos' },
-      { icon: HeartPulseIcon, label: 'Saúde e bem-estar' },
-      { icon: CalendarHeartIcon, label: 'Agenda e lazer' },
-    ],
-  },
-  {
-    description: 'Tarefas, projetos e foco no trabalho.',
-    field: 'Trabalho',
-    icon: BriefcaseIcon,
-    key: 'work',
-    name: 'Caishen Work',
-    sections: [
-      { icon: ListTodoIcon, label: 'Minhas tarefas' },
-      { icon: FolderKanbanIcon, label: 'Projetos' },
-      { icon: TimerIcon, label: 'Foco e Pomodoro' },
-    ],
-  },
-];
+export const UPCOMING_BOTS: UpcomingBot[] = [];
 
 export const teamBot = (key: BotKey) => TEAM.find(bot => bot.key === key)!;
 

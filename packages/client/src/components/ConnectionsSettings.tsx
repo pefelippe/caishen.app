@@ -1,8 +1,11 @@
-import { useQuery } from '@apollo/client/react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import {
   ConnectionsDocument,
+  StartWhatsappLinkDocument,
+  UnlinkWhatsappDocument,
   type ConnectionKind,
   type ConnectionsQuery,
+  type StartWhatsappLinkMutation,
 } from '@zapbots/graphql/client';
 import { SearchIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -40,6 +43,11 @@ const COPY: Record<ConnectionKind, { description: string; name: string }> = {
       'Dá acesso a Modelos de vários fornecedores, inclusive gratuitos. A chave fica no servidor e vale para todas as contas.',
     name: 'OpenRouter',
   },
+  WHATSAPP: {
+    description:
+      'Converse com o Caishen pelo WhatsApp: conte um gasto, confirme as Propostas pelos botões e pergunte sobre as suas finanças. Ele só responde, nunca manda mensagem sozinho.',
+    name: 'WhatsApp',
+  },
 };
 
 /** The status of an Integration, the same way everywhere. */
@@ -76,7 +84,7 @@ export function ConnectionsSettings() {
         ? []
         : group.kinds
             .map(kind => data?.connections.find(item => item.kind === kind))
-            .filter((item): item is Connection => Boolean(item))
+            .filter((item): item is Connection => Boolean(item?.available))
             .filter(
               item =>
                 groupMatches || matches(search, COPY[item.kind].name, COPY[item.kind].description)
@@ -85,7 +93,10 @@ export function ConnectionsSettings() {
       status === 'LIVE'
         ? []
         : group.upcoming.filter(
-            item => groupMatches || matches(search, item.name, item.description)
+            item =>
+              // An Integration still to be switched on here waits as "em breve".
+              !data?.connections.some(live => live.kind === item.kind && live.available) &&
+              (groupMatches || matches(search, item.name, item.description))
           );
     // The Models are found by Bot or Model name too, so they show unless only "em breve" is asked.
     const models = group.id === 'ai' && status !== 'UPCOMING';
@@ -102,7 +113,11 @@ export function ConnectionsSettings() {
 
   const connectedCount = data?.connections.filter(item => item.connected).length ?? 0;
   const upcomingCount = INTEGRATION_GROUPS.reduce(
-    (total, group) => total + group.upcoming.length,
+    (total, group) =>
+      total +
+      group.upcoming.filter(
+        item => !data?.connections.some(live => live.kind === item.kind && live.available)
+      ).length,
     0
   );
   const filtered = Boolean(search) || status !== 'ALL';
@@ -265,6 +280,7 @@ function Details({ connection }: { connection: Connection }): ReactNode {
   const drive = connection.kind === 'GOOGLE_DRIVE';
   return (
     <>
+      {connection.kind === 'WHATSAPP' && <WhatsappLinker connected={connection.connected} />}
       {connection.detail && <p className="text-sm">{connection.detail}</p>}
       {connection.unavailableReason && (
         <p className="text-sm text-warning">{connection.unavailableReason}</p>
@@ -292,4 +308,90 @@ function Action({ connection, onConnect }: { connection: Connection; onConnect: 
     );
   }
   return null;
+}
+
+type LinkCode = StartWhatsappLinkMutation['startWhatsappLink'];
+
+/**
+ * Linking WhatsApp: a one-time code the User sends from their phone, through a `wa.me` link that
+ * writes it (docs/adr/0019); once linked, the way out.
+ */
+function WhatsappLinker({ connected }: { connected: boolean }) {
+  const [code, setCode] = useState<LinkCode | null>(null);
+  const [start, starting] = useMutation(StartWhatsappLinkDocument);
+  const [unlink, unlinking] = useMutation(UnlinkWhatsappDocument, {
+    refetchQueries: [ConnectionsDocument],
+  });
+  // Once the message with the code arrives, the server links the number: look for it now and then.
+  useQuery(ConnectionsDocument, { pollInterval: code && !connected ? 4000 : 0, skip: !code });
+
+  if (connected) {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          disabled={unlinking.loading}
+          onClick={() => void unlink().then(() => setCode(null))}
+          size="sm"
+          variant="outline"
+        >
+          Desconectar
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Ou mande SAIR para o Caishen no WhatsApp.
+        </span>
+        {unlinking.error && <FormError message={unlinking.error.message} />}
+      </div>
+    );
+  }
+
+  const expires = code
+    ? new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(
+        new Date(code.expiresAt)
+      )
+    : null;
+  return (
+    <div className="flex flex-col gap-3">
+      {code ? (
+        <div className="flex flex-col gap-3 rounded-xl bg-card p-4">
+          <p>
+            Mande este código para o Caishen no WhatsApp até as {expires}:{' '}
+            <strong className="text-lg tracking-widest tabular-nums">{code.code}</strong>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <a href={code.url} rel="noreferrer" target="_blank">
+                Abrir o WhatsApp
+              </a>
+            </Button>
+            <Button
+              disabled={starting.loading}
+              onClick={() =>
+                void start().then(result => setCode(result.data?.startWhatsappLink ?? null))
+              }
+              size="sm"
+              variant="ghost"
+            >
+              Gerar outro código
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            No computador, abra o link no celular ou digite o código numa conversa com o número do
+            Caishen. Esta tela muda sozinha quando ele receber.
+          </p>
+        </div>
+      ) : (
+        <Button
+          className="self-start"
+          disabled={starting.loading}
+          onClick={() =>
+            void start().then(result => setCode(result.data?.startWhatsappLink ?? null))
+          }
+          size="sm"
+        >
+          Conectar
+        </Button>
+      )}
+      {starting.error && <FormError message={starting.error.message} />}
+    </div>
+  );
 }

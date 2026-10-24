@@ -167,7 +167,7 @@ function ReportedScores({ holder, ourScore }: { holder: Holder; ourScore: number
   };
 
   return (
-    <Card className="gap-4 py-4 shadow-none">
+    <Card className="gap-4 px-0 py-4 shadow-none">
       <CardHeader className="px-4">
         <CardTitle className="text-base">Scores Declarados</CardTitle>
         <CardDescription>

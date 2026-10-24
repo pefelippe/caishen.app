@@ -3,6 +3,8 @@ import type { ConnectionKind } from '@zapbots/graphql/client';
 /** An Integration still to come, listed disabled so the User sees where the team is going. */
 export interface Upcoming {
   description: string;
+  /** Built but switched off on this server: listed here until it is on. */
+  kind?: ConnectionKind;
   name: string;
 }
 
@@ -33,10 +35,14 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
   {
     description: 'Fale com o Caishen fora do app e deixe que ele leia o que chega por e-mail.',
     id: 'messages',
-    kinds: [],
+    kinds: ['WHATSAPP'],
     title: 'Comunicação',
     upcoming: [
-      { description: 'Cadastre gastos, confira e confirme pelo WhatsApp.', name: 'WhatsApp' },
+      {
+        description: 'Cadastre gastos, confira e confirme pelo WhatsApp.',
+        kind: 'WHATSAPP',
+        name: 'WhatsApp',
+      },
       { description: 'Lê os e-mails dos bancos e das contas, sem enviar nada.', name: 'Gmail' },
       { description: 'Lê os e-mails do Outlook, sem enviar nada.', name: 'Outlook' },
       { description: 'Lê canais e mensagens que você escolher.', name: 'Slack' },

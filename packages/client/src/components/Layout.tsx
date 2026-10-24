@@ -4,6 +4,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+import { isRailPath } from '../lib/nav';
 import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
 import { ChatPanel, ChatPanelProvider } from './ChatPanel';
@@ -15,22 +16,27 @@ interface Props {
 }
 
 /**
- * The app in a navy frame: the header across the top and the menu down the left, one piece, with
- * the open screen inset as a rounded light panel and the chat panel docked on its right when open.
+ * The app as in Hostinger's hPanel: the navy header across the top, the grey menu under it on the
+ * left, rounded at the top, and the open screen square beside it, out to the edges, with the chat
+ * panel docked on its right when open.
  */
 export function Layout({ user }: Props) {
+  const { pathname } = useLocation();
+  // Beside a screen with its own column the menu is a rail of icons (`AppSidebar`).
+  const sidebarWidth = isRailPath(pathname) ? '6.5rem' : '17rem';
+
   return (
     <TooltipProvider delayDuration={300}>
       <ChatPanelProvider>
         <SidebarProvider
           className="h-svh flex-col overflow-hidden bg-(image:--header-gradient) print:h-auto print:overflow-visible print:bg-none"
-          style={{ '--header-height': '4rem' } as CSSProperties}
+          style={{ '--header-height': '4rem', '--sidebar-width': sidebarWidth } as CSSProperties}
         >
-          <AppHeader />
-          <div className="flex min-h-0 flex-1 px-2 pb-2 md:pl-0 print:p-0">
-            <AppSidebar user={user} />
-            {/* The screen and the chat panel, one rounded panel inside the frame. */}
-            <div className="flex min-w-0 flex-1 overflow-hidden rounded-2xl print:overflow-visible">
+          <AppHeader user={user} />
+          <div className="flex min-h-0 flex-1">
+            <AppSidebar />
+            {/* The screen and the chat panel, square, against the menu. */}
+            <div className="flex min-w-0 flex-1 overflow-hidden print:overflow-visible">
               <main className="relative min-w-0 flex-1 overflow-hidden bg-background print:overflow-visible print:bg-white">
                 <Suspense fallback={<PageSkeleton />}>
                   <Outlet />
@@ -52,7 +58,7 @@ export function Scrolling({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return (
     <div className="relative h-full overflow-y-auto print:h-auto print:overflow-visible">
-      <div className="page-enter w-full px-5 pt-10 pb-24 md:px-10" key={pathname}>
+      <div className="page-enter w-full px-6 pt-12 pb-24 md:px-14" key={pathname}>
         {children}
       </div>
     </div>

@@ -206,7 +206,7 @@ export function PlanPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-4 border-t pt-8">
+      <section className="flex flex-col gap-4 rounded-2xl bg-card p-6 shadow-[0_1px_3px_rgb(15_23_42/0.06)]">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <TicketIcon className="size-5" />

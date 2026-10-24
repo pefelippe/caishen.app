@@ -1,12 +1,21 @@
-import { useQuery } from '@apollo/client/react';
-import { BotsDocument, type AlertKind } from '@zapbots/graphql/client';
+import { useMutation, useQuery } from '@apollo/client/react';
+import {
+  BotsDocument,
+  DismissAlertDocument,
+  MarkAlertsReadDocument,
+  type AlertKind,
+  type BotKey,
+} from '@zapbots/graphql/client';
 import {
   BellIcon,
   CalendarClockIcon,
   CircleAlertIcon,
   CreditCardIcon,
+  CheckIcon,
   GaugeIcon,
+  MoreHorizontalIcon,
   RefreshCwOffIcon,
+  Trash2Icon,
   TrendingUpIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -14,6 +23,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -65,43 +80,60 @@ const ORDER: AlertKind[] = [
 
 /**
  * The bell in the header: every Bot's Alerts, each with its mark and a short title over the
- * detail, overdue ones first, with their count on the bell. An Alert with a link opens its screen.
+ * detail, overdue ones first, with the unread ones counted on the bell. Opening an Alert marks it
+ * read; its ⋯ menu marks it read or removes it, and the header marks them all read.
  */
 export function NotificationsMenu() {
   const [open, setOpen] = useState(false);
   const { t } = useI18n();
   const { data } = useQuery(BotsDocument, { fetchPolicy: 'cache-and-network' });
+  const [markRead] = useMutation(MarkAlertsReadDocument);
+  const [dismiss] = useMutation(DismissAlertDocument);
 
   const alerts = (data?.bots ?? [])
-    .flatMap(bot => bot.alerts)
+    .flatMap(bot => bot.alerts.map(alert => ({ ...alert, bot: bot.key })))
     .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
+  const unread = alerts.filter(alert => !alert.read);
+
+  const read = (bot: BotKey, ids: string[]) => void markRead({ variables: { bot, ids } });
+  const readAll = () => {
+    for (const bot of new Set(unread.map(alert => alert.bot))) {
+      read(
+        bot,
+        unread.filter(alert => alert.bot === bot).map(alert => alert.id)
+      );
+    }
+  };
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <Button
           aria-label={
-            alerts.length
-              ? `${t('notifications.label')} (${alerts.length})`
+            unread.length
+              ? `${t('notifications.label')} (${unread.length})`
               : t('notifications.label')
           }
-          className="relative size-9 rounded-full text-header-foreground hover:bg-white/10 hover:text-header-foreground"
+          className="relative size-9 rounded-full border border-white/15 bg-white/8 text-header-foreground hover:bg-white/15 hover:text-header-foreground"
           size="icon"
           variant="ghost"
         >
           <BellIcon className="size-5" />
-          {alerts.length > 0 && (
+          {unread.length > 0 && (
             <span className="absolute -top-0.5 -right-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[11px] font-semibold text-white ring-2 ring-header tabular-nums">
-              {alerts.length > 9 ? '9+' : alerts.length}
+              {unread.length > 9 ? '9+' : unread.length}
             </span>
           )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-96 overflow-hidden rounded-xl p-0" sideOffset={10}>
-        <div className="flex items-baseline justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1.5">
           <p className="font-semibold">{t('notifications.label')}</p>
-          {alerts.length > 0 && (
-            <p className="text-xs text-muted-foreground tabular-nums">{alerts.length}</p>
+          {unread.length > 0 && (
+            <Button className="h-8 px-2 text-xs" onClick={readAll} size="sm" variant="ghost">
+              <CheckIcon className="size-3.5" />
+              {t('notifications.readAll')}
+            </Button>
           )}
         </div>
         {alerts.length === 0 ? (
@@ -110,33 +142,44 @@ export function NotificationsMenu() {
           </p>
         ) : (
           <ul className="flex max-h-[26rem] flex-col gap-1 overflow-y-auto px-2 pb-2 [scrollbar-width:none]">
-            {alerts.map((alert, index) => {
+            {alerts.map(alert => {
               const kind = KINDS[alert.kind];
               const body = (
                 <>
                   <span
                     className={cn(
                       'grid size-9 shrink-0 place-items-center rounded-full',
-                      kind.tone
+                      kind.tone,
+                      alert.read && 'opacity-60'
                     )}
                   >
                     <kind.icon className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium">{t(kind.title)}</span>
+                    <span
+                      className={cn(
+                        'block text-sm',
+                        alert.read ? 'text-muted-foreground' : 'font-semibold'
+                      )}
+                    >
+                      {t(kind.title)}
+                    </span>
                     <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">
                       {alert.message}
                     </span>
                   </span>
                 </>
               );
-              const row = 'flex gap-3 rounded-lg px-2 py-2.5';
+              const row = 'flex gap-3 rounded-lg py-2.5 pr-10 pl-2';
               return (
-                <li key={index}>
+                <li className="group relative" key={alert.id}>
                   {alert.href ? (
                     <Link
                       className={cn(row, 'transition-colors hover:bg-muted')}
-                      onClick={() => setOpen(false)}
+                      onClick={() => {
+                        if (!alert.read) read(alert.bot, [alert.id]);
+                        setOpen(false);
+                      }}
                       to={alert.href}
                     >
                       {body}
@@ -144,6 +187,41 @@ export function NotificationsMenu() {
                   ) : (
                     <div className={row}>{body}</div>
                   )}
+                  {!alert.read && (
+                    <span
+                      aria-hidden
+                      className="absolute top-4 right-3.5 size-2 rounded-full bg-primary group-hover:hidden group-has-data-[state=open]:hidden"
+                    />
+                  )}
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        aria-label={t('notifications.options')}
+                        className="absolute top-2 right-1.5 size-7 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <MoreHorizontalIcon className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {!alert.read && (
+                        <DropdownMenuItem onSelect={() => read(alert.bot, [alert.id])}>
+                          <CheckIcon />
+                          {t('notifications.markRead')}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          void dismiss({ variables: { bot: alert.bot, id: alert.id } })
+                        }
+                        variant="destructive"
+                      >
+                        <Trash2Icon />
+                        {t('notifications.dismiss')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </li>
               );
             })}

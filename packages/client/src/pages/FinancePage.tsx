@@ -79,7 +79,6 @@ import { ConfirmDelete } from '../components/ConfirmDelete';
 import { QueryError } from '../components/QueryError';
 import { EditRecordDialog } from '../components/EditRecordDialog';
 import { Sheet, SheetRow } from '../components/Sheet';
-import { EntriesTabs } from '../components/EntriesTabs';
 import { ScrPanel } from '../components/ScrPanel';
 import { localToday } from '../lib/bots';
 import {
@@ -193,7 +192,6 @@ export function IncomePage() {
     <HolderSection
       actions={<AddEntryButton direction="IN" month={month} />}
       description={() => 'Tudo o que entra: a renda de todo mês e o que entra de vez em quando.'}
-      eyebrow={<EntriesTabs />}
       title="Entradas"
     >
       {holder => (
@@ -420,38 +418,137 @@ function useHashScroll(ready: boolean) {
 }
 
 /**
- * Fixos, the second tab of Lançamentos: what repeats and so shows up in every month by itself,
- * the Fontes de Renda (Salário) and the Impostos.
+ * Gastos fixos: what goes out every month by itself, the Gastos recorrentes (subscriptions, gym,
+ * insurance) and the Titular's own Impostos (IPVA, IPTU). The debts have their own page.
  */
 export function FixedPage() {
   const holder = useHolder();
   useHashScroll(Boolean(holder));
   return (
     <HolderSection
-      description={() =>
-        'O que sai todo mês (gastos recorrentes, empréstimos, cartões e impostos): entra sozinho em cada mês.'
-      }
       actions={<AddEntryButton direction="OUT" />}
-      eyebrow={<EntriesTabs />}
-      title="Saídas fixas"
+      description={() =>
+        'O que sai todo mês sem você digitar: gastos recorrentes e impostos. Entra sozinho em cada mês.'
+      }
+      title="Gastos fixos"
     >
       {holder => (
         <>
           <Figures
             figures={[
               { label: 'Recorrentes por mês', value: recurringPerMonth(holder) },
-              { label: 'Saldo devedor', value: outstandingOf(holder) },
               { label: 'Impostos no ano', value: taxesPerYear(holder) },
             ]}
           />
           <RecurringSection holder={holder} />
-          <ObligationsSection holder={holder} />
           <TaxesSection holder={holder} />
         </>
       )}
     </HolderSection>
   );
 }
+
+/**
+ * Dívidas: the Credit Operations (loans, financing) and Cartões, what is still owed, what goes out
+ * in Parcelas every month and what is late. Each Operation opens on its own page.
+ */
+export function DebtsPage() {
+  const holder = useHolder();
+  useHashScroll(Boolean(holder));
+  return (
+    <HolderSection
+      actions={<AddEntryButton direction="OUT" />}
+      description={() => 'Empréstimos, financiamentos e cartões: quanto falta pagar e o que vence.'}
+      title="Dívidas"
+    >
+      {holder => (
+        <>
+          <Figures
+            figures={[
+              { label: 'Saldo devedor', value: outstandingOf(holder) },
+              { label: 'Parcelas por mês', value: installmentsOf(holder) },
+              { label: 'Em atraso', value: overdueOf(holder) },
+            ]}
+          />
+          <ObligationsSection holder={holder} />
+        </>
+      )}
+    </HolderSection>
+  );
+}
+
+/** A Gasto recorrente filed under Assinatura(s), whatever the case or accents. */
+const isSubscription = (item: Recurring) =>
+  (item.category ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .startsWith('assinatura');
+
+/**
+ * Assinaturas: the Gastos recorrentes filed under that category (streaming, apps, clubs), what
+ * they cost a month and a year, and a quick way to add one already in it.
+ */
+export function SubscriptionsPage() {
+  const [adding, setAdding] = useState(false);
+  return (
+    <HolderSection
+      actions={
+        <Button onClick={() => setAdding(true)}>
+          <PlusIcon />
+          Adicionar assinatura
+        </Button>
+      }
+      description={() =>
+        'Streaming, apps, clubes: tudo o que você assina, quanto custa no mês e no ano.'
+      }
+      title="Assinaturas"
+    >
+      {holder => {
+        const items = holder.recurringExpenses.filter(isSubscription);
+        const monthly = perMonth(items);
+        return (
+          <>
+            <Figures
+              figures={[
+                { label: 'Por mês', value: monthly },
+                { label: 'Por ano', value: monthly * 12 },
+              ]}
+            />
+            <RecurringSection
+              empty="Nenhuma assinatura ainda. Cadastre uma, ou ponha a categoria Assinaturas num gasto recorrente."
+              holder={holder}
+              id="subscriptions"
+              intro="Os gastos recorrentes na categoria Assinaturas. Eles também contam em Gastos fixos."
+              items={items}
+              title="Suas assinaturas"
+            />
+            {adding && (
+              <Dialog onOpenChange={open => !open && setAdding(false)} open>
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Nova assinatura</DialogTitle>
+                  </DialogHeader>
+                  <RecurringForm
+                    defaultCategory="Assinaturas"
+                    holder={holder}
+                    onDone={() => setAdding(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+            )}
+          </>
+        );
+      }}
+    </HolderSection>
+  );
+}
+
+const installmentsOf = (holder: Holder) =>
+  holder.creditOperations.reduce((total, item) => total + item.installmentCents, 0);
+
+const overdueOf = (holder: Holder) =>
+  holder.creditOperations.reduce((total, item) => total + item.overdueCents, 0);
 
 /** Whole cents a year: yearly Taxes as typed, monthly ones twelve times (docs/adr/0004). */
 const taxesPerYear = (holder: Holder) =>
@@ -466,11 +563,11 @@ const outstandingOf = (holder: Holder) =>
 /** A page's totals, large, side by side. */
 function Figures({ figures }: { figures: { label: string; value: number }[] }) {
   return (
-    <div className="grid gap-px overflow-hidden rounded-2xl bg-border sm:grid-flow-col sm:auto-cols-fr">
+    <div className="grid gap-4 sm:grid-flow-col sm:auto-cols-fr">
       {figures.map((figure, index) => (
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-1 bg-card p-6"
+          className="flex flex-col gap-1 rounded-2xl bg-card p-6 shadow-[0_1px_3px_rgb(15_23_42/0.06)]"
           initial={{ opacity: 0, y: 12 }}
           key={figure.label}
           transition={{ delay: index * 0.06, duration: 0.5, ease: EASE }}
@@ -828,7 +925,12 @@ const running = (item: Recurring) => !item.endsOn || item.endsOn > localToday();
 
 /** What the running Gastos recorrentes cost a month, a yearly one spread over twelve. */
 function recurringPerMonth(holder: Holder): number {
-  return holder.recurringExpenses
+  return perMonth(holder.recurringExpenses);
+}
+
+/** What these Gastos recorrentes cost a month, yearly ones spread over twelve, cancelled ones out. */
+function perMonth(items: Recurring[]): number {
+  return items
     .filter(running)
     .reduce(
       (total, item) =>
@@ -857,7 +959,16 @@ function recurringDetail(item: Recurring): string {
  * The name, the amount and the day are enough; how it is paid and the rest are optional.
  */
 /** A Gasto recorrente: name, amount and day, and optionally how and when it is charged. */
-export function RecurringForm({ holder, onDone }: { holder: Holder; onDone?: () => void }) {
+export function RecurringForm({
+  defaultCategory,
+  holder,
+  onDone,
+}: {
+  /** Filled in the Categoria field, and used when it is not shown. */
+  defaultCategory?: string;
+  holder: Holder;
+  onDone?: () => void;
+}) {
   const [add, { error }] = useMutation(AddRecurringExpenseDocument, {
     refetchQueries: [HolderDocument],
   });
@@ -878,7 +989,7 @@ export function RecurringForm({ holder, onDone }: { holder: Holder; onDone?: () 
         variables: {
           input: {
             amountCents,
-            category: text(values, 'category'),
+            category: text(values, 'category') ?? defaultCategory ?? null,
             creditCardId: method === 'CARD' && cardId ? cardId : null,
             cycle,
             description: text(values, 'description')!,
@@ -1010,7 +1121,12 @@ export function RecurringForm({ holder, onDone }: { holder: Holder; onDone?: () 
             </Field>
           )}
           <Field id="recurring-category" label="Categoria">
-            <Input id="recurring-category" name="category" placeholder="Assinaturas" />
+            <Input
+              defaultValue={defaultCategory}
+              id="recurring-category"
+              name="category"
+              placeholder="Assinaturas"
+            />
           </Field>
           <Field id="recurring-starts" label="Desde">
             <Input id="recurring-starts" name="startsOn" type="date" />
@@ -1025,28 +1141,42 @@ export function RecurringForm({ holder, onDone }: { holder: Holder; onDone?: () 
   );
 }
 
-function RecurringSection({ holder }: { holder: Holder }) {
+function RecurringSection({
+  empty = 'Nenhum gasto recorrente. Academia, Netflix, seguro do carro: cadastre uma vez e ele entra em todo mês.',
+  holder,
+  id = 'recurring',
+  intro = 'O que sai sozinho todo mês ou todo ano: academia, assinaturas, seguros.',
+  items = holder.recurringExpenses,
+  title = 'Gastos recorrentes',
+}: {
+  empty?: string;
+  holder: Holder;
+  id?: string;
+  intro?: string;
+  items?: Recurring[];
+  title?: string;
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <Part
-      count={holder.recurringExpenses.length}
-      empty="Nenhum gasto recorrente. Academia, Netflix, seguro do carro: cadastre uma vez e ele entra em todo mês."
-      id="recurring"
-      intro="O que sai sozinho todo mês ou todo ano: academia, assinaturas, seguros."
-      title="Gastos recorrentes"
+      count={items.length}
+      empty={empty}
+      id={id}
+      intro={intro}
+      title={title}
       total={
-        holder.recurringExpenses.length ? (
+        items.length ? (
           <>
-            {formatCents(recurringPerMonth(holder))}
+            {formatCents(perMonth(items))}
             <span className="block text-sm font-normal text-muted-foreground">por mês</span>
           </>
         ) : undefined
       }
     >
       <ul className="flex flex-col gap-2">
-        {holder.recurringExpenses.map(item => (
+        {items.map(item => (
           <SheetRow
             action={
               <span className="flex">
@@ -1284,7 +1414,7 @@ export function AddEntryDialog({
   );
 }
 
-/** "Adicionar entrada" or "Adicionar saída", at the top of Lançamentos, Entradas and Saídas fixas. */
+/** "Adicionar entrada" or "Adicionar saída", at the top of Lançamentos, Entradas, Gastos fixos and Dívidas. */
 export function AddEntryButton({ direction, month }: { direction: 'IN' | 'OUT'; month?: string }) {
   const [open, setOpen] = useState(false);
   return (

@@ -215,7 +215,7 @@ export function JobsPage() {
             <CardDescription>Workflows que {bot.name} refaz sozinho.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="flex flex-col divide-y">
+            <ul className="flex flex-col gap-1">
               {routines!.routines.map(routine => (
                 <li className="flex items-baseline gap-3 py-2" key={routine.id}>
                   <span className="min-w-0 flex-1 truncate">{routine.instructions}</span>
@@ -260,7 +260,7 @@ export function JobsPage() {
         </CardHeader>
         <CardContent>
           {data?.jobs.length ? (
-            <ul className="flex flex-col divide-y">
+            <ul className="flex flex-col gap-1">
               {data.jobs.map(job => (
                 <li className="flex items-baseline gap-3 py-2" key={job.id}>
                   <Link

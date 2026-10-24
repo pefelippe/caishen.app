@@ -76,7 +76,7 @@ export function ProfilePage() {
           {error && <FormError message={error} />}
         </div>
       </form>
-      <section className="flex flex-col gap-6 border-t pt-8">
+      <section className="flex flex-col gap-6 rounded-2xl bg-card p-6 shadow-[0_1px_3px_rgb(15_23_42/0.06)]">
         <h2 className="text-lg font-semibold">{t('account.preferences')}</h2>
         <Field hint={t('account.languageHint')} label={t('account.language')}>
           <Select onValueChange={next => void changeLanguage(next as Language)} value={language}>

@@ -9,13 +9,14 @@ import { useI18n } from '../lib/i18n';
 import { useChatPanel } from './ChatPanel';
 import { Logo } from './Logo';
 import { NotificationsMenu } from './NotificationsMenu';
+import { ProfileMenu, type ProfileUser } from './ProfileMenu';
 
 /**
  * The navy bar across the top: the Caishen's mark on the left (and, on a phone, the menu button),
- * and on the right the chat (⌘K / Ctrl+K opens it too) and the Alerts. The account is at the foot of
- * the menu (`ProfileMenu`).
+ * and on the right the chat (⌘K / Ctrl+K opens it too), the Alerts and the avatar that opens the
+ * account (`ProfileMenu`).
  */
-export function AppHeader() {
+export function AppHeader({ user }: { user: ProfileUser }) {
   const { pathname } = useLocation();
   const { open, toggle } = useChatPanel();
   const { t } = useI18n();
@@ -30,7 +31,7 @@ export function AppHeader() {
       />
       <Link
         aria-label={t('rail.caishen')}
-        className="flex items-center gap-2.5 px-1 md:w-[calc(var(--sidebar-width)-1rem)]"
+        className="flex items-center gap-2.5 px-1 transition-[width] duration-300 ease-(--ease-sidebar) md:w-[calc(var(--sidebar-width)-1rem)]"
         to="/"
       >
         <Logo size={26} />
@@ -39,13 +40,13 @@ export function AppHeader() {
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2.5">
         {!onChat && (
           <Button
             aria-expanded={open}
             aria-label={t('chat.toggle')}
             className={cn(
-              'mr-1 size-9 gap-2 rounded-full border border-white/15 bg-white/8 text-header-foreground hover:bg-white/15 hover:text-header-foreground lg:w-auto lg:px-3.5',
+              'size-9 gap-2 rounded-full border border-white/15 bg-white/8 text-header-foreground hover:bg-white/15 hover:text-header-foreground lg:w-auto lg:px-3.5',
               open && 'border-gold/60 bg-gold/15'
             )}
             onClick={toggle}
@@ -55,6 +56,7 @@ export function AppHeader() {
           </Button>
         )}
         <NotificationsMenu />
+        <ProfileMenu user={user} />
       </div>
     </header>
   );

@@ -1,3 +1,5 @@
+import type { ChatAttachment } from './attachments';
+
 /** Events of `POST /api/chat/:conversationId`, in the order the server sends them. */
 export type ChatEvent =
   | { text: string; type: 'delta' }
@@ -6,6 +8,7 @@ export type ChatEvent =
 
 /** Sends one Message and reads the Bot's reply as it is written. */
 export async function streamChat(options: {
+  attachments?: ChatAttachment[];
   content: string;
   conversationId: string;
   onEvent: (event: ChatEvent) => void;
@@ -13,7 +16,11 @@ export async function streamChat(options: {
   screen: string;
 }): Promise<void> {
   const response = await fetch(`/api/chat/${options.conversationId}`, {
-    body: JSON.stringify({ content: options.content, screen: options.screen }),
+    body: JSON.stringify({
+      attachments: options.attachments?.length ? options.attachments : undefined,
+      content: options.content,
+      screen: options.screen,
+    }),
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',

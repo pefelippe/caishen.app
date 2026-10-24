@@ -216,7 +216,7 @@ function ManualEntryForm({ holderId }: { holderId: string }) {
   };
 
   return (
-    <Card className="py-4 shadow-none">
+    <Card className="px-0 py-4 shadow-none">
       <CardContent className="px-4">
         <form className="flex flex-col gap-3" onSubmit={submit}>
           <div className="flex items-center gap-2">

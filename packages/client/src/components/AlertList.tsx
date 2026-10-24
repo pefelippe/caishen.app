@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 /** A Bot's Alerts, most urgent first; overdue ones get the red dot. */
 export function AlertList({ alerts }: { alerts: AlertFieldsFragment[] }) {
   return (
-    <ul className="flex max-w-prose flex-col divide-y">
+    <ul className="flex max-w-prose flex-col gap-2">
       {alerts.map((alert, index) => (
         <li className="flex items-baseline gap-2 py-1.5" key={index}>
           <span

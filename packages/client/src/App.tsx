@@ -26,16 +26,26 @@ const finance = <Name extends string>(name: Name) =>
   page(() => import('./pages/FinancePage') as Promise<Record<Name, ComponentType>>, name);
 const IncomePage = finance('IncomePage');
 const FixedPage = finance('FixedPage');
+const DebtsPage = finance('DebtsPage');
+const SubscriptionsPage = finance('SubscriptionsPage');
+const CreditPage = finance('CreditPage');
 const EntriesPage = page(() => import('./pages/EntriesPage'), 'EntriesPage');
 const TaxesPage = page(() => import('./pages/TaxesPage'), 'TaxesPage');
+const PayoffPage = page(() => import('./pages/PayoffPage'), 'PayoffPage');
+const CalculatorsPage = page(() => import('./pages/CalculatorsPage'), 'CalculatorsPage');
+const BudgetPage = page(() => import('./pages/BudgetPage'), 'BudgetPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
+const JobsPage = page(() => import('./pages/JobsPage'), 'JobsPage');
+const JobPage = page(() => import('./pages/JobPage'), 'JobPage');
+const DocumentsPage = page(() => import('./pages/DocumentsPage'), 'DocumentsPage');
+const DocumentPage = page(() => import('./pages/DocumentPage'), 'DocumentPage');
 const IntegrationsPage = page(() => import('./pages/IntegrationsPage'), 'IntegrationsPage');
 const OrganizationPage = page(() => import('./pages/OrganizationPage'), 'OrganizationPage');
 const PlanPage = page(() => import('./pages/PlanPage'), 'PlanPage');
 const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage');
 
-/** Financeiro was split: its Obrigações went to Dívidas, Salário and Impostos to Fixos. */
+/** Financeiro was split: its Obrigações went to Dívidas, Salário to Entradas, the rest to Gastos fixos. */
 function LegacyFinances() {
   const { hash } = useLocation();
   return (
@@ -43,11 +53,22 @@ function LegacyFinances() {
       replace
       to={
         hash === '#obligations'
-          ? '/caishen/entries/fixed#obligations'
+          ? '/caishen/debts'
           : hash === '#income'
-            ? '/caishen/entries/income'
-            : `/caishen/entries/fixed${hash}`
+            ? '/caishen/income'
+            : `/caishen/fixed${hash}`
       }
+    />
+  );
+}
+
+/** Saídas fixas held the debts too; their old anchor now opens Dívidas. */
+function LegacyFixed() {
+  const { hash, search } = useLocation();
+  return (
+    <Navigate
+      replace
+      to={hash === '#obligations' ? '/caishen/debts' : `/caishen/fixed${search}${hash}`}
     />
   );
 }
@@ -108,38 +129,55 @@ export function App() {
           index
         />
         <Route element={<ChatPage user={session.user} />} path="chat" />
-        {/* Off for now, out of the menu: Workflows (JobsPage, JobPage), Documentos (DocumentsPage,
-            DocumentPage) and Score de crédito (CreditPage) wait here, their addresses sent home. */}
-        {['workflows/*', 'documents/*'].map(path => (
-          <Route element={<Navigate replace to="/" />} key={path} path={path} />
-        ))}
+        <Route
+          element={
+            <Scrolling>
+              <JobsPage />
+            </Scrolling>
+          }
+          path="workflows"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <JobPage />
+            </Scrolling>
+          }
+          path="workflows/:id"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <DocumentsPage />
+            </Scrolling>
+          }
+          path="documents"
+        />
+        <Route element={<DocumentPage />} path="documents/:id" />
         <Route element={<BotLayout bot="FINANCE" />} path="caishen">
           <Route element={<Navigate replace to="entries" />} index />
           <Route element={<EntriesPage />} path="entries" />
-          <Route element={<FixedPage />} path="entries/fixed" />
-          <Route element={<Navigate replace to="/caishen/entries" />} path="credit" />
-          <Route element={<IncomePage />} path="entries/income" />
-          <Route element={<TaxesPage />} path="entries/taxes" />
-          <Route element={<Navigate replace to="/caishen/entries/income" />} path="income" />
-          {/* Old addresses: Visão geral, Relatório, Mês, Financeiro and its parts. */}
-          {['overview', 'report'].map(path => (
+          <Route element={<IncomePage />} path="income" />
+          <Route element={<FixedPage />} path="fixed" />
+          <Route element={<DebtsPage />} path="debts" />
+          <Route element={<SubscriptionsPage />} path="subscriptions" />
+          <Route element={<TaxesPage />} path="taxes" />
+          <Route element={<Navigate replace to="/caishen/entries" />} path="reports" />
+          <Route element={<PayoffPage />} path="payoff" />
+          <Route element={<CalculatorsPage />} path="calculators" />
+          <Route element={<BudgetPage />} path="budget" />
+          {/* Old addresses: the tabs of Lançamentos, Visão geral, Relatório, Mês, Financeiro. */}
+          <Route element={<Navigate replace to="/caishen/income" />} path="entries/income" />
+          <Route element={<LegacyFixed />} path="entries/fixed" />
+          <Route element={<Navigate replace to="/caishen/taxes" />} path="entries/taxes" />
+          <Route element={<Navigate replace to="/caishen/entries" />} path="report" />
+          <Route element={<CreditPage />} path="credit" />
+          {['overview', 'month'].map(path => (
             <Route element={<Navigate replace to="/caishen/entries" />} key={path} path={path} />
           ))}
-          <Route element={<Navigate replace to="/caishen/entries" />} path="month" />
           <Route element={<LegacyFinances />} path="finances" />
-          {['taxes'].map(part => (
-            <Route
-              element={<Navigate replace to={`/caishen/entries/fixed#${part}`} />}
-              key={part}
-              path={part}
-            />
-          ))}
-          {['obligations', 'debts', 'loans', 'financing', 'cards'].map(path => (
-            <Route
-              element={<Navigate replace to="/caishen/entries/fixed#obligations" />}
-              key={path}
-              path={path}
-            />
+          {['obligations', 'loans', 'financing', 'cards'].map(path => (
+            <Route element={<Navigate replace to="/caishen/debts" />} key={path} path={path} />
           ))}
           <Route element={<CreditOperationPage />} path="operations/:id" />
           <Route element={<Navigate replace to="/" />} path="jobs/*" />

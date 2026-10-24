@@ -26,16 +26,14 @@ const TITLE_KEYS = {
 function recordPath(proposal: ProposalFieldsFragment): string {
   switch (proposal.kind) {
     case 'CREDIT_OPERATION':
-      return proposal.recordId
-        ? `/caishen/operations/${proposal.recordId}`
-        : '/caishen/entries/fixed#obligations';
+      return proposal.recordId ? `/caishen/operations/${proposal.recordId}` : '/caishen/debts';
     case 'INCOME_SOURCE':
-      return '/caishen/entries/income';
+      return '/caishen/income';
     case 'EXPENSE':
     case 'ONE_OFF_INCOME':
       return '/caishen/entries';
     case 'RECURRING_EXPENSE':
-      return '/caishen/entries/fixed#recurring';
+      return '/caishen/fixed#recurring';
   }
 }
 
@@ -69,8 +67,8 @@ export function ProposalCard({ proposal }: { proposal: ProposalFieldsFragment })
   };
 
   return (
-    // A raised card of its own, unlike the editorial Card (a rule on top) used on pages.
-    <Card className="ml-8 gap-3 rounded-xl border border-border bg-card py-4">
+    // Its parts set their own sides, so the card keeps only the top and bottom.
+    <Card className="ml-8 gap-3 rounded-xl px-0 py-4">
       <CardHeader className="px-4">
         <CardTitle className="text-sm">
           {t(TITLE_KEYS[proposal.action], { kind: proposal.title })}

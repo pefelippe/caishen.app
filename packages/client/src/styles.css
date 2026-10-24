@@ -6,9 +6,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * "Painel": a deep navy frame (the header and the menu, like Hostinger's hPanel), the screen on a
- * clean slate white with white cards and soft borders, and one bright blue for what acts. There is
- * no dark theme.
+ * "Painel", after Hostinger's hPanel: a deep navy header, a light grey menu rounded at the top, the
+ * screen square beside it on a clean slate white with white cards and soft borders, and one bright
+ * blue for what acts. There is no dark theme.
  */
 :root {
   --radius: 0.5rem;
@@ -39,14 +39,15 @@
   --input: #cbd5e1;
   --ring: var(--blue);
 
-  /* The menu on the left: navy like the header, so both read as one frame around the screen. */
-  --sidebar: var(--navy);
-  --sidebar-foreground: #cbd5e1;
+  /* The menu on the left: a light grey panel, rounded where it meets the navy frame, with the
+     open entry as a white pill (as in the hPanel). */
+  --sidebar: #eef2f6;
+  --sidebar-foreground: var(--navy-soft);
   --sidebar-primary: var(--blue);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--navy-soft);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #1e293b;
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: var(--navy);
+  --sidebar-border: #e2e8f0;
   --sidebar-ring: var(--blue);
 
   /* The bar across the top. `--header-gradient` paints the bar and the send buttons. */
@@ -226,6 +227,17 @@
   to {
     transform: translateX(250%);
   }
+}
+
+/* The menu growing and shrinking (the rail beside the Agente): one easing for the menu, the gap it
+   leaves and the header's mark above it, in place of shadcn's linear 200ms. */
+:root {
+  --ease-sidebar: cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-slot='sidebar-gap'],
+[data-slot='sidebar-container'] {
+  transition-duration: 300ms !important;
+  transition-timing-function: var(--ease-sidebar) !important;
 }
 
 /* Exporting a page to PDF prints only the screen: no menu, header or chat around it. */

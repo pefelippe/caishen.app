@@ -12,6 +12,7 @@ import {
 } from '@zapbots/graphql/client';
 import { PencilIcon, ReceiptTextIcon, XIcon } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +45,6 @@ import {
 } from '@/components/ui/table';
 
 import { BotPage } from '../components/BotPage';
-import { EntriesTabs } from '../components/EntriesTabs';
 import { FormError } from '../components/FormError';
 import { PageSkeleton } from '../components/PageSkeleton';
 import { QueryError } from '../components/QueryError';
@@ -139,8 +139,16 @@ export function TaxesPage() {
     return (
       <BotPage
         bot="FINANCE"
-        description="Para quem tem CNPJ: o Caishen calcula o DAS, o INSS e o IRRF do pró-labore e põe as guias nas Saídas do mês em que vencem."
-        eyebrow={<EntriesTabs />}
+        description={
+          <>
+            Para quem tem CNPJ: o Caishen calcula o DAS, o INSS e o IRRF do pró-labore e põe as
+            guias nas Saídas do mês em que vencem. IPVA, IPTU e outros impostos seus ficam em{' '}
+            <Link className="text-primary hover:underline" to="/caishen/fixed#taxes">
+              Gastos fixos
+            </Link>
+            .
+          </>
+        }
         title="Impostos"
       >
         <Sheet
@@ -178,14 +186,13 @@ export function TaxesPage() {
       }
       bot="FINANCE"
       description={`${company.name ?? 'Sua empresa'} · CNPJ ${cnpjName(company.cnpj)} · ${regimeName(company.regime)}${company.annex ? `, Anexo ${company.annex}${company.fatorR ? ' (Fator R)' : ''}` : ''}${company.exports ? ' · exportação' : ''}`}
-      eyebrow={<EntriesTabs />}
       title="Impostos"
     >
       {company.regime === 'REAL' && (
         <Alert>
           <AlertTitle>No Lucro Real, o cálculo é com o contador</AlertTitle>
           <AlertDescription>
-            O Caishen não calcula o Lucro Real. Registre as guias em Saídas fixas, em Impostos, para
+            O Caishen não calcula o Lucro Real. Registre as guias em Gastos fixos, em Impostos, para
             que entrem nos meses certos.
           </AlertDescription>
         </Alert>

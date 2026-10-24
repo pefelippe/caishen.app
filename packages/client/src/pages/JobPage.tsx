@@ -130,7 +130,7 @@ export function JobPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-ink">
+      <Card>
         <CardHeader>
           <CardTitle>Entrega</CardTitle>
           {job.status === 'DONE' && job.deliverable && (

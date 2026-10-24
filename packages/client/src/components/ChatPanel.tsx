@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 
+import type { ChatAttachment } from '../lib/attachments';
 import { useI18n } from '../lib/i18n';
 import { useDesktop } from '../lib/media';
 import { BotPanel } from './BotPanel';
@@ -31,8 +32,8 @@ function storedOpen(): boolean {
 interface ChatPanelState {
   close: () => void;
   open: boolean;
-  /** Opens the panel on a blank Conversation, sending `message` in it when given. */
-  startNew: (message?: string) => void;
+  /** Opens the panel on a blank Conversation, sending `message` (and `files`) in it when given. */
+  startNew: (message?: string, files?: ChatAttachment[]) => void;
   toggle: () => void;
 }
 
@@ -44,6 +45,7 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
   // Each blank Conversation asked for remounts the panel on one.
   const [blank, setBlank] = useState(0);
   const [firstMessage, setFirstMessage] = useState<string>();
+  const [firstFiles, setFirstFiles] = useState<ChatAttachment[]>();
 
   // ⌘K (Ctrl+K elsewhere) opens the chat from anywhere, ready to type.
   useEffect(() => {
@@ -74,20 +76,27 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
       value={{
         close: () => setOpen(false),
         open,
-        startNew: message => {
+        startNew: (message, files) => {
           setFirstMessage(message);
+          setFirstFiles(files);
           setBlank(current => current + 1);
           setOpen(true);
         },
         toggle: () => setOpen(current => !current),
       }}
     >
-      <BlankContext.Provider value={{ blank, firstMessage }}>{children}</BlankContext.Provider>
+      <BlankContext.Provider value={{ blank, firstFiles, firstMessage }}>
+        {children}
+      </BlankContext.Provider>
     </ChatPanelContext.Provider>
   );
 }
 
-const BlankContext = createContext<{ blank: number; firstMessage?: string }>({ blank: 0 });
+const BlankContext = createContext<{
+  blank: number;
+  firstFiles?: ChatAttachment[];
+  firstMessage?: string;
+}>({ blank: 0 });
 
 export function useChatPanel(): ChatPanelState {
   const panel = useContext(ChatPanelContext);
@@ -102,7 +111,7 @@ export function useChatPanel(): ChatPanelState {
  */
 export function ChatPanel() {
   const { close, open } = useChatPanel();
-  const { blank, firstMessage } = useContext(BlankContext);
+  const { blank, firstFiles, firstMessage } = useContext(BlankContext);
   const { t } = useI18n();
   const { pathname } = useLocation();
   const desktop = useDesktop();
@@ -145,6 +154,7 @@ export function ChatPanel() {
               }
               bot="FINANCE"
               className="h-full"
+              firstFiles={firstFiles}
               firstMessage={firstMessage}
               key={blank}
               startBlank={blank > 0}

@@ -20,6 +20,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+import type { ChatAttachment } from '../lib/attachments';
 import { BotGlyph } from './BotGlyph';
 import { ChatThread, type Suggestion } from './ChatThread';
 
@@ -30,6 +31,8 @@ interface Props {
   className?: string;
   /** Sent as soon as the blank Conversation opens. */
   firstMessage?: string;
+  /** Files sent with it. */
+  firstFiles?: ChatAttachment[];
   /** Opens on a blank Conversation instead of the latest one. */
   startBlank?: boolean;
   suggestions?: Suggestion[];
@@ -40,6 +43,7 @@ export function BotPanel({
   actions,
   bot: key,
   className,
+  firstFiles,
   firstMessage,
   startBlank,
   suggestions,
@@ -136,6 +140,7 @@ export function BotPanel({
           className="flex-1"
           conversationId={conversationId}
           ensureConversation={ensureConversation}
+          firstFiles={thread === 0 ? firstFiles : undefined}
           firstMessage={thread === 0 ? firstMessage : undefined}
           key={thread}
           suggestions={suggestions}
