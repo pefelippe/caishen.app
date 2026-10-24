@@ -96,6 +96,14 @@ Meu Pluggy, só para o dono do servidor, ADR 0020). Os débitos das contas dele
 entram como Gastos importados; desconectar leva junto as contas e esses Gastos.
 _Avoid_: conexão bancária, conta (essa é uma conta do banco)
 
+**Importação** (`ExpenseImport`):
+Um arquivo de Gastos (.csv, .xlsx, .ofx ou o extrato em .pdf) trazido de uma vez, com o banco e o
+tipo de conta de onde veio, corrigíveis depois. Apagar a Importação leva junto os
+Gastos dela. Uma linha que já entrou (o mesmo arquivo, ou outro que cobre os
+mesmos dias) não entra de novo. Não viram Gastos: aplicações em investimentos e
+caixinhas, transferências para contas do próprio Titular e pagamentos de Fatura.
+_Avoid_: upload, lote
+
 **Anexo** (`Attachment`):
 Um arquivo entregue a um Bot: de uma Integração, junto com um Workflow, ou do
 computador, numa Mensagem do chat (planilha, texto, imagem ou PDF). O do chat vai
