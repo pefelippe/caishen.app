@@ -9,6 +9,7 @@ query Viewer {
 query ViewerHolder {
   viewerHolder {
     id
+    name
   }
 }
 
@@ -262,8 +263,40 @@ mutation AddExpense($input: ExpenseInput!) {
   }
 }
 
-mutation ImportExpenses($holderId: ID!, $rows: [ExpenseRowInput!]!) {
-  importExpenses(holderId: $holderId, rows: $rows)
+mutation ImportExpenses($holderId: ID!, $rows: [ExpenseRowInput!]!, $file: ImportFileInput) {
+  importExpenses(holderId: $holderId, rows: $rows, file: $file)
+}
+
+fragment ExpenseImportFields on ExpenseImport {
+  id
+  fileName
+  source
+  bankName
+  accountKind
+  createdAt
+  expenseCount
+  totalCents
+  firstDate
+  lastDate
+}
+
+query ExpenseImports($holderId: ID!) {
+  holder(id: $holderId) {
+    id
+    imports {
+      ...ExpenseImportFields
+    }
+  }
+}
+
+mutation UpdateExpenseImport($id: ID!, $input: ExpenseImportInput!) {
+  updateExpenseImport(id: $id, input: $input) {
+    ...ExpenseImportFields
+  }
+}
+
+mutation DeleteExpenseImport($id: ID!) {
+  deleteExpenseImport(id: $id)
 }
 
 mutation DeleteExpense($id: ID!) {
