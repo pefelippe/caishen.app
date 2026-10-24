@@ -176,6 +176,20 @@
       "when": 1792809094099,
       "tag": "0024_quick_pyro",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792811701963,
+      "tag": "0025_bitter_mother_askani",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792811921480,
+      "tag": "0026_shiny_doctor_faustus",
+      "breakpoints": true
     }
   ]
 }

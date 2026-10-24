@@ -213,12 +213,19 @@ export const expense = pgTable(
       .notNull()
       .references(() => holder.id, { onDelete: 'cascade' }),
     id: uuid('id').primaryKey().defaultRandom(),
+    /** The Vínculo bancário it came from; unlinking the bank takes it along. */
+    bankLinkId: uuid('bank_link_id').references(() => bankLink.id, { onDelete: 'cascade' }),
+    /** The line's key where it came from (`ofx:…`, `pluggy:…`), so importing it again adds nothing. */
+    externalId: text('external_id'),
     /** Came from a spreadsheet rather than typed in. */
     imported: boolean('imported').notNull().default(false),
     organizationId: organizationId(),
     ...timestamps,
   },
-  table => [index('expense_holder_date_idx').on(table.holderId, table.date)]
+  table => [
+    index('expense_holder_date_idx').on(table.holderId, table.date),
+    unique('expense_holder_external_unique').on(table.holderId, table.externalId),
+  ]
 );
 
 /** A Receita avulsa: money that came in once, on `date`, outside the Fontes de Renda. */
@@ -531,6 +538,58 @@ export const consent = pgTable('consent', {
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
   source: dataSource('source').notNull(),
 });
+
+/** Who brings a bank's Open Finance data in (docs/adr/0020); a new one is a new adapter. */
+export const bankProvider = pgEnum('bank_provider', ['PLUGGY']);
+export const bankLinkStatus = pgEnum('bank_link_status', ['ACTIVE', 'ERROR', 'EXPIRED']);
+export const bankAccountKind = pgEnum('bank_account_kind', ['BANK', 'CREDIT']);
+
+/**
+ * A Vínculo bancário: one bank a Titular authorized through Open Finance, as the provider's item.
+ * Deleting it takes its accounts and the Gastos that came from it.
+ */
+export const bankLink = pgTable(
+  'bank_link',
+  {
+    consentExpiresAt: timestamp('consent_expires_at', { withTimezone: true }),
+    consentId: uuid('consent_id').references(() => consent.id, { onDelete: 'set null' }),
+    /** The provider's last word on why it stopped, while `status` is not ACTIVE. */
+    error: text('error'),
+    /** The provider's id for it (Pluggy's item id). */
+    externalId: text('external_id').notNull(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    institution: text('institution').notNull(),
+    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+    organizationId: organizationId(),
+    provider: bankProvider('provider').notNull(),
+    status: bankLinkStatus('status').notNull().default('ACTIVE'),
+    ...timestamps,
+  },
+  // One item is one bank of one person: it cannot be linked twice, by anyone.
+  table => [unique('bank_link_provider_external_unique').on(table.provider, table.externalId)]
+);
+
+/** An account or a credit card of a Vínculo bancário, as the bank reports it. */
+export const bankAccount = pgTable(
+  'bank_account',
+  {
+    balanceCents: cents('balance_cents'),
+    bankLinkId: uuid('bank_link_id')
+      .notNull()
+      .references(() => bankLink.id, { onDelete: 'cascade' }),
+    externalId: text('external_id').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: bankAccountKind('kind').notNull(),
+    name: text('name').notNull(),
+    number: text('number'),
+    organizationId: organizationId(),
+    ...timestamps,
+  },
+  table => [unique('bank_account_link_external_unique').on(table.bankLinkId, table.externalId)]
+);
 
 export const assessment = pgTable(
   'assessment',

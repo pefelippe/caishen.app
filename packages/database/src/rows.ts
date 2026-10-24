@@ -1,6 +1,8 @@
 import type * as schema from './schema';
 
 export type AssessmentRow = typeof schema.assessment.$inferSelect;
+export type BankAccountRow = typeof schema.bankAccount.$inferSelect;
+export type BankLinkRow = typeof schema.bankLink.$inferSelect;
 export type ConsentRow = typeof schema.consent.$inferSelect;
 export type CreditCardRow = typeof schema.creditCard.$inferSelect;
 export type CreditOperationRow = typeof schema.creditOperation.$inferSelect;
