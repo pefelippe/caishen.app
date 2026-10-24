@@ -1,0 +1,9 @@
+# Orçamento em fatias da renda, com as categorias de gasto ligadas a cada fatia
+
+O Orçamento divide a renda do mês em Fatias, cada uma com uma porcentagem inteira, somando 100%. Há quatro Métodos: 50/30/20 (necessidades, desejos, objetivos), 70/20/10 (custo de vida, dívidas e reserva, desejos), as categorias da AUVP (custos fixos, conforto, metas, prazeres, liberdade financeira, conhecimento) e Personalizado. A AUVP não publica as porcentagens dela, então usamos um ponto de partida nosso, que o Usuário edita. Cada Titular tem no máximo um Orçamento (a tabela `budget`), com o Método, as Fatias e um mapa de categoria para Fatia.
+
+O gasto de cada Fatia sai do mês que já calculamos (`monthStatement`). Os Gastos entram pela categoria deles. Os Gastos recorrentes também, e os sem categoria entram como "Gastos recorrentes". O que vence sem ter categoria entra com o nome do tipo: "Parcelas", "Faturas" e "Impostos". Os Gastos recorrentes pagos no Cartão ficam de fora, como no mês, porque a Fatura já os conta. Uma categoria que nenhuma Fatia recebeu aparece à parte, para o Usuário escolher a Fatia. Não adivinhamos a Fatia pelo nome. As categorias são texto livre, e um palpite errado esconderia o gasto na Fatia errada.
+
+Enquanto o Usuário não salva um Orçamento, o Método vem dos dados. Quem tem Operação de Crédito começa no 70/20/10, que reserva um quinto para as dívidas, e os demais no 50/30/20. Parcelas, Faturas e Impostos vão para a primeira Fatia, a do custo de vida. O plano previa tirar o Método do onboarding, que ainda não existe. Quando ele existir, a resposta sobre o objetivo substitui essa escolha.
+
+A parte de cada Fatia (renda × porcentagem) e as somas ficam em `@zapbots/finance` (`budgetOutcome`), em centavos inteiros com `decimal.js`, como todo dinheiro (ADR 0004). O cliente só mostra o resultado.

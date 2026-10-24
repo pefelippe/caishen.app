@@ -49,11 +49,15 @@ que vence nos próximos 7 dias, uma Fatura que usa 80% ou mais do limite, uma
 taxa bem acima da Taxa Média de Mercado, uma Avaliação com mais de 30 dias, uma
 Rotina que falhou na última semana. É
 calculado a partir dos dados, não escrito por um Modelo.
+Cada Usuário pode marcá-lo como lido ou removê-lo do sino; um Aviso que passa a
+dizer outra coisa (outra data, outro valor) volta como novo.
 _Avoid_: notificação, alerta (como termo do código em pt-BR), Insight
 
 **Conversa** (`Conversation`):
 Uma troca salva de Mensagens entre o Usuário e um Bot. Começa e é reaberta no
-chat: a página Chat ou o painel ao lado de qualquer tela.
+chat: a página Chat ou o painel ao lado de qualquer tela. Cada Organização tem
+também uma Conversa "WhatsApp", que começa na primeira mensagem de um número
+ligado e aparece no Agente como as outras.
 _Avoid_: chat (é a página e o painel), thread
 
 **Mensagem** (`Message`):
@@ -77,11 +81,19 @@ _Avoid_: IA (como sinônimo de modelo), LLM
 O vínculo, autorizado pelo Usuário, com uma ferramenta de fora em que os Bots
 entram por ele. Cada Integração é de uma categoria: Provedores de IA (de onde vêm
 os Modelos, hoje o OpenRouter), Armazenamento de arquivos (Google Drive),
-E-mail, Agenda ou Bancos. Os Bots só leem por uma Integração.
+Comunicação (WhatsApp), E-mail, Agenda ou Bancos. Os Bots só leem por uma
+Integração; o WhatsApp é um canal da Conversa e só responde, nunca inicia.
 _Avoid_: conexão, plugin, Fonte (essa é financeira)
 
+**Código de conexão do WhatsApp** (`whatsapp_link_code`):
+Seis letras e números, de uso único e válidos por 15 minutos, que o Usuário
+gera em Integrações e manda do celular para ligar aquele número a ele.
+_Avoid_: token, senha, PIN
+
 **Anexo** (`Attachment`):
-Um arquivo de uma Integração entregue a um Bot junto com um Workflow.
+Um arquivo entregue a um Bot: de uma Integração, junto com um Workflow, ou do
+computador, numa Mensagem do chat (planilha, texto, imagem ou PDF). O do chat vai
+ao Modelo uma vez e não fica guardado; a Mensagem guarda só o nome.
 _Avoid_: documento (como entidade), link
 
 **Documentos**:
@@ -226,7 +238,8 @@ O que sai sozinho todo mês ou todo ano, num dia: academia, assinaturas
 (Netflix), seguros, aluguel. Basta nome, valor e dia; ciclo, forma de
 pagamento, Cartão, categoria, início e cancelamento são opcionais. Entra nos
 Compromissos de cada mês, menos quando é pago num Cartão: aí já está na Fatura e
-o mês só o mostra, sem somar de novo.
+o mês só o mostra, sem somar de novo. A página Assinaturas lista os da
+categoria Assinaturas; não é outra entidade.
 _Avoid_: assinatura (como entidade; é um exemplo), despesa fixa, débito automático
 
 **Imposto** (`Tax`):
@@ -234,6 +247,19 @@ O que um Titular paga ao governo: todo mês (DAS, INSS) ou uma vez por ano, à
 vista ou em Parcelas a partir de um mês (IPVA, IPTU). Só registrado; não entra
 na Avaliação.
 _Avoid_: tributo, taxa (taxa é de juros)
+
+**Orçamento** (`Budget`):
+Como um Titular divide a renda do mês em Fatias, por um Método (50/30/20,
+70/20/10, as categorias da AUVP ou o seu), e a Fatia de cada categoria de gasto.
+Mostra, em cada Fatia, o que saiu contra o que ela permite. Sem um salvo, o
+Método vem dos dados: quem tem dívidas começa no 70/20/10. Ver ADR 0018.
+_Avoid_: planejamento, meta (meta é outra coisa)
+
+**Fatia** (`BudgetSlice`):
+Uma parte da renda no Orçamento, com nome e porcentagem inteira; as Fatias somam
+100%. Recebe categorias de gasto; Parcelas, Faturas e Impostos entram como
+categorias com o nome do tipo.
+_Avoid_: bucket, envelope, pote
 
 **Empresa** (`Company`):
 A empresa de um Titular, pelo CNPJ, com o seu Regime tributário, o Anexo (no
