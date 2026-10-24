@@ -1,5 +1,6 @@
 export * from './bot';
 export * from './amortization';
+export * from './bills';
 export * from './assessment';
 export * from './dates';
 export * from './impliedRate';
