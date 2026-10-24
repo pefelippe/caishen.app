@@ -13,6 +13,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -361,12 +362,16 @@ export const bot = pgTable(
   table => [unique('bot_organization_key_unique').on(table.organizationId, table.key)]
 );
 
+/** Where a Conversation happens: the app's chat, or WhatsApp (docs/adr/0019). */
+export const conversationChannel = pgEnum('conversation_channel', ['APP', 'WHATSAPP']);
+
 export const conversation = pgTable(
   'conversation',
   {
     botId: uuid('bot_id')
       .notNull()
       .references(() => bot.id, { onDelete: 'cascade' }),
+    channel: conversationChannel('channel').notNull().default('APP'),
     id: uuid('id').primaryKey().defaultRandom(),
     organizationId: organizationId(),
     title: text('title')
@@ -374,12 +379,23 @@ export const conversation = pgTable(
       .default(sql`'Nova conversa'`),
     ...timestamps,
   },
-  table => [index('conversation_bot_idx').on(table.botId, table.updatedAt)]
+  table => [
+    index('conversation_bot_idx').on(table.botId, table.updatedAt),
+    // One WhatsApp Conversation per Organization, even when two first messages arrive at once.
+    uniqueIndex('conversation_whatsapp_once')
+      .on(table.organizationId)
+      .where(sql`${table.channel} = 'WHATSAPP'`),
+  ]
 );
 
 export const message = pgTable(
   'message',
   {
+    /**
+     * Files the User attached in the chat, by name and kind only: their contents go to the Model
+     * once and are never kept (docs/adr/0017).
+     */
+    attachments: jsonb('attachments').$type<{ kind: 'IMAGE' | 'PDF' | 'TEXT'; name: string }[]>(),
     content: text('content').notNull(),
     conversationId: uuid('conversation_id')
       .notNull()
@@ -661,4 +677,113 @@ export const stripeEvent = pgTable('stripe_event', {
   id: text('id').primaryKey(),
   receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
   type: text('type').notNull(),
+});
+
+/**
+ * What a User did with an Alert: read it or removed it. Alerts are computed, not stored, so this
+ * keys them by `alertKey`, which changes when the Alert says something new (a new due date, a new
+ * amount in arrears), and that one shows again unread.
+ */
+export const alertState = pgTable(
+  'alert_state',
+  {
+    alertKey: text('alert_key').notNull(),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: organizationId(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  table => [unique('alert_state_user_key').on(table.userId, table.alertKey)]
+);
+
+export const budgetMethod = pgEnum('budget_method', [
+  'AUVP',
+  'CUSTOM',
+  'FIFTY_THIRTY_TWENTY',
+  'SEVENTY_TWENTY_TEN',
+]);
+
+/**
+ * Orçamento: how a Holder splits the income into slices, and which slice each spending category
+ * goes to. Without one, the month is shown against a method picked from the data (docs/adr/0018).
+ */
+export const budget = pgTable('budget', {
+  /** Category → slice key; the pseudo-categories Parcelas, Faturas and Impostos included. */
+  categories: jsonb('categories').$type<Record<string, string>>().notNull().default({}),
+  holderId: uuid('holder_id')
+    .notNull()
+    .unique()
+    .references(() => holder.id, { onDelete: 'cascade' }),
+  id: uuid('id').primaryKey().defaultRandom(),
+  method: budgetMethod('method').notNull(),
+  organizationId: organizationId(),
+  slices: jsonb('slices').$type<{ key: string; label: string; percent: number }[]>().notNull(),
+  ...timestamps,
+});
+
+/**
+ * WhatsApp link: the number a User talks to the Caishen from, kept as Meta sends it (the `wa_id`,
+ * not normalized). Unlinked rows stay, with `unlinkedAt`, so a number can link again (docs/adr/0019).
+ */
+export const whatsappLink = pgTable(
+  'whatsapp_link',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
+    organizationId: organizationId(),
+    phone: text('phone').notNull(),
+    unlinkedAt: timestamp('unlinked_at', { withTimezone: true }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  table => [
+    // A number and a User each have at most one active link.
+    uniqueIndex('whatsapp_link_phone_active')
+      .on(table.phone)
+      .where(sql`${table.unlinkedAt} is null`),
+    uniqueIndex('whatsapp_link_user_active')
+      .on(table.userId)
+      .where(sql`${table.unlinkedAt} is null`),
+  ]
+);
+
+/** The one-time code a User sends from WhatsApp to link the number; valid for 15 minutes. */
+export const whatsappLinkCode = pgTable('whatsapp_link_code', {
+  /** Upper case, as sent. */
+  code: text('code').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: organizationId(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});
+
+/** Each WhatsApp message received, by Meta's id only, so a delivery sent twice is handled once. */
+export const whatsappMessage = pgTable('whatsapp_message', {
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  wamid: text('wamid').primaryKey(),
+});
+
+/**
+ * An unlinked number already told how to link, as a SHA-256 hash: neither the number nor what it
+ * wrote is kept. It hears the instructions once.
+ */
+export const whatsappStranger = pgTable('whatsapp_stranger', {
+  phoneHash: text('phone_hash').primaryKey(),
+  toldAt: timestamp('told_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** WhatsApp messages sent in a month of São Paulo, against the free cap (docs/adr/0019). */
+export const whatsappUsage = pgTable('whatsapp_usage', {
+  /** `YYYY-MM`. */
+  month: text('month').primaryKey(),
+  sent: integer('sent').notNull().default(0),
 });

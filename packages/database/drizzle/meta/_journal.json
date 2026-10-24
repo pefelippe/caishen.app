@@ -148,6 +148,34 @@
       "when": 1792736708269,
       "tag": "0020_wealthy_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792789544121,
+      "tag": "0021_far_the_captain",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792790005835,
+      "tag": "0022_easy_jocasta",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792792837471,
+      "tag": "0023_lonely_human_robot",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792809094099,
+      "tag": "0024_quick_pyro",
+      "breakpoints": true
     }
   ]
 }
