@@ -90,6 +90,12 @@ Seis letras e números, de uso único e válidos por 15 minutos, que o Usuário
 gera em Integrações e manda do celular para ligar aquele número a ele.
 _Avoid_: token, senha, PIN
 
+**Vínculo bancário** (`BankLink`):
+Um banco que o Titular autorizou pelo Open Finance, lido por um provedor (hoje o
+Meu Pluggy, só para o dono do servidor, ADR 0020). Os débitos das contas dele
+entram como Gastos importados; desconectar leva junto as contas e esses Gastos.
+_Avoid_: conexão bancária, conta (essa é uma conta do banco)
+
 **Anexo** (`Attachment`):
 Um arquivo entregue a um Bot: de uma Integração, junto com um Workflow, ou do
 computador, numa Mensagem do chat (planilha, texto, imagem ou PDF). O do chat vai
@@ -198,7 +204,9 @@ Um cartão de crédito de um Titular, com limite, dia de fechamento e dia de
 vencimento.
 
 **Fatura** (`Statement`):
-O valor cobrado de um Cartão num mês, informado pelo Titular.
+O valor cobrado de um Cartão num mês, informado pelo Titular ou lido do OFX da
+fatura (as compras menos os estornos, sem o pagamento da anterior). O pagamento
+de uma Fatura num extrato não é um Gasto: a Fatura já conta.
 _Avoid_: conta, boleto
 
 **Amortização Extraordinária** (`ExtraAmortization`):
