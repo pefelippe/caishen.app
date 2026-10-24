@@ -14,10 +14,12 @@ import { PencilIcon, ReceiptTextIcon, XIcon } from 'lucide-react';
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Section } from '@zapbots/ui/blocks/section';
+import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
+import { Checkbox } from '@zapbots/ui/components/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -25,16 +27,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@zapbots/ui/components/dialog';
+import { Input } from '@zapbots/ui/components/input';
+import { Label } from '@zapbots/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@zapbots/ui/components/select';
 import {
   Table,
   TableBody,
@@ -42,13 +44,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@zapbots/ui/components/table';
 
 import { BotPage } from '../components/BotPage';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { QueryError } from '../components/QueryError';
-import { Sheet } from '../components/Sheet';
 import { localToday } from '../lib/bots';
 import { formatCents, formatDate, formatPercent, parseCents } from '../lib/format';
 
@@ -151,13 +151,13 @@ export function TaxesPage() {
         }
         title="Impostos"
       >
-        <Sheet
+        <Section
           id="company"
           intro="Comece pelo CNPJ e pelo regime. Dá para mudar tudo depois."
           title="Cadastre sua empresa"
         >
           <CompanyForm holder={holder} />
-        </Sheet>
+        </Section>
       </BotPage>
     );
   }
@@ -241,7 +241,7 @@ function lastCompetence() {
 function Upcoming({ guides }: { guides: Company['months'][number]['guides'] }) {
   const total = guides.reduce((sum, guide) => sum + guide.amountCents, 0);
   return (
-    <Sheet
+    <Section
       id="upcoming"
       intro="O que a empresa ainda vai pagar. Já está nas Saídas do Fluxo de caixa, no dia em que vence."
       title="Guias a pagar"
@@ -271,7 +271,7 @@ function Upcoming({ guides }: { guides: Company['months'][number]['guides'] }) {
           Nenhuma guia a pagar. Informe o faturamento do último mês para ver o DAS.
         </p>
       )}
-    </Sheet>
+    </Section>
   );
 }
 
@@ -280,7 +280,7 @@ function ProLaborePanel({ company }: { company: Company }) {
   const pay = company.proLabore;
   if (!pay.grossCents) {
     return (
-      <Sheet
+      <Section
         id="pro-labore"
         intro="Sem pró-labore cadastrado. Em Editar empresa, informe o valor bruto mensal."
         title="Pró-labore"
@@ -288,7 +288,7 @@ function ProLaborePanel({ company }: { company: Company }) {
         <p className="text-muted-foreground">
           Quem trabalha na empresa e não é MEI deve ter pró-labore: ele paga o seu INSS.
         </p>
-      </Sheet>
+      </Section>
     );
   }
   const rows = [
@@ -297,7 +297,7 @@ function ProLaborePanel({ company }: { company: Company }) {
     { label: 'IRRF', minus: true, value: pay.irrfCents },
   ];
   return (
-    <Sheet
+    <Section
       id="pro-labore"
       intro="O que a empresa paga a você todo mês e o que fica retido. O INSS e o IRRF vão no DARF."
       title="Pró-labore"
@@ -321,7 +321,7 @@ function ProLaborePanel({ company }: { company: Company }) {
           seu regime fica fora do DAS.
         </p>
       )}
-    </Sheet>
+    </Section>
   );
 }
 
@@ -336,7 +336,7 @@ function Competences({ company, onEdit }: { company: Company; onEdit: (month: st
   const [clear] = useMutation(ClearCompanyRevenueDocument, { refetchQueries: 'active' });
   const simples = company.regime === 'SIMPLES';
   return (
-    <Sheet
+    <Section
       id="competences"
       intro="O faturamento de cada mês e as guias que ele gera, que vencem no mês seguinte."
       title="Mês a mês"
@@ -428,7 +428,7 @@ function Competences({ company, onEdit }: { company: Company; onEdit: (month: st
           Se o PGDAS-D mostrar outro, informe-o junto do faturamento.
         </p>
       )}
-    </Sheet>
+    </Section>
   );
 }
 

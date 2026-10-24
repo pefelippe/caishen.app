@@ -7,8 +7,8 @@ import {
 } from '@zapbots/graphql/client';
 import { InfoIcon } from 'lucide-react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
+import { Button } from '@zapbots/ui/components/button';
 
 type Holder = NonNullable<HolderQuery['holder']>;
 

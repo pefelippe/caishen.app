@@ -10,8 +10,8 @@ import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, PlusIcon, XIcon } from '
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -19,18 +19,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
+} from '@zapbots/ui/components/dialog';
+import { Input } from '@zapbots/ui/components/input';
+import { Progress } from '@zapbots/ui/components/progress';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/select';
+import { Skeleton } from '@zapbots/ui/components/skeleton';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { BotPage } from '../components/BotPage';
 import { FormError } from '../components/FormError';

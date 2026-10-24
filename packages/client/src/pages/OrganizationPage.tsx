@@ -2,11 +2,13 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { OrganizationDocument, RenameOrganizationDocument } from '@zapbots/graphql/client';
 import { useState, type FormEvent } from 'react';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Field } from '@zapbots/ui/blocks/field';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Avatar, AvatarFallback } from '@zapbots/ui/components/avatar';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
+import { Input } from '@zapbots/ui/components/input';
 import {
   Table,
   TableBody,
@@ -14,11 +16,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@zapbots/ui/components/table';
 
-import { Field } from '../components/Field';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { initials } from '../components/ProfileMenu';
 import { authClient } from '../lib/auth';
 import { useI18n, type StringKey } from '../lib/i18n';

@@ -27,16 +27,17 @@ import {
 } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Logo } from '@zapbots/ui/blocks/logo';
+import { Button } from '@zapbots/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/dropdown-menu';
+import { Textarea } from '@zapbots/ui/components/textarea';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import {
   addAttachments,
@@ -49,7 +50,6 @@ import { streamChat } from '../lib/chat';
 import { BotGlyph } from './BotGlyph';
 import { ChatText } from './ChatText';
 import { FormError } from './FormError';
-import { Logo } from './Logo';
 import { ProposalCard } from './ProposalCard';
 
 /** A question offered while the Conversation is empty; the page shows each with its icon. */

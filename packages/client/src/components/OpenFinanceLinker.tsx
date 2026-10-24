@@ -10,8 +10,8 @@ import {
 } from '@zapbots/graphql/client';
 import { useState, type FormEvent } from 'react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@zapbots/ui/components/dialog';
+import { Input } from '@zapbots/ui/components/input';
+import { Label } from '@zapbots/ui/components/label';
 
 import { formatCents, formatDate } from '../lib/format';
 import { FormError } from './FormError';

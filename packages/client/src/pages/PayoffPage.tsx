@@ -4,11 +4,11 @@ import { FlagIcon } from 'lucide-react';
 import { useDeferredValue, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
+import { Input } from '@zapbots/ui/components/input';
+import { Skeleton } from '@zapbots/ui/components/skeleton';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { BotPage } from '../components/BotPage';
 import { formatCents, formatPercent, parseCents } from '../lib/format';

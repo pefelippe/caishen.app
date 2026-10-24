@@ -6,10 +6,11 @@ import {
   type RentVsBuyPoint,
 } from '@zapbots/finance';
 import { HouseIcon, KeyRoundIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { CalcField } from '@zapbots/ui/blocks/calc-field';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
 import {
   Table,
   TableBody,
@@ -17,10 +18,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/table';
+import { cn } from '@zapbots/ui/lib/utils';
 
-import { CalcField } from '../components/CalcField';
 import { formatCents } from '../lib/format';
 
 /** Typical figures for a R$ 500 mil home in 2026; every field can be changed. */
@@ -108,10 +108,9 @@ export function RentVsBuyCalculator() {
   );
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <div className="flex flex-col gap-5">
-        <Card>
-          <h2 className="font-semibold">O imóvel</h2>
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <Card className="gap-8 md:p-8 lg:sticky lg:top-6">
+        <Group title="O imóvel">
           <CalcField
             id="rvb-property"
             label="Valor do imóvel"
@@ -120,31 +119,30 @@ export function RentVsBuyCalculator() {
             value={fields.property}
           />
           <CalcField
-            hint="Costuma ficar entre 0,3% e 0,6% do valor do imóvel por mês."
+            hint="Costuma ser de 0,3% a 0,6% do valor por mês."
             id="rvb-rent"
-            label="Aluguel de um imóvel igual"
+            label="Aluguel de um igual"
             onChange={set('rent')}
-            suffix="R$ por mês"
+            suffix="R$/mês"
             value={fields.rent}
           />
           <CalcField
             id="rvb-appreciation"
-            label="Valorização do imóvel"
+            label="Valorização"
             onChange={set('appreciation')}
-            suffix="% ao ano"
+            suffix="% a.a."
             value={fields.appreciation}
           />
           <CalcField
-            hint="IGP-M ou IPCA, aplicado a cada 12 meses."
+            hint="IGP-M ou IPCA, a cada 12 meses."
             id="rvb-rent-adjustment"
             label="Reajuste do aluguel"
             onChange={set('rentAdjustment')}
-            suffix="% ao ano"
+            suffix="% a.a."
             value={fields.rentAdjustment}
           />
-        </Card>
-        <Card>
-          <h2 className="font-semibold">O financiamento</h2>
+        </Group>
+        <Group title="O financiamento">
           <CalcField
             hint={`Financiado: ${formatCents(Math.max(0, property - down))}`}
             id="rvb-down"
@@ -154,7 +152,7 @@ export function RentVsBuyCalculator() {
             value={fields.down}
           />
           <CalcField
-            hint="ITBI, escritura, registro e taxas do banco, pagos à vista."
+            hint="ITBI, escritura, registro e taxas."
             id="rvb-costs"
             label="Custos da compra"
             onChange={set('costs')}
@@ -162,138 +160,164 @@ export function RentVsBuyCalculator() {
             value={fields.costs}
           />
           <CalcField
+            hint="O CET do banco é o mais fiel."
+            id="rvb-financing"
+            label="Juros"
+            onChange={set('financing')}
+            suffix="% a.a."
+            value={fields.financing}
+          />
+          <CalcField
+            hint={term ? years(term) : undefined}
             id="rvb-term"
             label="Prazo"
             onChange={set('term')}
             suffix="meses"
             value={fields.term}
           />
-          <CalcField
-            hint="O custo efetivo total (CET) do banco é o mais fiel."
-            id="rvb-financing"
-            label="Juros do financiamento"
-            onChange={set('financing')}
-            suffix="% ao ano"
-            value={fields.financing}
-          />
-          <div className="flex gap-1">
-            {(['PRICE', 'SAC'] as const).map(option => (
-              <Button
-                className={cn(
-                  'h-7 rounded-full px-3 text-xs',
-                  option === system && 'bg-accent text-primary'
-                )}
-                key={option}
-                onClick={() => setSystem(option)}
-                size="sm"
-                variant="ghost"
-              >
-                {option === 'PRICE' ? 'Price' : 'SAC'}
-              </Button>
-            ))}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <span className="text-sm font-medium" id="rvb-system">
+              Sistema de amortização
+            </span>
+            <div
+              aria-labelledby="rvb-system"
+              className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
+              role="radiogroup"
+            >
+              {(['PRICE', 'SAC'] as const).map(option => (
+                <Button
+                  aria-checked={option === system}
+                  className={cn(
+                    'h-9 rounded-lg',
+                    option === system
+                      ? 'bg-card text-foreground shadow-xs hover:bg-card'
+                      : 'text-muted-foreground'
+                  )}
+                  key={option}
+                  onClick={() => setSystem(option)}
+                  role="radio"
+                  variant="ghost"
+                >
+                  {option === 'PRICE' ? 'Price · parcela fixa' : 'SAC · parcela cai'}
+                </Button>
+              ))}
+            </div>
           </div>
-        </Card>
-        <Card>
-          <h2 className="font-semibold">O dinheiro investido</h2>
+        </Group>
+        <Group title="O investimento">
           <CalcField
-            hint="Já descontado o imposto. Quem aluga investe a entrada, os custos e o que a parcela custaria a mais que o aluguel."
+            hint="Já sem o imposto."
             id="rvb-investment"
             label="Rendimento"
             onChange={set('investment')}
-            suffix="% ao ano"
+            suffix="% a.a."
             value={fields.investment}
           />
-        </Card>
-      </div>
+          <p className="text-sm text-muted-foreground sm:pt-7">
+            Os dois gastam o mesmo por mês: quem aluga investe a entrada, os custos e o que a
+            parcela custaria a mais que o aluguel.
+          </p>
+        </Group>
+      </Card>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-5">
         {!result || !last ? (
           <Card>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground">
               Confira os valores, o prazo (até 600 meses) e as taxas para calcular.
             </p>
           </Card>
         ) : (
           <>
-            <Card className="gap-2 bg-accent shadow-none">
-              <p className="text-sm font-medium text-accent-foreground">
-                Em {years(term)}, {buying ? 'financiar' : 'alugar e investir'} deixa você com
-              </p>
-              <p className="text-3xl font-semibold tracking-tight text-primary tabular-nums">
-                {formatCents(gap)} a mais
-              </p>
-              <p className="text-sm text-accent-foreground">
-                {result.buyerAheadFrom === null
-                  ? 'Com esses números, comprar não passa alugar em nenhum momento do prazo.'
-                  : result.buyerAheadFrom === 1
-                    ? 'Comprar fica à frente desde o primeiro mês.'
-                    : `Comprar passa alugar depois de ${years(result.buyerAheadFrom - 1)} e fica à frente até o fim.`}
-              </p>
+            <Card className="gap-6 md:p-8">
+              <div className="flex flex-col gap-1">
+                <p className="text-muted-foreground">
+                  Em {years(term)}, {buying ? 'financiar' : 'alugar e investir'} deixa você com
+                </p>
+                <p className="text-4xl font-semibold tracking-tight text-primary tabular-nums">
+                  {formatCents(gap)} a mais
+                </p>
+                <p className="text-muted-foreground">
+                  {result.buyerAheadFrom === null
+                    ? 'Com esses números, comprar não passa alugar em nenhum momento do prazo.'
+                    : result.buyerAheadFrom === 1
+                      ? 'Comprar fica à frente desde o primeiro mês.'
+                      : `Comprar passa alugar depois de ${years(result.buyerAheadFrom - 1)} e fica à frente até o fim.`}
+                </p>
+              </div>
+              <dl className="flex flex-col gap-4">
+                {[
+                  {
+                    ahead: buying,
+                    icon: HouseIcon,
+                    label: 'Financiar',
+                    value: last.buyerWealthCents,
+                  },
+                  {
+                    ahead: !buying,
+                    icon: KeyRoundIcon,
+                    label: 'Alugar e investir',
+                    value: last.renterWealthCents,
+                  },
+                ].map(path => (
+                  <div className="flex flex-col gap-1.5" key={path.label}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="flex items-center gap-2 font-medium">
+                        <path.icon className="size-4 text-ink" />
+                        {path.label}
+                        <span className="text-sm font-normal text-muted-foreground">
+                          · patrimônio no fim
+                        </span>
+                      </dt>
+                      <dd
+                        className={cn(
+                          'text-lg tabular-nums',
+                          path.ahead ? 'font-semibold' : 'text-muted-foreground'
+                        )}
+                      >
+                        {formatCents(path.value)}
+                      </dd>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          'h-full rounded-full',
+                          path.ahead ? 'bg-primary' : 'bg-primary/35'
+                        )}
+                        style={{ width: `${(Math.max(0, path.value) / top) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </dl>
             </Card>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Card className={cn('gap-3', buying && 'ring-2 ring-primary')}>
-                <div className="flex items-center gap-2">
-                  <HouseIcon className="size-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Financiar</h2>
-                </div>
-                <dl className="grid gap-3 text-sm">
-                  <div>
-                    <dt className="text-muted-foreground">Patrimônio no fim</dt>
-                    <dd className="text-2xl font-semibold tabular-nums">
-                      {formatCents(last.buyerWealthCents)}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Primeira parcela</dt>
-                    <dd className="tabular-nums">
-                      {formatCents(result.points[0]!.installmentCents)}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Total em parcelas</dt>
-                    <dd className="tabular-nums">{formatCents(result.totalInstallmentsCents)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Só de juros</dt>
-                    <dd className="font-medium text-destructive tabular-nums">
-                      {formatCents(result.totalInterestCents)}
-                    </dd>
-                  </div>
-                </dl>
-              </Card>
-              <Card className={cn('gap-3', !buying && 'ring-2 ring-primary')}>
-                <div className="flex items-center gap-2">
-                  <KeyRoundIcon className="size-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Alugar e investir</h2>
-                </div>
-                <dl className="grid gap-3 text-sm">
-                  <div>
-                    <dt className="text-muted-foreground">Patrimônio no fim</dt>
-                    <dd className="text-2xl font-semibold tabular-nums">
-                      {formatCents(last.renterWealthCents)}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Primeiro aluguel</dt>
-                    <dd className="tabular-nums">{formatCents(result.points[0]!.rentCents)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Último aluguel</dt>
-                    <dd className="tabular-nums">{formatCents(last.rentCents)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Total em aluguel</dt>
-                    <dd className="tabular-nums">{formatCents(result.totalRentCents)}</dd>
-                  </div>
-                </dl>
-              </Card>
-            </div>
+            <Card className="md:p-8">
+              <h2 className="text-lg font-semibold tracking-tight">O que cada caminho custa</h2>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Costs
+                  rows={[
+                    ['Primeira parcela', formatCents(result.points[0]!.installmentCents)],
+                    ['Total em parcelas', formatCents(result.totalInstallmentsCents)],
+                    ['Só de juros', formatCents(result.totalInterestCents)],
+                  ]}
+                  title="Financiar"
+                />
+                <Costs
+                  rows={[
+                    ['Primeiro aluguel', formatCents(result.points[0]!.rentCents)],
+                    ['Último aluguel', formatCents(last.rentCents)],
+                    ['Total em aluguel', formatCents(result.totalRentCents)],
+                  ]}
+                  title="Alugar"
+                />
+              </div>
+            </Card>
 
-            <Card className="gap-4">
-              <div>
-                <h2 className="font-semibold">Ano a ano</h2>
-                <p className="text-sm text-muted-foreground">
+            <Card className="gap-4 md:p-8">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-lg font-semibold tracking-tight">Ano a ano</h2>
+                <p className="text-muted-foreground">
                   Financiar: o imóvel valorizado menos o que ainda deve, mais o que sobrou
                   investido. Alugar: tudo o que foi investido.
                 </p>
@@ -302,9 +326,19 @@ export function RentVsBuyCalculator() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Ano</TableHead>
-                    <TableHead className="w-[38%]" />
-                    <TableHead className="text-right">Financiar</TableHead>
-                    <TableHead className="text-right">Alugar</TableHead>
+                    <TableHead className="hidden w-[36%] sm:table-cell" />
+                    <TableHead className="text-right">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span aria-hidden className="size-2 rounded-full bg-primary" />
+                        Financiar
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span aria-hidden className="size-2 rounded-full bg-primary/35" />
+                        Alugar
+                      </span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -313,22 +347,26 @@ export function RentVsBuyCalculator() {
                       <TableCell className="tabular-nums">
                         {row.month % 12 === 0 ? row.month / 12 : years(row.month)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex flex-col gap-1">
                           <div
                             className="h-1.5 rounded-full bg-primary"
-                            style={{ width: `${(row.buyerWealthCents / top) * 100}%` }}
+                            style={{ width: `${(Math.max(0, row.buyerWealthCents) / top) * 100}%` }}
                           />
                           <div
                             className="h-1.5 rounded-full bg-primary/35"
-                            style={{ width: `${(row.renterWealthCents / top) * 100}%` }}
+                            style={{
+                              width: `${(Math.max(0, row.renterWealthCents) / top) * 100}%`,
+                            }}
                           />
                         </div>
                       </TableCell>
                       <TableCell
                         className={cn(
                           'text-right tabular-nums',
-                          row.buyerWealthCents >= row.renterWealthCents && 'font-semibold'
+                          row.buyerWealthCents >= row.renterWealthCents
+                            ? 'font-semibold'
+                            : 'text-muted-foreground'
                         )}
                       >
                         {formatCents(row.buyerWealthCents)}
@@ -336,7 +374,9 @@ export function RentVsBuyCalculator() {
                       <TableCell
                         className={cn(
                           'text-right tabular-nums',
-                          row.renterWealthCents > row.buyerWealthCents && 'font-semibold'
+                          row.renterWealthCents > row.buyerWealthCents
+                            ? 'font-semibold'
+                            : 'text-muted-foreground'
                         )}
                       >
                         {formatCents(row.renterWealthCents)}
@@ -358,6 +398,33 @@ export function RentVsBuyCalculator() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/** A part of the calculator's form: its title, then its fields two by two. */
+function Group({ children, title }: { children: ReactNode; title: string }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="font-semibold">{title}</h2>
+      <div className="grid items-start gap-4 sm:grid-cols-2">{children}</div>
+    </section>
+  );
+}
+
+/** What one path costs, line by line. */
+function Costs({ rows, title }: { rows: [string, string][]; title: string }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-secondary/60 p-4">
+      <h3 className="font-medium">{title}</h3>
+      <dl className="flex flex-col gap-2">
+        {rows.map(([label, value]) => (
+          <div className="flex justify-between gap-3" key={label}>
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

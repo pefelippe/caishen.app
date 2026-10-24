@@ -15,22 +15,22 @@ import { ArrowUpRightIcon, InboxIcon, RepeatIcon, SendIcon } from 'lucide-react'
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/select';
+import { Textarea } from '@zapbots/ui/components/textarea';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { BotPage } from '../components/BotPage';
 import { DriveFiles } from '../components/DriveFiles';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
 import type { PickedFile } from '../lib/drive';
 import { JOB_STATUS, ROUTINE_CADENCE } from '../lib/jobs';
 

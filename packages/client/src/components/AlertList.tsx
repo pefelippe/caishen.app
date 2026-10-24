@@ -1,7 +1,7 @@
 import type { AlertFieldsFragment } from '@zapbots/graphql/client';
 import { Link } from 'react-router-dom';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@zapbots/ui/lib/utils';
 
 /** A Bot's Alerts, most urgent first; overdue ones get the red dot. */
 export function AlertList({ alerts }: { alerts: AlertFieldsFragment[] }) {

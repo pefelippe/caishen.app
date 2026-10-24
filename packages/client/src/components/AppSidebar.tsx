@@ -2,7 +2,11 @@ import { ChevronDownIcon, PanelLeftIcon } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@zapbots/ui/components/collapsible';
 import {
   Sidebar,
   SidebarContent,
@@ -16,8 +20,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
   useSidebar,
-} from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/sidebar';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { useI18n } from '../lib/i18n';
 import { activeItem, useNav, type NavGroup, type NavItem } from '../lib/nav';

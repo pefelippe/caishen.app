@@ -3,13 +3,13 @@ import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/rea
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Logo } from '@zapbots/ui/blocks/logo';
+import { Button } from '@zapbots/ui/components/button';
+import { Input } from '@zapbots/ui/components/input';
+import { Label } from '@zapbots/ui/components/label';
+import { Separator } from '@zapbots/ui/components/separator';
 
 import { FormError } from '../components/FormError';
-import { Logo } from '../components/Logo';
 import { authClient } from '../lib/auth';
 
 /** How a password reset link reaches the User: by email, back to this page (local server, no

@@ -1,7 +1,7 @@
 import { useMutation } from '@apollo/client/react';
 import { DeleteRecordDocument, type RecordKind } from '@zapbots/graphql/client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@zapbots/ui/components/dialog';
 
 import { FormError } from './FormError';
 

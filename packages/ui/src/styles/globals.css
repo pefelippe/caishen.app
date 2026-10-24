@@ -1,0 +1,231 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/inter';
+
+/* The classes used in this package, wherever the app that imports it lives. */
+@source '..';
+
+/* `.dark` on <html> (lib/theme.ts), set from the avatar's menu, makes the app dark. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * "Painel", after Hostinger's hPanel: a deep navy header, a light grey menu rounded at the top, the
+ * screen square beside it on a clean slate white with white cards and soft borders, and one bright
+ * blue for what acts. The dark theme keeps the navy header and puts the rest on near black.
+ */
+:root {
+  --radius: 0.5rem;
+  /* The two navies of the frame and the blue that acts. */
+  --navy: #0f172a;
+  --navy-soft: #1e293b;
+  --blue: #2563eb;
+
+  /* The open screen: slate white, with white cards on it. */
+  --background: #f8fafc;
+  --foreground: var(--navy);
+  --card: #ffffff;
+  --card-foreground: var(--navy);
+  --popover: #ffffff;
+  --popover-foreground: var(--navy);
+  --primary: var(--blue);
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: var(--navy);
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eff6ff;
+  --accent-foreground: #1e40af;
+  --destructive: oklch(0.55 0.2 27);
+  --success: oklch(0.52 0.13 155);
+  --warning: oklch(0.6 0.14 65);
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: var(--blue);
+
+  /* The menu on the left: a light grey panel, rounded where it meets the navy frame, with the
+     open entry as a white pill (as in the hPanel). */
+  --sidebar: #eef2f6;
+  --sidebar-foreground: var(--navy-soft);
+  --sidebar-primary: var(--blue);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: var(--navy);
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: var(--blue);
+
+  /* The bar across the top. `--header-gradient` paints the bar and the send buttons. */
+  --header: var(--navy);
+  --header-foreground: #f1f5f9;
+  --header-muted: var(--navy-soft);
+  --header-gradient: linear-gradient(var(--navy), var(--navy));
+  /* The highlight on navy: the open chat button, the active Bot. */
+  --gold: #60a5fa;
+
+  /* Kept for the places that still paint with them: the landing page and the sign-in. */
+  --paper: #f8fafc;
+  --ink-black: var(--navy);
+  --rail: var(--navy);
+  --frame: #e2e8f0;
+  --rail-foreground: #cbd5e1;
+
+  /* One ink per Bot, and a neutral one outside them. */
+  --ink-neutral: var(--navy);
+  --bot-finance: var(--blue);
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #141416;
+  --card-foreground: #fafafa;
+  --popover: #141416;
+  --popover-foreground: #fafafa;
+  --primary: #3b82f6;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #fafafa;
+  --muted: #1c1c1f;
+  --muted-foreground: #a1a1aa;
+  --accent: #172554;
+  --accent-foreground: #bfdbfe;
+  --destructive: oklch(0.65 0.2 25);
+  --success: oklch(0.68 0.14 155);
+  --warning: oklch(0.75 0.14 70);
+  --border: #27272a;
+  --input: #3f3f46;
+  --ring: #3b82f6;
+
+  --sidebar: #111113;
+  --sidebar-foreground: #e4e4e7;
+  --sidebar-accent: #1f1f23;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #27272a;
+
+  --ink-neutral: #fafafa;
+  --bot-finance: #3b82f6;
+  color-scheme: dark;
+}
+
+@theme inline {
+  /* One face for everything; titles stand out by weight, figures by tabular digits. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-header-muted: var(--header-muted);
+  --color-gold: var(--gold);
+  --color-rail: var(--rail);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-paper: var(--paper);
+  --color-frame: var(--frame);
+  --color-navy: var(--navy);
+  --color-navy-soft: var(--navy-soft);
+  /* The ink of the Bot on screen; set by `data-bot` on a wrapper. */
+  --color-ink: var(--ink, var(--ink-neutral));
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-sm text-foreground antialiased;
+  }
+  h1 {
+    @apply text-3xl leading-tight font-semibold tracking-tight;
+  }
+  [data-bot='FINANCE'] {
+    --ink: var(--bot-finance);
+  }
+}
+
+/* Amounts, dates and counts use tabular digits so columns line up like a ledger. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons and menu entries show they can be clicked. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
+/* The loading screen's bar, running under the mark (Splash; index.html repeats it). */
+.splash-track {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 120px;
+  height: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--header) 12%, transparent);
+}
+.splash-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--header-gradient);
+  animation: splash-bar 1.1s ease-in-out infinite;
+}
+@keyframes splash-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+/* The menu growing and shrinking to its icons: one easing for the menu and the gap it leaves, in
+   place of shadcn's linear 200ms. */
+:root {
+  --ease-sidebar: cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-slot='sidebar-gap'],
+[data-slot='sidebar-container'] {
+  transition-duration: 300ms !important;
+  transition-timing-function: var(--ease-sidebar) !important;
+}
+
+/* Exporting a page to PDF prints only the screen: no menu, header or chat around it. */
+@media print {
+  [data-slot='sidebar-gap'],
+  [data-slot='sidebar-container'] {
+    display: none !important;
+  }
+}

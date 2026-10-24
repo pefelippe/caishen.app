@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 
 import type { ChatAttachment } from '../lib/attachments';
 import { useI18n } from '../lib/i18n';

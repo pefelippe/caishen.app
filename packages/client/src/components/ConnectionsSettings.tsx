@@ -11,14 +11,14 @@ import { BrainCircuitIcon, LandmarkIcon, MessageCircleIcon, type LucideIcon } fr
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { ModelsList } from '../pages/ModelsPage';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
-import { PageSkeleton } from './PageSkeleton';
 
 type Connection = ConnectionsQuery['connections'][number];
 

@@ -8,9 +8,9 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@zapbots/ui/components/avatar';
+import { Button } from '@zapbots/ui/components/button';
+import { Tabs, TabsList, TabsTrigger } from '@zapbots/ui/components/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +24,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/dropdown-menu';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { HEADER_ICON } from '../lib/header';
 

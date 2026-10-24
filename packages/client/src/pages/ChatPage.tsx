@@ -21,7 +21,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -29,17 +29,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@zapbots/ui/components/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/dropdown-menu';
+import { Input } from '@zapbots/ui/components/input';
+import { Sheet, SheetContent, SheetTitle } from '@zapbots/ui/components/sheet';
+import { Skeleton } from '@zapbots/ui/components/skeleton';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { CHAT_SUGGESTIONS } from '../components/ChatPanel';
 import { ChatThread, type Suggestion } from '../components/ChatThread';

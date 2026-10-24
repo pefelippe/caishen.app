@@ -6,7 +6,7 @@ import {
 } from '@zapbots/graphql/client';
 import { useEffect, useState, type FormEvent } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@zapbots/ui/components/dialog';
+import { Skeleton } from '@zapbots/ui/components/skeleton';
 
 import { FormError } from './FormError';
 import { RecordFields } from './RecordFields';

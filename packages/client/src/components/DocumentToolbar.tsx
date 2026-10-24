@@ -12,9 +12,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { Button } from '@zapbots/ui/components/button';
+import { Separator } from '@zapbots/ui/components/separator';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { useI18n, type StringKey } from '../lib/i18n';
 

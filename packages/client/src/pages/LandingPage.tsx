@@ -14,12 +14,12 @@ import { MotionConfig, motion, type Variants } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { cn } from '@/lib/utils';
+import { Logo } from '@zapbots/ui/blocks/logo';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
+import { Slider } from '@zapbots/ui/components/slider';
+import { cn } from '@zapbots/ui/lib/utils';
 
-import { Logo } from '../components/Logo';
 import { TEAM, UPCOMING_BOTS } from '../lib/bots';
 import { formatCents } from '../lib/format';
 

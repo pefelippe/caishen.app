@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 
+import { Splash } from '@zapbots/ui/blocks/logo';
+
 import { Layout, Scrolling } from './components/Layout';
-import { Splash } from './components/Logo';
 import { authClient } from './lib/auth';
 import { isLanguage, useI18n } from './lib/i18n';
 import { useAppliedTheme } from './lib/theme';

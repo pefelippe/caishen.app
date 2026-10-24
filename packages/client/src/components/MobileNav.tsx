@@ -1,17 +1,11 @@
-import {
-  HouseIcon,
-  LayoutGridIcon,
-  MessageCircleIcon,
-  RepeatIcon,
-  SheetIcon,
-  type LucideIcon,
-} from 'lucide-react';
+import { HouseIcon, LayoutGridIcon, RepeatIcon, SheetIcon, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
+import { AgentIcon } from '@zapbots/ui/blocks/agent-icon';
+import { Button } from '@zapbots/ui/components/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zapbots/ui/components/sheet';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { useI18n } from '../lib/i18n';
 import { activeItem, useNav, type NavItem } from '../lib/nav';
@@ -79,7 +73,7 @@ export function MobileNav() {
               onClick={toggle}
               size="icon"
             >
-              <MessageCircleIcon />
+              <AgentIcon />
             </Button>
           </div>
           {tab(TABS[2]!)}

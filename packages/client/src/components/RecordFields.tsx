@@ -1,14 +1,14 @@
 import type { RecordFieldsQuery } from '@zapbots/graphql/client';
 
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Input } from '@zapbots/ui/components/input';
+import { Label } from '@zapbots/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@zapbots/ui/components/select';
 
 export type RecordField = RecordFieldsQuery['recordFields'][number];
 
