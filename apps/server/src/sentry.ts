@@ -2,8 +2,9 @@ import * as Sentry from '@sentry/node';
 
 /**
  * Error monitoring, on only when `SENTRY_DSN` is set. Imported first by `app.ts`, so it is set up
- * before anything else loads. Errors only, and none of the User's data: no cookies, bodies, GraphQL
- * variables, Model prompts, query data or local variables (they hold money and Conversations).
+ * before anything else loads. Errors only, and none of the User's data: no cookies, bodies, query
+ * strings, GraphQL variables, Model prompts, query data or local variables (they hold money and
+ * Conversations).
  */
 const dsn = process.env.SENTRY_DSN;
 if (dsn) {
@@ -18,6 +19,14 @@ if (dsn) {
       httpBodies: [],
       stackFrameVariables: false,
       userInfo: false,
+    },
+    // Query strings can carry secrets (Pluggy's webhook token), so they stay out too.
+    beforeSend(event) {
+      if (event.request) {
+        delete event.request.query_string;
+        if (event.request.url) event.request.url = event.request.url.split('?')[0];
+      }
+      return event;
     },
   });
 }

@@ -226,6 +226,49 @@ export async function addExpense(viewer: Viewer, input: DatedAmountInput, execut
   return row!;
 }
 
+export const MAX_IMPORTED_EXPENSES = 2000;
+
+/** A Gasto read from a file or a bank, with its key there when it has one. */
+export interface ImportedExpense {
+  amountCents: number;
+  category?: string | null;
+  date: string;
+  description: string;
+  externalId?: string | null;
+}
+
+/**
+ * Imported Gastos, marked as such. A line whose `externalId` is already there (the same file, or
+ * the same bank line, again) is skipped; returns how many were added. Those from a Vínculo
+ * bancário carry it, and go when it goes.
+ */
+export async function importExpenses(
+  viewer: Viewer,
+  holderId: string,
+  rows: ImportedExpense[],
+  bankLinkId: string | null = null
+): Promise<number> {
+  await findHolder(viewer, holderId);
+  if (!rows.length) return 0;
+  if (rows.length > MAX_IMPORTED_EXPENSES) {
+    badInput(`Importe até ${MAX_IMPORTED_EXPENSES} linhas por vez`);
+  }
+  const values = rows.map(row => ({
+    ...expenseValues(row),
+    bankLinkId,
+    externalId: row.externalId?.trim() || null,
+    holderId,
+    imported: true,
+    organizationId: viewer.organizationId,
+  }));
+  const added = await db
+    .insert(schema.expense)
+    .values(values)
+    .onConflictDoNothing({ target: [schema.expense.holderId, schema.expense.externalId] })
+    .returning({ id: schema.expense.id });
+  return added.length;
+}
+
 export type RecordKind =
   | 'CREDIT_OPERATION'
   | 'EXPENSE'

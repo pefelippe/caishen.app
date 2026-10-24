@@ -20,6 +20,12 @@ import { ChatError, replyInConversation, type ChatEvent } from './services/bots/
 import { failStaleJobs } from './services/bots/jobs';
 import { runDueRoutines } from './services/bots/routines';
 import { ModelError } from './services/models';
+import {
+  handlePluggyEvent,
+  pluggyWebhookAuthorized,
+  pluggyWebhookConfigured,
+  type PluggyEvent,
+} from './services/openFinance/webhook';
 import { handleWebhook, type WebhookPayload } from './services/whatsapp/inbound';
 import { verifyChallenge, verifySignature, whatsappConfigured } from './services/whatsapp/meta';
 
@@ -84,6 +90,28 @@ app.post('/api/whatsapp/webhook', express.raw({ type: '*/*' }), (req, res) => {
   }
   res.sendStatus(200);
   waitUntil(handleWebhook(payload));
+});
+
+// Pluggy says an item changed; the answer goes out at once (it waits 5 seconds at most) and the
+// item is read after it (docs/adr/0020).
+app.post('/api/openfinance/webhook', express.json(), (req, res) => {
+  if (!pluggyWebhookConfigured()) {
+    res.status(404).end();
+    return;
+  }
+  const token =
+    typeof req.query.token === 'string' ? req.query.token : req.header('x-webhook-secret');
+  if (!pluggyWebhookAuthorized(token)) {
+    res.status(403).json({ message: 'Não autorizado' });
+    return;
+  }
+  res.json({ received: true });
+  waitUntil(
+    handlePluggyEvent((req.body ?? {}) as PluggyEvent).catch(error => {
+      console.error('pluggy webhook failed:', error);
+      reportError(error);
+    })
+  );
 });
 
 app.get('/health', (_, res) => {

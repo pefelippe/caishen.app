@@ -19,7 +19,7 @@ import {
   addIncomeSource,
   addOneOffIncome,
   addRecurringExpense,
-  expenseValues,
+  importExpenses,
   isDay,
   deleteRecord,
   findIncomeSource,
@@ -28,8 +28,6 @@ import {
 } from '../services/records';
 import { viewerHolder } from '../services/viewerHolder';
 import { badInput, findHolder, notFound, owned, requireViewer } from './guards';
-
-const MAX_IMPORTED_EXPENSES = 2000;
 
 export const holderResolvers: Resolvers = {
   IncomeSource: {
@@ -201,20 +199,8 @@ export const holderResolvers: Resolvers = {
     },
     addExpense: (_, { input }, context) => addExpense(requireViewer(context), input),
     importExpenses: async (_, { holderId, rows }, context) => {
-      const viewer = requireViewer(context);
-      await findHolder(viewer, holderId);
       if (!rows.length) badInput('A planilha não tem linhas de gastos');
-      if (rows.length > MAX_IMPORTED_EXPENSES) {
-        badInput(`Importe até ${MAX_IMPORTED_EXPENSES} linhas por vez`);
-      }
-      const values = rows.map(row => ({
-        ...expenseValues(row),
-        holderId,
-        imported: true,
-        organizationId: viewer.organizationId,
-      }));
-      await db.insert(schema.expense).values(values);
-      return values.length;
+      return importExpenses(requireViewer(context), holderId, rows);
     },
     deleteRecord: async (_, { id, kind }, context) => {
       await deleteRecord(requireViewer(context), kind, id);

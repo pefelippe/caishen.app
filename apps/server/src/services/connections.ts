@@ -4,6 +4,7 @@ import type { ConnectionCategory, ConnectionKind } from '@zapbots/graphql/server
 import { and, eq } from 'drizzle-orm';
 
 import { driveConnected, googleConfigured } from './drive';
+import { bankLinks, openFinanceUnavailable } from './openFinance';
 import * as openrouter from './openrouter';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
 import { whatsappConfigured } from './whatsapp/meta';
@@ -94,8 +95,29 @@ const whatsapp: Provider = {
   },
 };
 
+const openFinance: Provider = {
+  category: 'FINANCE',
+  kind: 'OPEN_FINANCE',
+  // Meu Pluggy, free for one person's own banks: only the e-mails allowed here (docs/adr/0020).
+  status: async viewer => {
+    const reason = await openFinanceUnavailable(viewer);
+    if (reason) {
+      return { available: false, connected: false, detail: null, unavailableReason: reason };
+    }
+    const links = await bankLinks(viewer);
+    return {
+      available: true,
+      connected: links.length > 0,
+      detail: links.length
+        ? `${links.length === 1 ? '1 banco conectado' : `${links.length} bancos conectados`}: ${links.map(link => link.institution).join(', ')}.`
+        : null,
+      unavailableReason: null,
+    };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
-const PROVIDERS: Provider[] = [openRouter, googleDrive, whatsapp];
+const PROVIDERS: Provider[] = [openRouter, googleDrive, whatsapp, openFinance];
 
 export function connections(viewer: Viewer) {
   return Promise.all(

@@ -2,6 +2,13 @@ import type { Resolvers } from '@zapbots/graphql/server';
 
 import { connections } from '../services/connections';
 import {
+  bankAccounts,
+  bankLinks,
+  linkBank,
+  syncBankLink,
+  unlinkBank,
+} from '../services/openFinance';
+import {
   maskPhone,
   startWhatsappLink,
   unlinkWhatsapp,
@@ -11,7 +18,13 @@ import { whatsappConfigured } from '../services/whatsapp/meta';
 import { badInput, requireViewer } from './guards';
 
 export const connectionResolvers: Resolvers = {
+  BankLink: {
+    accounts: link => bankAccounts(link),
+  },
   Mutation: {
+    linkBank: (_, { itemId }, context) => linkBank(requireViewer(context), itemId),
+    syncBankLink: (_, { id }, context) => syncBankLink(requireViewer(context), id),
+    unlinkBank: (_, { id }, context) => unlinkBank(requireViewer(context), id),
     startWhatsappLink: (_, __, context) => {
       const viewer = requireViewer(context);
       if (!whatsappConfigured()) badInput('O WhatsApp ainda não está ligado neste servidor');
@@ -23,6 +36,7 @@ export const connectionResolvers: Resolvers = {
     },
   },
   Query: {
+    bankLinks: (_, __, context) => bankLinks(requireViewer(context)),
     connections: (_, __, context) => connections(requireViewer(context)),
     whatsappLink: async (_, __, context) => {
       const link = await whatsappLinkOf(requireViewer(context));

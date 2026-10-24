@@ -215,6 +215,13 @@ export const obligationResolvers: Resolvers = {
         .returning();
       return row!;
     },
+    deleteCreditCard: async (_, { id }, context) => {
+      const deleted = await db
+        .delete(schema.creditCard)
+        .where(owned(schema.creditCard, requireViewer(context), id))
+        .returning({ id: schema.creditCard.id });
+      return deleted.length > 0;
+    },
     createCreditOperation: (_, { input }, context) =>
       createCreditOperation(requireViewer(context), input),
     deleteCreditOperation: async (_, { id }, context) => {

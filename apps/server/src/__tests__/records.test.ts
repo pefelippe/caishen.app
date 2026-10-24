@@ -243,3 +243,96 @@ describe('editing saved records', () => {
     expect(await rows()).toHaveLength(0);
   });
 });
+
+const IMPORT = /* GraphQL */ `
+  mutation ($holderId: ID!, $rows: [ExpenseRowInput!]!) {
+    importExpenses(holderId: $holderId, rows: $rows)
+  }
+`;
+
+describe('importing a statement', () => {
+  it('skips the lines of an OFX imported before, by their key', async () => {
+    const viewer = await createViewer();
+    const holder = await viewerHolder(viewer);
+    const rows = [
+      { amountCents: 4590, date: '2026-10-21', description: 'Padaria', externalId: 'ofx:1:A1' },
+      { amountCents: 990, date: '2026-10-11', description: 'Café', externalId: 'ofx:1:A2' },
+    ];
+    expect((await gql(viewer, IMPORT, { holderId: holder.id, rows })).data.importExpenses).toBe(2);
+    const again = [
+      ...rows,
+      { amountCents: 1200, date: '2026-10-22', description: 'Uber', externalId: 'ofx:1:A3' },
+    ];
+    expect(
+      (await gql(viewer, IMPORT, { holderId: holder.id, rows: again })).data.importExpenses
+    ).toBe(1);
+    // Lines without a key, from a spreadsheet, always come in.
+    const sheet = [{ amountCents: 500, date: '2026-10-22', description: 'Água' }];
+    await gql(viewer, IMPORT, { holderId: holder.id, rows: sheet });
+    expect(
+      (await gql(viewer, IMPORT, { holderId: holder.id, rows: sheet })).data.importExpenses
+    ).toBe(1);
+  });
+
+  it("keeps each Holder's keys apart", async () => {
+    const ana = await createViewer();
+    const bruno = await createViewer('Bruno');
+    const row = { amountCents: 100, date: '2026-10-21', description: 'Pão', externalId: 'ofx:x:1' };
+    for (const viewer of [ana, bruno]) {
+      const holder = await viewerHolder(viewer);
+      expect(
+        (await gql(viewer, IMPORT, { holderId: holder.id, rows: [row] })).data.importExpenses
+      ).toBe(1);
+    }
+  });
+});
+
+describe('deleting a Cartão', () => {
+  it("takes its Faturas, keeps what was charged on it, and only the Viewer's own", async () => {
+    const viewer = await createViewer();
+    const stranger = await createViewer('Bruno');
+    const holder = await viewerHolder(viewer);
+    const [card] = await db
+      .insert(schema.creditCard)
+      .values({
+        closingDay: 3,
+        dueDay: 10,
+        holderId: holder.id,
+        limitCents: 500000,
+        name: 'Nubank',
+        organizationId: viewer.organizationId,
+      })
+      .returning();
+    await db.insert(schema.statement).values({
+      amountCents: 120000,
+      creditCardId: card!.id,
+      referenceMonth: '2026-10',
+    });
+    const [gym] = await db
+      .insert(schema.recurringExpense)
+      .values({
+        amountCents: 9990,
+        creditCardId: card!.id,
+        description: 'Academia',
+        dueDay: 5,
+        holderId: holder.id,
+        organizationId: viewer.organizationId,
+        paymentMethod: 'CARD',
+      })
+      .returning();
+    const DELETE = 'mutation ($id: ID!) { deleteCreditCard(id: $id) }';
+
+    expect((await gql(stranger, DELETE, { id: card!.id })).data.deleteCreditCard).toBe(false);
+    expect((await gql(viewer, DELETE, { id: card!.id })).data.deleteCreditCard).toBe(true);
+    const statements = await db
+      .select()
+      .from(schema.statement)
+      .where(eq(schema.statement.creditCardId, card!.id));
+    expect(statements).toEqual([]);
+    const [kept] = await db
+      .select()
+      .from(schema.recurringExpense)
+      .where(eq(schema.recurringExpense.id, gym!.id));
+    expect(kept!.creditCardId).toBeNull();
+  });
+});
