@@ -27,3 +27,47 @@ mutation StartWhatsappLink {
 mutation UnlinkWhatsapp {
   unlinkWhatsapp
 }
+
+fragment BankLinkFields on BankLink {
+  id
+  institution
+  status
+  error
+  consentExpiresAt
+  lastSyncedAt
+  accounts {
+    id
+    kind
+    name
+    number
+    balanceCents
+  }
+}
+
+query BankLinks {
+  bankLinks {
+    ...BankLinkFields
+  }
+}
+
+mutation LinkBank($itemId: String!) {
+  linkBank(itemId: $itemId) {
+    added
+    link {
+      ...BankLinkFields
+    }
+  }
+}
+
+mutation SyncBankLink($id: ID!) {
+  syncBankLink(id: $id) {
+    added
+    link {
+      ...BankLinkFields
+    }
+  }
+}
+
+mutation UnlinkBank($id: ID!) {
+  unlinkBank(id: $id)
+}

@@ -20,6 +20,8 @@ const config: CodegenConfig = {
         mappers: {
           Assessment: '@zapbots/database#AssessmentRow',
           Attachment: '@zapbots/database#AttachmentRow',
+          BankLink: '@zapbots/database#BankLinkRow',
+          BankAccount: '@zapbots/database#BankAccountRow',
           Bot: '@zapbots/database#BotRow',
           Conversation: '@zapbots/database#ConversationRow',
           Job: '@zapbots/database#JobRow',

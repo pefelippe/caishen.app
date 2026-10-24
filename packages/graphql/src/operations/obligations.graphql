@@ -64,6 +64,10 @@ mutation CreateCreditCard($input: CreateCreditCardInput!) {
   }
 }
 
+mutation DeleteCreditCard($id: ID!) {
+  deleteCreditCard(id: $id)
+}
+
 mutation UpsertStatement($input: UpsertStatementInput!) {
   upsertStatement(input: $input) {
     id

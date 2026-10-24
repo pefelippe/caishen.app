@@ -91,6 +91,7 @@ enum ConnectionKind {
   OPENROUTER
   GOOGLE_DRIVE
   WHATSAPP
+  OPEN_FINANCE
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -98,6 +99,45 @@ enum ConnectionCategory {
   AI
   FILE_STORAGE
   MESSAGING
+  FINANCE
+}
+
+enum BankLinkStatus {
+  ACTIVE
+  "The provider could not read it; `error` says why."
+  ERROR
+  "The consent at the bank ran out (a year); it has to be given again."
+  EXPIRED
+}
+
+enum BankAccountKind {
+  BANK
+  CREDIT
+}
+
+"A Vínculo bancário: one bank authorized through Open Finance (docs/adr/0020)."
+type BankLink {
+  id: ID!
+  institution: String!
+  status: BankLinkStatus!
+  error: String
+  consentExpiresAt: DateTime
+  lastSyncedAt: DateTime
+  accounts: [BankAccount!]!
+}
+
+type BankAccount {
+  id: ID!
+  kind: BankAccountKind!
+  name: String!
+  number: String
+  balanceCents: Cents
+}
+
+"A Vínculo bancário read again, and how many Gastos came in."
+type BankSync {
+  added: Int!
+  link: BankLink!
 }
 
 "Where a Conversation happens (docs/adr/0019)."
@@ -145,6 +185,8 @@ type Query {
   connections: [Connection!]!
   "The Viewer's WhatsApp number, while linked."
   whatsappLink: WhatsappLink
+  "The Viewer's Vínculos bancários, oldest first."
+  bankLinks: [BankLink!]!
   "The Viewer's Organization, with its Members."
   organization: Organization!
   "What the Organization used this month (São Paulo calendar)."
@@ -162,6 +204,12 @@ type Mutation {
   "A code to link the Viewer's WhatsApp; replaces any unused one."
   startWhatsappLink: WhatsappLinkCode!
   unlinkWhatsapp: Boolean!
+  "Links a bank by the provider's id for it (Meu Pluggy's item) and reads it a first time."
+  linkBank(itemId: String!): BankSync!
+  "Reads a Vínculo bancário again, bringing in its new Gastos."
+  syncBankLink(id: ID!): BankSync!
+  "Unlinks a bank; its accounts and the Gastos that came from it go."
+  unlinkBank(id: ID!): Boolean!
   "A Stripe Checkout page for the Pro Plan; owners and admins only."
   startCheckout: String!
   "Stripe's portal to manage the Subscription; owners and admins only."
@@ -218,7 +266,7 @@ type Mutation {
   "Forgets a competência's declared revenue; it goes back to the Fonte de Renda, or none."
   clearCompanyRevenue(companyId: ID!, month: String!): Boolean!
   addExpense(input: ExpenseInput!): Expense!
-  "Adds many Gastos at once, from a spreadsheet; returns how many were added."
+  "Adds many Gastos at once, from a spreadsheet or an OFX; lines whose `externalId` is already there are skipped. Returns how many were added."
   importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!): Int!
   deleteExpense(id: ID!): Boolean!
   "Rewrites a saved record with the same checks as creating it."
@@ -231,6 +279,8 @@ type Mutation {
   createCreditOperation(input: CreateCreditOperationInput!): CreditOperation!
   deleteCreditOperation(id: ID!): Boolean!
   createCreditCard(input: CreateCreditCardInput!): CreditCard!
+  "Deletes a Cartão and its Faturas; Gastos recorrentes on it stay, without a Cartão."
+  deleteCreditCard(id: ID!): Boolean!
   upsertStatement(input: UpsertStatementInput!): Statement!
   generateAssessment(holderId: ID!): Assessment!
   "Records that an installment was late; a null `paidOn` keeps it open."
@@ -982,6 +1032,8 @@ input ExpenseRowInput {
   description: String!
   category: String
   amountCents: Cents!
+  "The line's key at its source (an OFX FITID), so importing it again adds nothing."
+  externalId: String
 }
 
 input AddTaxInput {
