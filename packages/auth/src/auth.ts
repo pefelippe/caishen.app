@@ -1,26 +1,49 @@
 import { db, schema } from '@zapbots/database';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { magicLink, organization } from 'better-auth/plugins';
-import { asc, eq } from 'drizzle-orm';
+import { organization } from 'better-auth/plugins';
+import { and, asc, eq } from 'drizzle-orm';
 
-import { sendMagicLinkEmail } from './email';
+import { sendResetPasswordEmail } from './email';
 import { googleEnabled, signInMethods } from './methods';
 import { ensurePersonalOrganization } from './personal';
 
 const clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
 
 export const auth = betterAuth({
-  // Two ways in, neither with a password: Google, and a sign-in link sent by email. The first
-  // sign-in creates the User. Linking lets someone who came in by email later use Google with the
-  // same address (and pre-existing email/password Users keep their Organizations).
+  // Two ways in: email and password, and Google. Linking lets someone who signed up with a password
+  // later use Google with the same address; Users without a password (Google, or the old email
+  // links) get one through "Esqueci minha senha".
   account: { accountLinking: { trustedProviders: ['google'] } },
   basePath: '/api/auth',
   database: drizzleAdapter(db, { provider: 'pg', schema }),
   databaseHooks: {
+    account: {
+      create: {
+        // Google vouches for the address. If someone had signed up with it and a password without
+        // owning it (nothing proves it at sign-up), that password must not survive the link.
+        before: async account => {
+          if (account.providerId !== 'google') return;
+          const [user] = await db
+            .select({ emailVerified: schema.user.emailVerified })
+            .from(schema.user)
+            .where(eq(schema.user.id, account.userId));
+          if (user && !user.emailVerified) {
+            await db
+              .delete(schema.account)
+              .where(
+                and(
+                  eq(schema.account.userId, account.userId),
+                  eq(schema.account.providerId, 'credential')
+                )
+              );
+          }
+        },
+      },
+    },
     user: {
       create: {
-        // An email link brings no name: start from the address, editable on Perfil.
+        // A sign-up may bring no name: start from the address, editable on Perfil.
         before: async user => ({
           data: { ...user, name: user.name || user.email.split('@')[0] },
         }),
@@ -42,19 +65,24 @@ export const auth = betterAuth({
             .where(eq(schema.member.userId, session.userId))
             .orderBy(asc(schema.member.createdAt))
             .limit(1);
-          return { data: { ...session, activeOrganizationId: membership?.organizationId ?? null } };
+          return {
+            data: {
+              ...session,
+              activeOrganizationId: membership?.organizationId ?? null,
+            },
+          };
         },
       },
     },
   },
-  plugins: [
-    organization(),
-    magicLink({
-      expiresIn: 15 * 60,
-      sendMagicLink: ({ email, url }) => sendMagicLinkEmail(email, url),
-    }),
-    signInMethods(),
-  ],
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+    // Choosing a new password signs out every other browser.
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: ({ url, user }) => sendResetPasswordEmail(user.email, url),
+  },
+  plugins: [organization(), signInMethods()],
   secret: process.env.BETTER_AUTH_SECRET,
   socialProviders: googleEnabled
     ? {
@@ -70,7 +98,9 @@ export const auth = betterAuth({
   trustedOrigins: [clientOrigin],
   user: {
     // The app's language, kept with the User so it follows them to any browser.
-    additionalFields: { language: { defaultValue: 'pt', required: false, type: 'string' } },
+    additionalFields: {
+      language: { defaultValue: 'pt', required: false, type: 'string' },
+    },
   },
 });
 
