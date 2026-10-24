@@ -8,3 +8,22 @@ query Connections {
     unavailableReason
   }
 }
+
+query WhatsappLink {
+  whatsappLink {
+    phone
+    linkedAt
+  }
+}
+
+mutation StartWhatsappLink {
+  startWhatsappLink {
+    code
+    url
+    expiresAt
+  }
+}
+
+mutation UnlinkWhatsapp {
+  unlinkWhatsapp
+}

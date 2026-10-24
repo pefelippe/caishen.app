@@ -248,29 +248,6 @@ query Period($holderId: ID!, $from: Date!, $to: Date!) {
   }
 }
 
-query Report($holderId: ID!) {
-  holder(id: $holderId) {
-    id
-    months(last: 6) {
-      month
-      incomeCents
-      commitmentsCents
-      expensesCents
-      balanceCents
-      expenses {
-        id
-        category
-        amountCents
-      }
-    }
-    creditOperations {
-      id
-      name
-      outstandingBalanceCents
-    }
-  }
-}
-
 mutation AddOneOffIncome($input: OneOffIncomeInput!) {
   addOneOffIncome(input: $input)
 }
@@ -433,4 +410,76 @@ mutation SetCompanyRevenue($input: CompanyRevenueInput!) {
 
 mutation ClearCompanyRevenue($companyId: ID!, $month: String!) {
   clearCompanyRevenue(companyId: $companyId, month: $month)
+}
+
+query Home {
+  viewerHolder {
+    id
+    upcomingDues {
+      label
+      dueDate
+      amountCents
+    }
+  }
+}
+
+query Payoff($monthlyExtraCents: Cents!) {
+  viewerHolder {
+    id
+    creditOperations {
+      id
+      name
+      monthlyRate
+      outstandingBalanceCents
+      installmentCents
+    }
+    payoffPlan(monthlyExtraCents: $monthlyExtraCents) {
+      debtFreeOn
+      debtFreeWithoutPlanOn
+      interestSavedCents
+      payoffs {
+        creditOperationId
+        name
+        paidOffOn
+      }
+    }
+  }
+}
+
+query Budget($month: String!) {
+  viewerHolder {
+    id
+    budget(month: $month) {
+      month
+      method
+      saved
+      incomeCents
+      slices {
+        key
+        label
+        percent
+        plannedCents
+        spentCents
+        count
+        categories
+      }
+      unassigned {
+        name
+        amountCents
+        count
+      }
+      categories {
+        name
+        sliceKey
+        amountCents
+        count
+      }
+    }
+  }
+}
+
+mutation SaveBudget($input: BudgetInput!) {
+  saveBudget(input: $input) {
+    id
+  }
 }

@@ -90,12 +90,34 @@ enum JobStatus {
 enum ConnectionKind {
   OPENROUTER
   GOOGLE_DRIVE
+  WHATSAPP
 }
 
 "What a Connection is for; the Conexões page has one section per category."
 enum ConnectionCategory {
   AI
   FILE_STORAGE
+  MESSAGING
+}
+
+"Where a Conversation happens (docs/adr/0019)."
+enum ConversationChannel {
+  APP
+  WHATSAPP
+}
+
+"The number the Viewer talks to the Caishen from on WhatsApp."
+type WhatsappLink {
+  "Only the last digits, e.g. `…1234`."
+  phone: String!
+  linkedAt: DateTime!
+}
+
+"A one-time code to send from WhatsApp, and the `wa.me` link that writes it; valid 15 minutes."
+type WhatsappLinkCode {
+  code: String!
+  url: String!
+  expiresAt: DateTime!
 }
 
 type Query {
@@ -121,6 +143,8 @@ type Query {
   routines(botId: ID!): [Routine!]!
   job(id: ID!): Job
   connections: [Connection!]!
+  "The Viewer's WhatsApp number, while linked."
+  whatsappLink: WhatsappLink
   "The Viewer's Organization, with its Members."
   organization: Organization!
   "What the Organization used this month (São Paulo calendar)."
@@ -135,6 +159,9 @@ type Query {
 }
 
 type Mutation {
+  "A code to link the Viewer's WhatsApp; replaces any unused one."
+  startWhatsappLink: WhatsappLinkCode!
+  unlinkWhatsapp: Boolean!
   "A Stripe Checkout page for the Pro Plan; owners and admins only."
   startCheckout: String!
   "Stripe's portal to manage the Subscription; owners and admins only."
@@ -152,6 +179,10 @@ type Mutation {
   "Corrects a pending Proposal; read and checked like the Bot's own call."
   editProposal(id: ID!, values: [RecordValueInput!]!): Proposal!
   cancelProposal(id: ID!): Proposal!
+  "Marks the Bot's Alerts with these ids as read for the Viewer; ids of Alerts gone are ignored."
+  markAlertsRead(bot: BotKey!, ids: [ID!]!): Bot!
+  "Takes the Alert out of the Viewer's bell. It comes back only if it says something new."
+  dismissAlert(bot: BotKey!, id: ID!): Bot!
   "Hands work to a Bot. It runs in the background; poll `job` for the Deliverable."
   createJob(input: CreateJobInput!): Job!
   "Hands a failed Job over again as a new Job, with the same instructions and files."
@@ -174,6 +205,8 @@ type Mutation {
   addIncomeSource(input: AddIncomeSourceInput!): IncomeSource!
   addTax(input: AddTaxInput!): Tax!
   addRecurringExpense(input: RecurringExpenseInput!): RecurringExpense!
+  "Saves how the Holder splits the income and where each spending category goes (docs/adr/0018)."
+  saveBudget(input: BudgetInput!): Holder!
   "The rate a foreign payment really got on `date`; null goes back to the PTAX."
   setIncomeRate(incomeSourceId: ID!, date: Date!, rate: Float): Boolean!
   deleteTax(id: ID!): Boolean!
@@ -252,8 +285,69 @@ type Holder {
   consents: [Consent!]!
   "Installments and Statements due in the next 30 days, soonest first."
   upcomingDues: [UpcomingDue!]!
+  "The month (`YYYY-MM`) against the Orçamento; without a saved one, against a method picked from the data."
+  budget(month: String!): Budget!
   "Plano de Quitação: `monthlyExtraCents` a month, from tomorrow, to the dearest Credit Operation first."
   payoffPlan(monthlyExtraCents: Cents!): PayoffPlan!
+}
+
+enum BudgetMethod {
+  FIFTY_THIRTY_TWENTY
+  SEVENTY_TWENTY_TEN
+  AUVP
+  CUSTOM
+}
+
+"A month against the Orçamento: the income split into slices and what went out in each."
+type Budget {
+  month: String!
+  method: BudgetMethod!
+  "False while the method is the one picked from the data."
+  saved: Boolean!
+  incomeCents: Cents!
+  slices: [BudgetSlice!]!
+  "What went out under categories no slice holds yet."
+  unassigned: [BudgetCategory!]!
+  "Every category to place: this month's and those placed before."
+  categories: [BudgetCategory!]!
+}
+
+type BudgetSlice {
+  key: String!
+  label: String!
+  percent: Int!
+  "The slice's share of the month's income."
+  plannedCents: Cents!
+  spentCents: Cents!
+  "Lines that went out in it."
+  count: Int!
+  categories: [String!]!
+}
+
+"A spending category: Gastos and Gastos recorrentes by theirs, Parcelas, Faturas and Impostos by kind."
+type BudgetCategory {
+  name: String!
+  sliceKey: String
+  amountCents: Cents!
+  count: Int!
+}
+
+input BudgetSliceInput {
+  key: String!
+  label: String!
+  percent: Int!
+}
+
+input BudgetCategoryInput {
+  name: String!
+  sliceKey: String!
+}
+
+input BudgetInput {
+  holderId: ID!
+  method: BudgetMethod!
+  slices: [BudgetSliceInput!]!
+  categories: [BudgetCategoryInput!]!
 }
 
 type PayoffPlan {
@@ -288,7 +382,7 @@ type Bot {
   model: String!
   "The Bot's latest Jobs, newest first; at most 20."
   recentJobs(limit: Int = 3): [Job!]!
-  "What the Bot points out on its own, most urgent first; computed, no Model involved."
+  "What the Bot points out on its own, most urgent first; computed, no Model involved. Leaves out those the Viewer removed."
   alerts: [Alert!]!
 }
 
@@ -302,7 +396,11 @@ enum AlertKind {
 }
 
 type Alert {
+  "Names the Alert for its read and removed marks; one that says something new has a new id."
+  id: ID!
   kind: AlertKind!
+  "Whether the Viewer opened it or marked it read."
+  read: Boolean!
   "In pt-BR, amounts already formatted."
   message: String!
   "Where to look, inside the app."
@@ -325,6 +423,7 @@ type AiStatus {
 type Conversation {
   id: ID!
   title: String!
+  channel: ConversationChannel!
   bot: Bot!
   messages: [Message!]!
   "The latest Message, for the list of Conversations."
@@ -336,9 +435,22 @@ type Message {
   id: ID!
   role: MessageRole!
   content: String!
+  "Files the User attached, by name; their contents are not kept (docs/adr/0017)."
+  attachments: [MessageAttachment!]!
   createdAt: DateTime!
   "Records this Message of the Bot offered to create (docs/adr/0013)."
   proposals: [Proposal!]!
+}
+
+enum AttachmentKind {
+  IMAGE
+  PDF
+  TEXT
+}
+
+type MessageAttachment {
+  kind: AttachmentKind!
+  name: String!
 }
 
 enum RecordKind {
