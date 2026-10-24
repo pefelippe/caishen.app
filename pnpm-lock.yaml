@@ -127,9 +127,6 @@ importers:
       '@apollo/client':
         specifier: 4.0.9
         version: 4.0.9(graphql-ws@6.3.0(graphql@16.12.0)(ws@8.21.3))(graphql@16.12.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rxjs@7.8.2)
-      '@fontsource-variable/inter':
-        specifier: 5.3.0
-        version: 5.3.0
       '@sentry/react':
         specifier: 11.8.0
         version: 11.8.0(react-router@6.30.1(react@19.3.0))(react@19.3.0)
@@ -151,18 +148,12 @@ importers:
       '@zapbots/graphql':
         specifier: workspace:*
         version: link:../graphql
+      '@zapbots/ui':
+        specifier: workspace:*
+        version: link:../ui
       better-auth:
         specifier: 1.7.6
         version: 1.7.6(@opentelemetry/api@1.10.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.2(@opentelemetry/api@1.10.0)(@types/pg@8.20.0)(kysely@0.29.6)(pg@8.16.0))(pg@8.16.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@4.1.10(@opentelemetry/api@1.10.0)(@types/node@24.13.0)(vite@8.2.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1)))
-      class-variance-authority:
-        specifier: 0.7.1
-        version: 0.7.1
-      clsx:
-        specifier: 2.1.1
-        version: 2.1.1
-      cmdk:
-        specifier: 1.1.1
-        version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       graphql:
         specifier: 16.12.0
         version: 16.12.0
@@ -172,9 +163,6 @@ importers:
       motion:
         specifier: 14.3.0
         version: 14.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      radix-ui:
-        specifier: 1.6.7
-        version: 1.6.7(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -190,12 +178,6 @@ importers:
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
-      tailwind-merge:
-        specifier: 3.7.0
-        version: 3.7.0
-      tw-animate-css:
-        specifier: 1.4.0
-        version: 1.4.0
       unpdf:
         specifier: 1.9.0
         version: 1.9.0
@@ -286,6 +268,55 @@ importers:
       '@zapbots/typescript-config':
         specifier: workspace:*
         version: link:../../configs/typescript-config
+
+  packages/ui:
+    dependencies:
+      '@fontsource-variable/inter':
+        specifier: 5.3.0
+        version: 5.3.0
+      class-variance-authority:
+        specifier: 0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: 2.1.1
+        version: 2.1.1
+      cmdk:
+        specifier: 1.1.1
+        version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      lucide-react:
+        specifier: 1.48.0
+        version: 1.48.0(react@19.3.0)
+      motion:
+        specifier: 14.3.0
+        version: 14.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      radix-ui:
+        specifier: 1.6.7
+        version: 1.6.7(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      tailwind-merge:
+        specifier: 3.7.0
+        version: 3.7.0
+      tw-animate-css:
+        specifier: 1.4.0
+        version: 1.4.0
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.3
+        version: 19.2.3
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.3)
+      '@zapbots/typescript-config':
+        specifier: workspace:*
+        version: link:../../configs/typescript-config
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-dom:
+        specifier: 19.3.0
+        version: 19.3.0(react@19.3.0)
+      tailwindcss:
+        specifier: 4.3.3
+        version: 4.3.3
 
 packages:
 

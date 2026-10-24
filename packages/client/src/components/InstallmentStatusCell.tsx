@@ -8,8 +8,8 @@ import {
 } from '@zapbots/graphql/client';
 import { type FormEvent, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@zapbots/ui/components/button';
+import { Input } from '@zapbots/ui/components/input';
 
 import { friendlyError } from '../lib/errors';
 import { formatDate } from '../lib/format';

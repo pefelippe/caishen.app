@@ -10,16 +10,16 @@ import { CheckIcon, CreditCardIcon, ExternalLinkIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { PageHeading } from '@zapbots/ui/blocks/field';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
+import { Progress } from '@zapbots/ui/components/progress';
+import { cn } from '@zapbots/ui/lib/utils';
 
-import { PageHeading } from '../components/Field';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { formatCents, formatDate } from '../lib/format';
 import { useI18n, type Language } from '../lib/i18n';
 

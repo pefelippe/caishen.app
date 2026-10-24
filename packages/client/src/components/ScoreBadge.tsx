@@ -1,7 +1,7 @@
 import type { RiskBand } from '@zapbots/graphql/client';
 
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Badge } from '@zapbots/ui/components/badge';
+import { cn } from '@zapbots/ui/lib/utils';
 
 export const BAND_LABEL: Record<RiskBand, string> = {
   HIGH: 'Alto risco',

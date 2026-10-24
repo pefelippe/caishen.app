@@ -11,8 +11,9 @@ import { CarIcon, HouseIcon, SlidersHorizontalIcon, type LucideIcon } from 'luci
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { CalcField as Field } from '@zapbots/ui/blocks/calc-field';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
 import {
   Table,
   TableBody,
@@ -20,11 +21,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/table';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { BotPage } from '../components/BotPage';
-import { CalcField as Field } from '../components/CalcField';
 import { localToday } from '../lib/bots';
 import { formatCents, formatDate, formatPercent } from '../lib/format';
 import { RentVsBuyCalculator } from './RentVsBuyCalculator';

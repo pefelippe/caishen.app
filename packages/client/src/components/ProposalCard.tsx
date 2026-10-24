@@ -9,8 +9,8 @@ import { ArrowRightIcon, CheckIcon, PencilIcon, XIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@zapbots/ui/components/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@zapbots/ui/components/card';
 import { useI18n } from '@/lib/i18n';
 
 import { FormError } from './FormError';

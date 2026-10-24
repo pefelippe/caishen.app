@@ -1,15 +1,15 @@
 import { Suspense, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { SidebarProvider } from '@zapbots/ui/components/sidebar';
+import { TooltipProvider } from '@zapbots/ui/components/tooltip';
 
 import { isRailPath } from '../lib/nav';
 import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
 import { ChatPanel, ChatPanelProvider } from './ChatPanel';
 import { MobileNav } from './MobileNav';
-import { PageSkeleton } from './PageSkeleton';
 import type { ProfileUser } from './ProfileMenu';
 
 interface Props {

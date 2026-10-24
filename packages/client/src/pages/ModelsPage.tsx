@@ -7,20 +7,20 @@ import {
   type ModelsQuery,
 } from '@zapbots/graphql/client';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { SectionRow } from '@zapbots/ui/blocks/section';
+import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
+import { Badge } from '@zapbots/ui/components/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@zapbots/ui/components/select';
 
 import { BotGlyph } from '../components/BotGlyph';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
-import { SheetRow } from '../components/Sheet';
 import { useI18n } from '../lib/i18n';
 import { matches } from '../lib/search';
 
@@ -71,7 +71,7 @@ function ModelRow({ bot, models }: { bot: Bot; models: Model[] }) {
   const current = models.find(candidate => candidate.id === bot.model);
 
   return (
-    <SheetRow
+    <SectionRow
       action={
         <Select
           disabled={loading}
@@ -99,6 +99,6 @@ function ModelRow({ bot, models }: { bot: Bot; models: Model[] }) {
       }
     >
       {error && <FormError error={error} />}
-    </SheetRow>
+    </SectionRow>
   );
 }

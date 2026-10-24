@@ -8,17 +8,17 @@ import {
 import { HistoryIcon, PlusIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
+import { Button } from '@zapbots/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/dropdown-menu';
+import { Skeleton } from '@zapbots/ui/components/skeleton';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import type { ChatAttachment } from '../lib/attachments';
 import { BotGlyph } from './BotGlyph';

@@ -9,7 +9,8 @@ import {
 import { today } from '@zapbots/finance';
 import type { FormEvent } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Metric, Metrics } from '@zapbots/ui/blocks/metric';
+import { Button } from '@zapbots/ui/components/button';
 import {
   Card,
   CardAction,
@@ -17,20 +18,19 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+} from '@zapbots/ui/components/card';
+import { Input } from '@zapbots/ui/components/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+} from '@zapbots/ui/components/select';
+import { Table, TableBody, TableCell, TableRow } from '@zapbots/ui/components/table';
 
 import { formatCents, formatDate, formatPercent } from '../lib/format';
 import { FormError } from './FormError';
-import { Metric, Metrics } from './Metric';
 import { BAND_LABEL, ScoreBadge } from './ScoreBadge';
 
 type Holder = NonNullable<HolderQuery['holder']>;

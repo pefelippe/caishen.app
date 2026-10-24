@@ -1,7 +1,7 @@
 import type { BotKey } from '@zapbots/graphql/client';
 import type { LucideIcon } from 'lucide-react';
 
-import { CaishenMark } from '../components/Logo';
+import { CaishenMark } from '@zapbots/ui/blocks/logo';
 
 /** A Bot on the team as the app shows it. */
 export interface TeamBot {

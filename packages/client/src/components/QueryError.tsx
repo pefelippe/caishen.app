@@ -1,9 +1,9 @@
 import { RefreshCwIcon, TriangleAlertIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
+import { Button } from '@zapbots/ui/components/button';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { friendlyError } from '../lib/errors';
 

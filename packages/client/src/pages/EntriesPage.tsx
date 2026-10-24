@@ -27,9 +27,9 @@ import { motion } from 'motion/react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
+import { Checkbox } from '@zapbots/ui/components/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -37,23 +37,23 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@zapbots/ui/components/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@zapbots/ui/components/dropdown-menu';
+import { Input } from '@zapbots/ui/components/input';
+import { Label } from '@zapbots/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@zapbots/ui/components/select';
+import { Skeleton } from '@zapbots/ui/components/skeleton';
 import {
   Table,
   TableBody,
@@ -61,8 +61,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/table';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { ConfirmDelete } from '../components/ConfirmDelete';
 import { ACCOUNT_KINDS, ImportsCard } from '../components/ImportsCard';

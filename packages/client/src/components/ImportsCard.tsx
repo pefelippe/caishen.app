@@ -11,7 +11,7 @@ import {
 import { FileSpreadsheetIcon, Trash2Icon } from 'lucide-react';
 import { useState, type KeyboardEvent } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -19,15 +19,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+} from '@zapbots/ui/components/dialog';
+import { Input } from '@zapbots/ui/components/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@zapbots/ui/components/select';
 import {
   Table,
   TableBody,
@@ -35,7 +35,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@zapbots/ui/components/table';
 
 import { formatCents, formatDate } from '../lib/format';
 import { FormError } from './FormError';

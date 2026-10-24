@@ -1,4 +1,5 @@
-import { PageHeading } from '../components/Field';
+import { PageHeading } from '@zapbots/ui/blocks/field';
+
 import { useI18n } from '../lib/i18n';
 import { OrganizationSettings } from './OrganizationPage';
 

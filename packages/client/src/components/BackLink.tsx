@@ -2,7 +2,7 @@ import { ChevronLeftIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 
 /** "← Parent" link above a page title. */
 export function BackLink({ children, to }: { children: ReactNode; to: string }) {

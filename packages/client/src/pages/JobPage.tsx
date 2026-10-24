@@ -10,14 +10,14 @@ import { PaperclipIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@zapbots/ui/components/card';
 
 import { BackLink } from '../components/BackLink';
 import { BotPage } from '../components/BotPage';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { formatDate } from '../lib/format';
 import { JOB_STATUS, ROUTINE_CADENCE } from '../lib/jobs';
 

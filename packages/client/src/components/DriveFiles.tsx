@@ -3,7 +3,7 @@ import { ConnectionsDocument } from '@zapbots/graphql/client';
 import { PaperclipIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 
 import { pickDriveFile, type PickedFile } from '../lib/drive';
 import { friendlyError } from '../lib/errors';

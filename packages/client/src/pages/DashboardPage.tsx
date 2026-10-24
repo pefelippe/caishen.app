@@ -5,15 +5,15 @@ import { motion, type Variants } from 'motion/react';
 import { useRef, useState, type ClipboardEvent, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { Logo } from '@zapbots/ui/blocks/logo';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
+import { Input } from '@zapbots/ui/components/input';
+import { Skeleton } from '@zapbots/ui/components/skeleton';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { CHAT_SUGGESTIONS, useChatPanel } from '../components/ChatPanel';
 import { AttachMenu, Waiting } from '../components/ChatThread';
-import { Logo } from '../components/Logo';
 import {
   addAttachments,
   ATTACHMENT_ACCEPT,

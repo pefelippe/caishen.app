@@ -4,17 +4,18 @@ import { DownloadIcon, FileTextIcon, PaperclipIcon, SearchIcon } from 'lucide-re
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
+import { Checkbox } from '@zapbots/ui/components/checkbox';
+import { Input } from '@zapbots/ui/components/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@zapbots/ui/components/select';
 import {
   Table,
   TableBody,
@@ -22,9 +23,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@zapbots/ui/components/table';
 
-import { PageSkeleton } from '../components/PageSkeleton';
 import { deliverableName, downloadMarkdown } from '../lib/documents';
 import { formatDate } from '../lib/format';
 import { useI18n } from '../lib/i18n';

@@ -7,11 +7,11 @@ import { ArrowLeftIcon, DownloadIcon, RotateCcwIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Badge } from '@zapbots/ui/components/badge';
+import { Button } from '@zapbots/ui/components/button';
 
 import { DocumentToolbar } from '../components/DocumentToolbar';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { deliverableName, downloadMarkdown } from '../lib/documents';
 import { formatDate } from '../lib/format';
 import { useI18n } from '../lib/i18n';

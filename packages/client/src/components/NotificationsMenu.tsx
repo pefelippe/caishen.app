@@ -22,15 +22,15 @@ import {
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@zapbots/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@zapbots/ui/components/popover';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { HEADER_ICON } from '../lib/header';
 

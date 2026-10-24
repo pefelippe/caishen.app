@@ -9,18 +9,25 @@ import {
 import { TriangleAlertIcon } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Metric, Metrics } from '@zapbots/ui/blocks/metric';
+import { Alert, AlertDescription } from '@zapbots/ui/components/alert';
+import { Button } from '@zapbots/ui/components/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@zapbots/ui/components/card';
+import { Input } from '@zapbots/ui/components/input';
+import { Label } from '@zapbots/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@zapbots/ui/components/select';
 import {
   Table,
   TableBody,
@@ -28,12 +35,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/table';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { formatCents, parseCents } from '../lib/format';
 import { FormError } from './FormError';
-import { Metric, Metrics } from './Metric';
 
 type Holder = NonNullable<HolderQuery['holder']>;
 

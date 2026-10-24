@@ -3,14 +3,14 @@ import { OrganizationDocument } from '@zapbots/graphql/client';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Field, PageHeading } from '@zapbots/ui/blocks/field';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Avatar, AvatarFallback } from '@zapbots/ui/components/avatar';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
+import { Input } from '@zapbots/ui/components/input';
 
-import { Field, PageHeading } from '../components/Field';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { initials, UserAvatar } from '../components/ProfileMenu';
 import { authClient } from '../lib/auth';
 import { useI18n } from '../lib/i18n';

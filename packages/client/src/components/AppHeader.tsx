@@ -1,14 +1,14 @@
-import { MessageCircleIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { useSidebar } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
+import { AgentIcon } from '@zapbots/ui/blocks/agent-icon';
+import { Logo } from '@zapbots/ui/blocks/logo';
+import { Button } from '@zapbots/ui/components/button';
+import { useSidebar } from '@zapbots/ui/components/sidebar';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { HEADER_ICON } from '../lib/header';
 import { useI18n } from '../lib/i18n';
 import { useChatPanel } from './ChatPanel';
-import { Logo } from './Logo';
 import { NotificationsMenu } from './NotificationsMenu';
 import { ProfileMenu, type ProfileUser } from './ProfileMenu';
 
@@ -34,7 +34,7 @@ function AgentButton() {
       title={`${t('header.chat')} (${isMac ? '⌘K' : 'Ctrl K'})`}
       variant="ghost"
     >
-      <MessageCircleIcon className="size-[18px]" />
+      <AgentIcon className="size-[18px]" />
       <span>{t('header.chat')}</span>
     </Button>
   );

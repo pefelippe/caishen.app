@@ -12,9 +12,17 @@ import { PencilIcon, XIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Metric, Metrics } from '@zapbots/ui/blocks/metric';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Button } from '@zapbots/ui/components/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@zapbots/ui/components/card';
+import { Input } from '@zapbots/ui/components/input';
 import {
   Table,
   TableBody,
@@ -22,15 +30,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/table';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { BackLink } from '../components/BackLink';
 import { EditRecordDialog } from '../components/EditRecordDialog';
 import { FormError } from '../components/FormError';
 import { InstallmentStatusCell } from '../components/InstallmentStatusCell';
-import { Metric, Metrics } from '../components/Metric';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { localToday } from '../lib/bots';
 import { formatCents, formatDate, formatPercent, parseCents } from '../lib/format';
 

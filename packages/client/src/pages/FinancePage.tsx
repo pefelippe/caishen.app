@@ -45,7 +45,9 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
+import { Section, SectionRow } from '@zapbots/ui/blocks/section';
+import { Button } from '@zapbots/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -53,17 +55,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@zapbots/ui/components/dialog';
+import { Input } from '@zapbots/ui/components/input';
+import { Label } from '@zapbots/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/select';
+import { cn } from '@zapbots/ui/lib/utils';
 import {
   Table,
   TableBody,
@@ -71,17 +73,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@zapbots/ui/components/table';
 
 import { BotPage } from '../components/BotPage';
 import { AssessmentPanel } from '../components/AssessmentPanel';
 import { ConsentBanner } from '../components/ConsentBanner';
 import { FormError } from '../components/FormError';
-import { PageSkeleton } from '../components/PageSkeleton';
 import { ConfirmDelete } from '../components/ConfirmDelete';
 import { QueryError } from '../components/QueryError';
 import { EditRecordDialog } from '../components/EditRecordDialog';
-import { Sheet, SheetRow } from '../components/Sheet';
 import { ScrPanel } from '../components/ScrPanel';
 import { localToday } from '../lib/bots';
 import { ofxStatementTotal, parseOfx, readOfxText } from '../lib/ofx';
@@ -257,7 +257,7 @@ function MonthIncomes({
   const incomes = data?.holder?.month.incomes ?? [];
 
   return (
-    <Sheet
+    <Section
       id="month-incomes"
       intro="Cada recebimento do mês, em reais. Em dólar: o valor, a cotação e o que sobrou depois de IOF e spread."
       title={
@@ -276,7 +276,7 @@ function MonthIncomes({
       {incomes.length ? (
         <ul className="flex flex-col gap-2">
           {incomes.map((line, index) => (
-            <SheetRow
+            <SectionRow
               action={
                 line.foreign ? (
                   <Button
@@ -329,7 +329,7 @@ function MonthIncomes({
         />
       )}
       {rating && <RateDialog line={rating} onClose={() => setRating(null)} />}
-    </Sheet>
+    </Section>
   );
 }
 
@@ -573,7 +573,7 @@ function Part({
   useEffect(() => setAdding(false), [count]);
 
   return (
-    <Sheet id={id} intro={intro} title={title} total={total}>
+    <Section id={id} intro={intro} title={title} total={total}>
       {count > 0 ? children : <p className="text-muted-foreground">{empty}</p>}
 
       {form && (
@@ -618,7 +618,7 @@ function Part({
           )}
         </AnimatePresence>
       )}
-    </Sheet>
+    </Section>
   );
 }
 
@@ -802,7 +802,7 @@ function IncomeSection({ holder }: { holder: Holder }) {
     >
       <ul className="flex flex-col gap-2">
         {holder.incomeSources.map(source => (
-          <SheetRow
+          <SectionRow
             action={
               <span className="flex">
                 <Button
@@ -1137,7 +1137,7 @@ function RecurringSection({
     >
       <ul className="flex flex-col gap-2">
         {items.map(item => (
-          <SheetRow
+          <SectionRow
             action={
               <span className="flex">
                 <Button
@@ -1572,7 +1572,7 @@ function TaxesSection({ holder }: { holder: Holder }) {
     >
       <ul className="flex flex-col gap-2">
         {holder.taxes.map(tax => (
-          <SheetRow
+          <SectionRow
             action={
               <Button
                 aria-label={`Remover ${tax.name}`}
@@ -1995,7 +1995,7 @@ function CardsSection({ holder }: { holder: Holder }) {
   return (
     <div className="flex flex-col gap-6" id="cards">
       {holder.creditCards.length === 0 && (
-        <Sheet
+        <Section
           id="no-cards"
           intro="Cadastre um cartão para guardar as Faturas e ver o uso do limite."
           title="Nenhum cartão ainda"
@@ -2006,7 +2006,7 @@ function CardsSection({ holder }: { holder: Holder }) {
               Adicionar cartão
             </Button>
           </div>
-        </Sheet>
+        </Section>
       )}
       {holder.creditCards.map(card => (
         <CardSheet
@@ -2040,7 +2040,7 @@ function CardSheet({ card, recurring }: { card: Card; recurring: Recurring[] }) 
   const used = current && card.limitCents > 0 ? current.amountCents / card.limitCents : null;
 
   return (
-    <Sheet
+    <Section
       id={`card-${card.id}`}
       intro={
         <>
@@ -2115,7 +2115,7 @@ function CardSheet({ card, recurring }: { card: Card; recurring: Recurring[] }) 
         </Button>
       </div>
       {deleting && <DeleteCardDialog card={card} onClose={() => setDeleting(false)} />}
-    </Sheet>
+    </Section>
   );
 }
 

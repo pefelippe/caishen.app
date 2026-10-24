@@ -5,7 +5,7 @@
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "src/styles.css",
+    "css": "../ui/src/styles/globals.css",
     "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""
@@ -13,9 +13,9 @@
   "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
+    "utils": "@zapbots/ui/lib/utils",
+    "ui": "@zapbots/ui/components",
     "lib": "@/lib",
-    "hooks": "@/hooks"
+    "hooks": "@zapbots/ui/hooks"
   }
 }

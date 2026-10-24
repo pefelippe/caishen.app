@@ -1,6 +1,6 @@
 import { CircleAlertIcon } from 'lucide-react';
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@zapbots/ui/components/alert';
 
 import { friendlyError } from '../lib/errors';
 

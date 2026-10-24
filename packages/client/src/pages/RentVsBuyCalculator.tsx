@@ -8,8 +8,9 @@ import {
 import { HouseIcon, KeyRoundIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { CalcField } from '@zapbots/ui/blocks/calc-field';
+import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
 import {
   Table,
   TableBody,
@@ -17,10 +18,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from '@zapbots/ui/components/table';
+import { cn } from '@zapbots/ui/lib/utils';
 
-import { CalcField } from '../components/CalcField';
 import { formatCents } from '../lib/format';
 
 /** Typical figures for a R$ 500 mil home in 2026; every field can be changed. */

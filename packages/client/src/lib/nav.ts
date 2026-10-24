@@ -5,7 +5,6 @@ import {
   FileTextIcon,
   FlagIcon,
   HouseIcon,
-  MessageSquareIcon,
   PlugIcon,
   PercentIcon,
   RepeatIcon,
@@ -15,6 +14,8 @@ import {
   WalletIcon,
   type LucideIcon,
 } from 'lucide-react';
+
+import { AgentIcon } from '@zapbots/ui/blocks/agent-icon';
 
 import { useI18n } from './i18n';
 
@@ -93,7 +94,7 @@ export function useNav(): Nav {
     ],
     main: [
       { icon: HouseIcon, label: t('nav.home'), to: '/' },
-      { icon: MessageSquareIcon, label: t('nav.agent'), to: '/chat' },
+      { icon: AgentIcon, label: t('nav.agent'), to: '/chat' },
       { icon: FileTextIcon, label: t('nav.documents'), to: '/documents' },
     ],
   };
