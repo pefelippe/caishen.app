@@ -47,7 +47,7 @@ export function PayoffPage() {
         <Card className="items-start">
           <p>Você não tem empréstimos nem financiamentos cadastrados.</p>
           <Button asChild variant="outline">
-            <Link to="/caishen/debts">Cadastrar uma dívida</Link>
+            <Link to="/caishen/fixed#loans">Cadastrar uma dívida</Link>
           </Button>
         </Card>
       ) : (

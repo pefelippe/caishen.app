@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 import { CHAT_SUGGESTIONS, useChatPanel } from '../components/ChatPanel';
 import { AttachMenu, Waiting } from '../components/ChatThread';
@@ -158,7 +159,7 @@ function Panel({
   title: string;
 }) {
   return (
-    <motion.div className={className} variants={rise}>
+    <motion.div className={cn('min-w-0', className)} variants={rise}>
       <Card className="h-full gap-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-semibold">{title}</h2>

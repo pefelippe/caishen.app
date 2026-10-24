@@ -1,7 +1,7 @@
 import { LoaderCircle, MailCheck } from 'lucide-react';
 import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/react';
-import { type FormEvent, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,15 +12,37 @@ import { FormError } from '../components/FormError';
 import { Logo } from '../components/Logo';
 import { authClient } from '../lib/auth';
 
-/** Where the sign-in link goes: by email, back to this page (local server, no email set up) or
- * only to the server console. */
+/** How a password reset link reaches the User: by email, back to this page (local server, no
+ * email set up) or only to the server console. */
 type Methods = { google: boolean; link: 'console' | 'email' | 'page' };
 
-/** Errors Better Auth puts in `?error=` when an email link cannot be used. */
-const LINK_ERRORS: Record<string, string> = {
-  EXPIRED_TOKEN: 'O link expirou. Peça um novo.',
-  INVALID_TOKEN: 'O link é inválido ou já foi usado. Peça um novo.',
+/** Better Auth's error codes, said in Portuguese. */
+const AUTH_ERRORS: Record<string, string> = {
+  INVALID_EMAIL: 'Esse e-mail não parece válido.',
+  INVALID_EMAIL_OR_PASSWORD: 'E-mail ou senha incorretos.',
+  INVALID_PASSWORD: 'E-mail ou senha incorretos.',
+  INVALID_TOKEN: 'O link para trocar a senha é inválido ou expirou. Peça um novo.',
+  PASSWORD_TOO_LONG: 'A senha é longa demais.',
+  PASSWORD_TOO_SHORT: 'A senha precisa ter pelo menos 8 caracteres.',
+  USER_ALREADY_EXISTS: 'Já existe uma conta com esse e-mail. Entre, ou troque a senha.',
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
+    'Já existe uma conta com esse e-mail. Entre, ou troque a senha.',
+  // Ours, from packages/auth/src/email.ts.
+  EMAIL_REFUSED: 'Não conseguimos enviar o e-mail agora. Tente de novo em instantes.',
+  EMAIL_TESTING_ONLY:
+    'Este servidor ainda só envia e-mails para o endereço da conta do Resend. Confira o endereço ou verifique um domínio no Resend.',
 };
+
+/** A sign-in error in the User's words; Better Auth's own messages are English, for developers. */
+const authError = (error: { code?: string; status?: number }, fallback: string) =>
+  (error.code && AUTH_ERRORS[error.code]) ||
+  (error.status === 429
+    ? 'Muitas tentativas seguidas. Espere um pouco e tente de novo.'
+    : error.status && error.status >= 500
+      ? 'Algo deu errado do nosso lado. Tente de novo em instantes.'
+      : fallback);
+
+const MIN_PASSWORD = 8;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -30,7 +52,12 @@ const card: Variants = {
   shown: {
     opacity: 1,
     scale: 1,
-    transition: { damping: 22, delayChildren: 0.15, stiffness: 200, type: 'spring' },
+    transition: {
+      damping: 22,
+      delayChildren: 0.15,
+      stiffness: 200,
+      type: 'spring',
+    },
     y: 0,
   },
 };
@@ -57,24 +84,41 @@ const pop: Variants = {
   },
 };
 
+/** A step of the card swaps in for the last one. */
+const swap = {
+  animate: { filter: 'blur(0px)', opacity: 1, y: 0 },
+  exit: { filter: 'blur(4px)', opacity: 0, y: -12 },
+  initial: { filter: 'blur(4px)', opacity: 0, y: 12 },
+  transition: { duration: 0.35, ease: EASE },
+};
+
+type Step = 'forgot' | 'sent' | 'sign-in' | 'sign-up';
+
+const SUBTITLES: Record<Step, string> = {
+  forgot: 'Digite seu e-mail para receber um link e escolher uma nova senha',
+  sent: 'Confira sua caixa de entrada',
+  'sign-in': 'Entre com seu e-mail e senha',
+  'sign-up': 'Crie sua conta com e-mail e senha',
+};
+
 /**
- * Two ways in, no password: a sign-in link sent by email, and Google when the server has its
- * OAuth client. The first sign-in creates the User.
+ * Two ways in: email and password (signing in, creating the account, and a link by email to choose
+ * a new password), and Google when the server has its OAuth client.
  */
 export function LoginPage() {
-  const [searchParams] = useSearchParams();
-  const linkError = searchParams.get('error');
-  const [error, setError] = useState<string | null>(
-    linkError ? (LINK_ERRORS[linkError] ?? 'Não foi possível entrar com o link.') : null
-  );
+  const [step, setStep] = useState<Step>('sign-in');
+  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [methods, setMethods] = useState<Methods>({ google: false, link: 'email' });
-  // In development the address comes filled in, so signing in is one click (`VITE_DEV_SIGN_IN_EMAIL`).
+  const [methods, setMethods] = useState<Methods>({
+    google: false,
+    link: 'email',
+  });
+  // In development the address comes filled in (`VITE_DEV_SIGN_IN_EMAIL`).
   const [email, setEmail] = useState(
     import.meta.env.DEV ? (import.meta.env.VITE_DEV_SIGN_IN_EMAIL ?? '') : ''
   );
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [localLink, setLocalLink] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     void authClient
@@ -82,34 +126,57 @@ export function LoginPage() {
       .then(({ data }) => data && setMethods(data));
   }, []);
 
-  const sendLink = async (event: FormEvent) => {
+  const go = (next: Step) => {
+    setError(null);
+    setPassword('');
+    setStep(next);
+  };
+
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setPending(true);
-    const result = await authClient.signIn.magicLink({
-      callbackURL: window.location.origin,
-      email: email.trim(),
-      errorCallbackURL: `${window.location.origin}/sign-in`,
-    });
-    if (result.error) {
-      setError(result.error.message ?? 'Não foi possível enviar o link');
-      setPending(false);
-      return;
-    }
-    if (methods.link === 'page') {
-      const { data } = await authClient.$fetch<{ url: string | null }>('/sign-in/local-link', {
-        body: { email: email.trim() },
-        method: 'POST',
+    const address = email.trim();
+
+    if (step === 'forgot') {
+      const result = await authClient.requestPasswordReset({
+        email: address,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
-      // On localhost the link comes back to this page: follow it instead of making the User click.
-      if (data?.url) {
-        window.location.assign(data.url);
+      if (result.error) {
+        setError(authError(result.error, 'Não foi possível enviar o link'));
+        setPending(false);
         return;
       }
-      setLocalLink(null);
+      if (methods.link === 'page') {
+        const { data } = await authClient.$fetch<{ url: string | null }>(
+          '/reset-password/local-link',
+          { body: { email: address }, method: 'POST' }
+        );
+        // On localhost the link comes back to this page: follow it instead of reading the console.
+        if (data?.url) {
+          window.location.assign(data.url);
+          return;
+        }
+      }
+      setPending(false);
+      setStep('sent');
+      return;
     }
-    setPending(false);
-    setSentTo(email.trim());
+
+    const result =
+      step === 'sign-up'
+        ? await authClient.signUp.email({
+            email: address,
+            name: name.trim(),
+            password,
+          })
+        : await authClient.signIn.email({ email: address, password });
+    // On success the session changes and the app takes over.
+    if (result.error) {
+      setError(authError(result.error, 'Não foi possível entrar'));
+      setPending(false);
+    }
   };
 
   const signInWithGoogle = async () => {
@@ -121,16 +188,270 @@ export function LoginPage() {
     });
     // On success the browser is already redirecting to Google.
     if (result.error) {
-      setError(result.error.message ?? 'Não foi possível entrar');
+      setError(authError(result.error, 'Não foi possível entrar com o Google.'));
       setPending(false);
     }
   };
 
-  const reset = () => {
-    setSentTo(null);
-    setLocalLink(null);
+  return (
+    <AuthCard error={error} subtitle={SUBTITLES[step]} title="Bem-vindo ao Caishen">
+      <AnimatePresence initial={false} mode="wait">
+        {step === 'sent' ? (
+          <motion.div
+            {...swap}
+            className="mt-8 flex flex-col items-center gap-4 text-center"
+            key="sent"
+          >
+            <SentMark />
+            {methods.link === 'email' ? (
+              <p className="text-pretty">
+                Se existe uma conta com <span className="font-semibold">{email.trim()}</span>,
+                enviamos um link para escolher uma nova senha. Ele vale por 1 hora.
+              </p>
+            ) : (
+              <p className="text-pretty">
+                Este servidor não envia e-mails (falta <code>RESEND_API_KEY</code>). O link para{' '}
+                <span className="font-semibold">{email.trim()}</span> está no terminal do servidor.
+              </p>
+            )}
+            <Button className="px-0" onClick={() => go('sign-in')} variant="link">
+              Voltar para entrar
+            </Button>
+          </motion.div>
+        ) : (
+          <motion.div {...swap} className="mt-8 flex flex-col gap-6" key={step}>
+            {methods.google && step !== 'forgot' && (
+              <>
+                <Button
+                  className="h-11 w-full text-base font-medium"
+                  disabled={pending}
+                  onClick={() => void signInWithGoogle()}
+                  variant="outline"
+                >
+                  <GoogleIcon />
+                  Continuar com o Google
+                </Button>
+                <div className="flex items-center gap-3">
+                  <Separator className="flex-1" />
+                  <span className="text-sm text-muted-foreground">ou com e-mail</span>
+                  <Separator className="flex-1" />
+                </div>
+              </>
+            )}
+            <form className="flex flex-col gap-5" onSubmit={event => void submit(event)}>
+              {step === 'sign-up' && (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    autoComplete="name"
+                    className="h-11 px-4 text-base shadow-none md:text-base"
+                    id="name"
+                    onChange={event => setName(event.target.value)}
+                    placeholder="Como quer ser chamado"
+                    value={name}
+                  />
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  autoComplete="email"
+                  autoFocus
+                  className="h-11 px-4 text-base shadow-none md:text-base"
+                  id="email"
+                  onChange={event => setEmail(event.target.value)}
+                  placeholder="voce@exemplo.com"
+                  required
+                  type="email"
+                  value={email}
+                />
+              </div>
+              {step !== 'forgot' && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="password">Senha</Label>
+                    {step === 'sign-in' && (
+                      <Button
+                        className="h-auto p-0 text-sm"
+                        onClick={() => go('forgot')}
+                        type="button"
+                        variant="link"
+                      >
+                        Esqueci minha senha
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    autoComplete={step === 'sign-up' ? 'new-password' : 'current-password'}
+                    className="h-11 px-4 text-base shadow-none md:text-base"
+                    id="password"
+                    minLength={step === 'sign-up' ? MIN_PASSWORD : undefined}
+                    onChange={event => setPassword(event.target.value)}
+                    placeholder={step === 'sign-up' ? 'Pelo menos 8 caracteres' : undefined}
+                    required
+                    type="password"
+                    value={password}
+                  />
+                </div>
+              )}
+              <motion.div whileTap={{ scale: 0.98 }}>
+                <Button className="h-11 w-full text-base" disabled={pending} type="submit">
+                  {pending ? (
+                    <LoaderCircle className="size-4 animate-spin" />
+                  ) : step === 'sign-up' ? (
+                    'Criar conta'
+                  ) : step === 'forgot' ? (
+                    'Enviar link'
+                  ) : (
+                    'Entrar'
+                  )}
+                </Button>
+              </motion.div>
+            </form>
+            <p className="text-center text-sm text-muted-foreground">
+              {step === 'sign-in'
+                ? 'Ainda não tem conta? '
+                : step === 'sign-up'
+                  ? 'Já tem conta? '
+                  : ''}
+              <Button
+                className="h-auto p-0 text-sm"
+                onClick={() => go(step === 'sign-in' ? 'sign-up' : 'sign-in')}
+                type="button"
+                variant="link"
+              >
+                {step === 'sign-in'
+                  ? 'Criar conta'
+                  : step === 'sign-up'
+                    ? 'Entrar'
+                    : 'Voltar para entrar'}
+              </Button>
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </AuthCard>
+  );
+}
+
+/**
+ * Where the reset link lands (`/reset-password?token=`): the new password, twice. Choosing it signs
+ * out every browser, so the User then signs in with it.
+ */
+export function ResetPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(
+    !token || searchParams.get('error') ? AUTH_ERRORS.INVALID_TOKEN! : null
+  );
+  const [pending, setPending] = useState(false);
+  const [done, setDone] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!token) return;
+    if (password !== confirmation) {
+      setError('As duas senhas não são iguais.');
+      return;
+    }
+    setError(null);
+    setPending(true);
+    const result = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    });
+    setPending(false);
+    if (result.error) {
+      setError(authError(result.error, 'Não foi possível trocar a senha'));
+      return;
+    }
+    setDone(true);
   };
 
+  return (
+    <AuthCard
+      error={error}
+      subtitle={done ? 'Sua senha foi trocada' : 'Escolha uma nova senha'}
+      title="Nova senha"
+    >
+      <AnimatePresence initial={false} mode="wait">
+        {done ? (
+          <motion.div
+            {...swap}
+            className="mt-8 flex flex-col items-center gap-4 text-center"
+            key="done"
+          >
+            <SentMark />
+            <p className="text-pretty">Pronto. Entre com o seu e-mail e a nova senha.</p>
+            <Button className="h-11 w-full text-base" onClick={() => navigate('/sign-in')}>
+              Entrar
+            </Button>
+          </motion.div>
+        ) : (
+          <motion.form
+            {...swap}
+            className="mt-8 flex flex-col gap-5"
+            key="form"
+            onSubmit={event => void submit(event)}
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="new-password">Nova senha</Label>
+              <Input
+                autoComplete="new-password"
+                autoFocus
+                className="h-11 px-4 text-base shadow-none md:text-base"
+                disabled={!token}
+                id="new-password"
+                minLength={MIN_PASSWORD}
+                onChange={event => setPassword(event.target.value)}
+                placeholder="Pelo menos 8 caracteres"
+                required
+                type="password"
+                value={password}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="confirm-password">Repita a senha</Label>
+              <Input
+                autoComplete="new-password"
+                className="h-11 px-4 text-base shadow-none md:text-base"
+                disabled={!token}
+                id="confirm-password"
+                minLength={MIN_PASSWORD}
+                onChange={event => setConfirmation(event.target.value)}
+                required
+                type="password"
+                value={confirmation}
+              />
+            </div>
+            <Button className="h-11 w-full text-base" disabled={pending || !token} type="submit">
+              {pending ? <LoaderCircle className="size-4 animate-spin" /> : 'Trocar senha'}
+            </Button>
+            <Button asChild className="px-0" variant="link">
+              <Link to="/sign-in">Voltar para entrar</Link>
+            </Button>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </AuthCard>
+  );
+}
+
+/** The page around every step: the mark, a title, a line under it, the step and its error. */
+function AuthCard({
+  children,
+  error,
+  subtitle,
+  title,
+}: {
+  children: ReactNode;
+  error: string | null;
+  subtitle: string;
+  title: string;
+}) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative flex min-h-svh flex-col overflow-hidden bg-[var(--paper)]">
@@ -163,122 +484,14 @@ export function LoginPage() {
                 <Logo size={30} />
               </motion.div>
               <motion.h1 className="mt-6 text-3xl font-bold tracking-tight" variants={rise}>
-                Bem-vindo ao Caishen
+                {title}
               </motion.h1>
               <motion.p className="mt-2 text-muted-foreground" variants={rise}>
-                {sentTo
-                  ? 'Confira sua caixa de entrada'
-                  : methods.google
-                    ? 'Entre com o Google ou receba um link de acesso'
-                    : 'Digite seu e-mail para receber um link de acesso'}
+                {subtitle}
               </motion.p>
             </motion.div>
 
-            <AnimatePresence initial={false} mode="wait">
-              {sentTo ? (
-                <motion.div
-                  animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
-                  className="mt-8 flex flex-col items-center gap-4 text-center"
-                  exit={{ filter: 'blur(4px)', opacity: 0, y: -12 }}
-                  initial={{ filter: 'blur(4px)', opacity: 0, y: 12 }}
-                  key="sent"
-                  transition={{ duration: 0.35, ease: EASE }}
-                >
-                  <motion.span
-                    animate={{ rotate: 0, scale: 1 }}
-                    className="grid size-14 place-items-center rounded-full bg-emerald-50 text-emerald-600"
-                    initial={{ rotate: -20, scale: 0 }}
-                    transition={{ damping: 12, delay: 0.1, stiffness: 220, type: 'spring' }}
-                  >
-                    <MailCheck className="size-7" />
-                  </motion.span>
-                  {methods.link === 'email' ? (
-                    <p className="text-pretty">
-                      Enviamos um link para <span className="font-semibold">{sentTo}</span>. Abra o
-                      e-mail neste navegador para entrar; o link vale por 15 minutos.
-                    </p>
-                  ) : (
-                    <p className="text-pretty">
-                      Este servidor não envia e-mails (falta <code>RESEND_API_KEY</code>). O link
-                      para <span className="font-semibold">{sentTo}</span> está no terminal do
-                      servidor{localLink ? ', ou abra-o aqui.' : '.'}
-                    </p>
-                  )}
-                  {localLink && (
-                    <Button asChild className="h-11 w-full text-base">
-                      <a href={localLink}>Entrar como {sentTo}</a>
-                    </Button>
-                  )}
-                  <Button className="px-0" onClick={reset} variant="link">
-                    Usar outro e-mail
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  animate="shown"
-                  className="mt-8 flex flex-col gap-6"
-                  exit={{ filter: 'blur(4px)', opacity: 0, y: -12 }}
-                  initial="hidden"
-                  key="form"
-                  variants={stagger}
-                >
-                  {methods.google && (
-                    <>
-                      <motion.div variants={rise}>
-                        <Button
-                          className="h-11 w-full text-base font-medium"
-                          disabled={pending}
-                          onClick={() => void signInWithGoogle()}
-                          variant="outline"
-                        >
-                          <GoogleIcon />
-                          Continuar com o Google
-                        </Button>
-                      </motion.div>
-                      <motion.div className="flex items-center gap-3" variants={rise}>
-                        <Separator className="flex-1" />
-                        <span className="text-xs tracking-wide text-muted-foreground uppercase">
-                          ou continue com e-mail
-                        </span>
-                        <Separator className="flex-1" />
-                      </motion.div>
-                    </>
-                  )}
-                  <motion.form
-                    className="flex flex-col gap-6"
-                    onSubmit={event => void sendLink(event)}
-                    variants={rise}
-                  >
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input
-                        autoComplete="email"
-                        autoFocus
-                        className="h-11 px-4 text-base shadow-none md:text-base"
-                        id="email"
-                        onChange={event => setEmail(event.target.value)}
-                        placeholder="voce@exemplo.com"
-                        required
-                        type="email"
-                        value={email}
-                      />
-                    </div>
-                    <motion.div whileTap={{ scale: 0.98 }}>
-                      <Button className="h-11 w-full text-base" disabled={pending} type="submit">
-                        {pending ? (
-                          <>
-                            <LoaderCircle className="size-4 animate-spin" />
-                            Enviando…
-                          </>
-                        ) : (
-                          'Enviar link de acesso'
-                        )}
-                      </Button>
-                    </motion.div>
-                  </motion.form>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {children}
 
             <AnimatePresence>
               {error && (
@@ -307,6 +520,20 @@ export function LoginPage() {
         </main>
       </div>
     </MotionConfig>
+  );
+}
+
+/** A check in a green circle, popping in. */
+function SentMark() {
+  return (
+    <motion.span
+      animate={{ rotate: 0, scale: 1 }}
+      className="grid size-14 place-items-center rounded-full bg-emerald-50 text-emerald-600"
+      initial={{ rotate: -20, scale: 0 }}
+      transition={{ damping: 12, delay: 0.1, stiffness: 220, type: 'spring' }}
+    >
+      <MailCheck className="size-7" />
+    </motion.span>
   );
 }
 

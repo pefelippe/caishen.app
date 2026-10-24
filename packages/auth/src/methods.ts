@@ -10,8 +10,9 @@ export const googleEnabled = Boolean(
 );
 
 /**
- * Tells the sign-in page which ways in this server offers. The email link is always on; `link`
- * says where it goes: by email, or back to the page on a local server with no email set up.
+ * Tells the sign-in page which ways in this server offers. Email and password are always on;
+ * `link` says where a password reset link goes: by email, back to the page on a local server with
+ * no email set up, or only to the server console.
  */
 export const signInMethods = () =>
   ({
@@ -23,7 +24,7 @@ export const signInMethods = () =>
         })
       ),
       localSignInLink: createAuthEndpoint(
-        '/sign-in/local-link',
+        '/reset-password/local-link',
         { body: z.object({ email: z.string() }), method: 'POST' },
         async ctx => {
           if (!localLinksEnabled()) throw new APIError('NOT_FOUND');

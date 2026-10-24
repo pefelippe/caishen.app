@@ -1,7 +1,7 @@
 import { db, schema } from '@zapbots/database';
 import { addMonths, AssessmentError, riskBand, today } from '@zapbots/finance';
 import type { Resolvers } from '@zapbots/graphql/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, max, min, sum } from 'drizzle-orm';
 
 import { marketIndicators } from '../services/bacen';
 import {
@@ -19,7 +19,9 @@ import {
   addIncomeSource,
   addOneOffIncome,
   addRecurringExpense,
+  deleteExpenseImport,
   importExpenses,
+  updateExpenseImport,
   isDay,
   deleteRecord,
   findIncomeSource,
@@ -116,6 +118,27 @@ export const holderResolvers: Resolvers = {
         .from(schema.expense)
         .where(eq(schema.expense.holderId, holder.id))
         .orderBy(desc(schema.expense.date), desc(schema.expense.createdAt)),
+    // Each Importação with what is left of its Gastos: how many, how much, and their dates.
+    imports: async holder => {
+      const rows = await db
+        .select({
+          batch: schema.expenseImport,
+          expenseCount: count(schema.expense.id),
+          firstDate: min(schema.expense.date),
+          lastDate: max(schema.expense.date),
+          totalCents: sum(schema.expense.amountCents),
+        })
+        .from(schema.expenseImport)
+        .leftJoin(schema.expense, eq(schema.expense.importId, schema.expenseImport.id))
+        .where(eq(schema.expenseImport.holderId, holder.id))
+        .groupBy(schema.expenseImport.id)
+        .orderBy(desc(schema.expenseImport.createdAt));
+      return rows.map(({ batch, ...figures }) => ({
+        ...batch,
+        ...figures,
+        totalCents: Number(figures.totalCents ?? 0),
+      }));
+    },
     reportedScores: holder =>
       db
         .select()
@@ -198,10 +221,30 @@ export const holderResolvers: Resolvers = {
       return row!;
     },
     addExpense: (_, { input }, context) => addExpense(requireViewer(context), input),
-    importExpenses: async (_, { holderId, rows }, context) => {
+    importExpenses: async (_, { file, holderId, rows }, context) => {
       if (!rows.length) badInput('A planilha não tem linhas de gastos');
-      return importExpenses(requireViewer(context), holderId, rows);
+      return importExpenses(requireViewer(context), holderId, rows, { file: file ?? undefined });
     },
+    updateExpenseImport: async (_, { id, input }, context) => {
+      const row = await updateExpenseImport(requireViewer(context), id, input);
+      const [figures] = await db
+        .select({
+          expenseCount: count(schema.expense.id),
+          firstDate: min(schema.expense.date),
+          lastDate: max(schema.expense.date),
+          totalCents: sum(schema.expense.amountCents),
+        })
+        .from(schema.expense)
+        .where(eq(schema.expense.importId, id));
+      return {
+        ...row,
+        expenseCount: figures?.expenseCount ?? 0,
+        firstDate: figures?.firstDate ?? null,
+        lastDate: figures?.lastDate ?? null,
+        totalCents: Number(figures?.totalCents ?? 0),
+      };
+    },
+    deleteExpenseImport: (_, { id }, context) => deleteExpenseImport(requireViewer(context), id),
     deleteRecord: async (_, { id, kind }, context) => {
       await deleteRecord(requireViewer(context), kind, id);
       return true;

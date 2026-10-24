@@ -1,4 +1,5 @@
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react';
+import { isFinancing } from '@zapbots/finance';
 import {
   AddExtraAmortizationDocument,
   CreditOperationDocument,
@@ -49,8 +50,8 @@ export function CreditOperationPage() {
   const vsMarket = market ? operation.monthlyRate / market.monthlyRate - 1 : null;
 
   // Back to the section the Operation is listed in.
-  const section = '/caishen/debts';
-  const sectionLabel = 'Dívidas';
+  const section = `/caishen/fixed#${isFinancing(operation.modality) ? 'financing' : 'loans'}`;
+  const sectionLabel = 'Gastos';
 
   const onDelete = async () => {
     await remove({ variables: { id: operation.id } });
@@ -291,8 +292,8 @@ function ExtraAmortizations({ operation }: { operation: Operation }) {
             {effect.installmentsSaved === 1 ? 'Parcela' : 'Parcelas'}.
           </p>
         )}
-        {simulation.error && <FormError message={simulation.error.message} />}
-        {error && <FormError message={error.message} />}
+        {simulation.error && <FormError error={simulation.error} />}
+        {error && <FormError error={error} />}
       </CardContent>
     </Card>
   );

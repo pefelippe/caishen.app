@@ -256,7 +256,7 @@ function AppPreview() {
       </div>
       <div className="flex">
         <div className="hidden w-44 shrink-0 flex-col gap-1 px-3 pb-3 text-[13px] text-slate-300 md:flex">
-          {['Página inicial', 'Visão geral', 'Lançamentos', 'Score de crédito'].map(
+          {['Página inicial', 'Visão geral', 'Fluxo de caixa', 'Score de crédito'].map(
             (item, index) => (
               <span
                 className={cn(
@@ -498,10 +498,10 @@ function Import() {
         <div>
           <SectionHeading id="importacao-title">Sua planilha entra como está</SectionHeading>
           <motion.p className="mt-5 text-lg" variants={rise}>
-            Exporte o extrato do banco ou use a planilha que você já tem, em .csv, .xlsx ou .ofx. O
-            Caishen lê as colunas, e num extrato com entradas e saídas só as saídas viram Gastos do
-            mês. Importar o mesmo OFX de novo não duplica nada. Nada para instalar e nenhuma senha
-            do banco.
+            Exporte o extrato do banco ou use a planilha que você já tem, em .csv, .xlsx, .ofx ou
+            .pdf. O Caishen lê as colunas, e num extrato com entradas e saídas só as saídas viram
+            Gastos do mês. Importar o mesmo OFX de novo não duplica nada. Nada para instalar e
+            nenhuma senha do banco.
           </motion.p>
           <motion.ul className="mt-7 grid gap-3 text-base" variants={rise}>
             <li className="flex items-center gap-3">

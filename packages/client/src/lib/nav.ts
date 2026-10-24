@@ -4,16 +4,14 @@ import {
   CreditCardIcon,
   FileTextIcon,
   FlagIcon,
-  GaugeIcon,
   HouseIcon,
-  LandmarkIcon,
   MessageSquareIcon,
-  PieChartIcon,
   PlugIcon,
   PercentIcon,
   RepeatIcon,
+  SettingsIcon,
   SheetIcon,
-  TvIcon,
+  UserIcon,
   WalletIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -30,7 +28,7 @@ export interface NavItem {
   to: string;
 }
 
-/** A titled part of the menu that opens and closes, like the hPanel's. */
+/** A titled part of the menu that opens and closes. */
 export interface NavGroup {
   items: NavItem[];
   key: string;
@@ -38,14 +36,17 @@ export interface NavGroup {
 }
 
 export interface Nav {
+  /** The account's screens, at the foot of the menu. */
+  footer: NavItem[];
   /** The screens used most, always at the top of the menu. */
   main: NavItem[];
   groups: NavGroup[];
 }
 
 /**
- * Every screen of the app as the menu on the left lists them, after the hPanel: the main ones on
- * top, then Finanças, Planejamento and Automação. The account's screens are in the avatar's menu.
+ * Every screen of the app as the menu on the left lists them: the main ones on top (Página inicial,
+ * Agente, Documentos), then Finanças,
+ * Planejamento and Automação, and at its foot the account's (Perfil, Plano, Configurações) and Integrações.
  */
 export function useNav(): Nav {
   const { t } = useI18n();
@@ -55,17 +56,13 @@ export function useNav(): Nav {
         items: [
           { icon: SheetIcon, label: t('nav.entries'), to: '/caishen/entries' },
           { icon: WalletIcon, label: t('nav.income'), to: '/caishen/income' },
-          { icon: RepeatIcon, label: t('nav.fixed'), to: '/caishen/fixed' },
-          { icon: TvIcon, label: t('nav.subscriptions'), to: '/caishen/subscriptions' },
           {
-            icon: LandmarkIcon,
-            label: t('nav.debts'),
+            icon: RepeatIcon,
+            label: t('nav.fixed'),
             owns: ['/caishen/operations'],
-            to: '/caishen/debts',
+            to: '/caishen/fixed',
           },
-          { icon: CreditCardIcon, label: t('nav.cards'), to: '/caishen/cards' },
           { icon: PercentIcon, label: t('nav.taxes'), to: '/caishen/taxes' },
-          { icon: PieChartIcon, label: t('nav.budget'), to: '/caishen/budget' },
         ],
         key: 'finances',
         label: t('nav.finances'),
@@ -73,7 +70,6 @@ export function useNav(): Nav {
       {
         items: [
           { icon: FlagIcon, label: t('nav.payoff'), to: '/caishen/payoff' },
-          { icon: GaugeIcon, label: t('nav.credit'), to: '/caishen/credit' },
           {
             icon: CalculatorIcon,
             label: t('nav.calculators'),
@@ -84,18 +80,21 @@ export function useNav(): Nav {
         label: t('nav.planning'),
       },
       {
-        items: [
-          { icon: BotIcon, label: t('nav.workflows'), to: '/workflows' },
-          { icon: FileTextIcon, label: t('nav.documents'), to: '/documents' },
-        ],
+        items: [{ icon: BotIcon, label: t('nav.workflows'), to: '/workflows' }],
         key: 'automation',
         label: t('nav.automation'),
       },
     ],
+    footer: [
+      { icon: UserIcon, label: t('nav.profile'), to: '/profile' },
+      { icon: CreditCardIcon, label: t('rail.plan'), to: '/plan' },
+      { icon: SettingsIcon, label: t('nav.settings'), to: '/settings' },
+      { icon: PlugIcon, label: t('nav.integrations'), to: '/integrations' },
+    ],
     main: [
       { icon: HouseIcon, label: t('nav.home'), to: '/' },
       { icon: MessageSquareIcon, label: t('nav.agent'), to: '/chat' },
-      { icon: PlugIcon, label: t('nav.integrations'), to: '/integrations' },
+      { icon: FileTextIcon, label: t('nav.documents'), to: '/documents' },
     ],
   };
 }
@@ -118,8 +117,8 @@ export function activeItem(items: NavItem[], pathname: string): NavItem | undefi
   return best?.item;
 }
 
-/** Screens with a column of their own beside the menu (the Agente's Conversations): there the menu
- * shrinks to a rail of icons with their names under them, as the hPanel does. */
+/** Screens with a column of their own beside the menu (the Agente's Conversations): opening one
+ * shrinks the menu to its icons. */
 const RAIL_PATHS = ['/chat'];
 
 export function isRailPath(pathname: string): boolean {

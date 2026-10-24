@@ -11,6 +11,7 @@ import { type FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+import { friendlyError } from '../lib/errors';
 import { formatDate } from '../lib/format';
 
 type Row = NonNullable<CreditOperationQuery['creditOperation']>['schedule'][number];
@@ -56,7 +57,7 @@ export function InstallmentStatusCell({ operationId, row }: Props) {
         <Button onClick={() => setEditing(false)} size="sm" type="button" variant="link">
           cancelar
         </Button>
-        {error && <span className="text-xs text-destructive">{error.message}</span>}
+        {error && <span className="text-xs text-destructive">{friendlyError(error)}</span>}
       </form>
     );
   }

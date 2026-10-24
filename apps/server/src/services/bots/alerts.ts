@@ -110,7 +110,7 @@ async function financeAlerts(viewer: Viewer): Promise<BotAlert[]> {
     const usage = new Decimal(latest.amountCents).div(card.limitCents);
     if (usage.gte(HIGH_UTILIZATION)) {
       alerts.push({
-        href: `/caishen/cards#card-${card.id}`,
+        href: `/caishen/fixed#card-${card.id}`,
         key: `HIGH_UTILIZATION:${card.id}:${latest.referenceMonth}`,
         kind: 'HIGH_UTILIZATION',
         message: `A última Fatura do ${card.name} usa ${usage.times(100).toFixed(0)}% do limite: uma Utilização de Limite alta pesa no Score.`,

@@ -128,7 +128,7 @@ function ConfirmDeleteConversation({
             A conversa sai da lista com todas as mensagens. Não dá para desfazer.
           </DialogDescription>
         </DialogHeader>
-        {error && <FormError message={error.message} />}
+        {error && <FormError error={error} />}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
             Cancelar

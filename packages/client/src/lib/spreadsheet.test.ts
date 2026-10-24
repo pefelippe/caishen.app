@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { guessColumns, parseCsv, readCents, readDate, readExpenses } from './spreadsheet';
+import { guessColumns, parseCsv, readCents, readDate, readExpenses, toTable } from './spreadsheet';
 
 describe('parseCsv', () => {
   it('reads the separator Excel in pt-BR writes, and quoted cells', () => {
@@ -18,6 +18,32 @@ describe('parseCsv', () => {
   });
 });
 
+describe('toTable', () => {
+  it("skips the title, account and period a bank writes above the statement's header", () => {
+    const csv = [
+      ' Extrato Conta Corrente ',
+      'Conta ;12345678',
+      'Período ;24/10/2024 a 24/10/2026',
+      'Saldo ;2.100,99',
+      '',
+      'Data Lançamento;Histórico;Descrição;Valor;Saldo',
+      '22/10/2026;Pix enviado ;Mercado da Esquina;-45,90;2.055,09',
+    ].join('\n');
+    const table = toTable(parseCsv(csv));
+    expect(table.headers).toEqual(['Data Lançamento', 'Histórico', 'Descrição', 'Valor', 'Saldo']);
+    expect(table.rows).toEqual([
+      ['22/10/2026', 'Pix enviado ', 'Mercado da Esquina', '-45,90', '2.055,09'],
+    ]);
+    expect(guessColumns(table.headers)).toEqual({
+      amount: 3,
+      category: null,
+      date: 0,
+      description: 2,
+      kind: 1,
+    });
+  });
+});
+
 describe('guessColumns', () => {
   it('finds each part by the words banks use', () => {
     expect(guessColumns(['Data Lançamento', 'Histórico', 'Categoria', 'Valor (R$)'])).toEqual({
@@ -25,6 +51,7 @@ describe('guessColumns', () => {
       category: 2,
       date: 0,
       description: 1,
+      kind: null,
     });
   });
 
@@ -34,6 +61,7 @@ describe('guessColumns', () => {
       category: null,
       date: -1,
       description: -1,
+      kind: null,
     });
   });
 });
@@ -59,7 +87,7 @@ describe('readDate and readCents', () => {
 });
 
 describe('readExpenses', () => {
-  const columns = { amount: 2, category: null, date: 0, description: 1 };
+  const columns = { amount: 2, category: null, date: 0, description: 1, kind: null };
 
   it('keeps only money going out of a bank statement', () => {
     const reading = readExpenses(
@@ -89,5 +117,30 @@ describe('readExpenses', () => {
     );
     expect(reading.lines).toHaveLength(1);
     expect(reading.credits).toBe(0);
+  });
+});
+
+describe('readExpenses with what the bank calls each line', () => {
+  const columns = { amount: 3, category: null, date: 0, description: 2, kind: 1 };
+  const table = {
+    headers: [],
+    rows: [
+      ['22/10/2026', 'Pix enviado ', 'Mercado da Esquina', '-45,90'],
+      ['22/10/2026', 'Compra no débito', 'Padaria', '-12,00'],
+      ['21/10/2026', 'Aplicação', 'Cdb Porq Obj Banco Inter S A', '-500,00'],
+      ['20/10/2026', 'Aplicação Poupança', '', '-100,00'],
+      ['19/10/2026', 'Resgate', 'Cdb Porq Obj Banco Inter S A', '300,00'],
+    ],
+  };
+
+  it('leaves out money moved to investments and files each Pix under Pix', () => {
+    const reading = readExpenses(table, columns);
+    expect(reading.lines).toEqual([
+      { amountCents: 4590, category: 'Pix', date: '2026-10-22', description: 'Mercado da Esquina' },
+      { amountCents: 1200, category: null, date: '2026-10-22', description: 'Padaria' },
+    ]);
+    expect(reading.investments).toBe(2);
+    expect(reading.credits).toBe(1);
+    expect(reading.invalid).toBe(0);
   });
 });

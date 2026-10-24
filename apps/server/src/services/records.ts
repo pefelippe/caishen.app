@@ -1,7 +1,13 @@
 import type { Viewer } from '@zapbots/auth';
 import { db, schema } from '@zapbots/database';
-import { eq } from 'drizzle-orm';
-import { Decimal, ImpliedRateError, impliedMonthlyRate, type Modality } from '@zapbots/finance';
+import { and, eq } from 'drizzle-orm';
+import {
+  Decimal,
+  ImpliedRateError,
+  impliedMonthlyRate,
+  lineFingerprint,
+  type Modality,
+} from '@zapbots/finance';
 
 import { badInput, findHolder, notFound, owned } from '../resolvers/guards';
 
@@ -237,36 +243,136 @@ export interface ImportedExpense {
   externalId?: string | null;
 }
 
+export type ImportSource = (typeof schema.importSource.enumValues)[number];
+export type ImportAccountKind = (typeof schema.importAccountKind.enumValues)[number];
+
+/** The file an Importação came from, and what the User says it is. */
+export interface ImportFile {
+  accountKind?: ImportAccountKind | null;
+  bankName?: string | null;
+  fileName: string;
+  source: ImportSource;
+}
+
+const bankNameOf = (name: string | null | undefined) => name?.trim().slice(0, 80) || null;
+
 /**
  * Imported Gastos, marked as such. A line whose `externalId` is already there (the same file, or
  * the same bank line, again) is skipped; returns how many were added. Those from a Vínculo
- * bancário carry it, and go when it goes.
+ * bancário carry it, and go when it goes; those from a `file` make an Importação, which takes them
+ * along when deleted. An Importação that added nothing is not kept.
  */
 export async function importExpenses(
   viewer: Viewer,
   holderId: string,
   rows: ImportedExpense[],
-  bankLinkId: string | null = null
+  from: { bankLinkId?: string; file?: ImportFile } = {}
 ): Promise<number> {
   await findHolder(viewer, holderId);
   if (!rows.length) return 0;
   if (rows.length > MAX_IMPORTED_EXPENSES) {
     badInput(`Importe até ${MAX_IMPORTED_EXPENSES} linhas por vez`);
   }
-  const values = rows.map(row => ({
-    ...expenseValues(row),
-    bankLinkId,
-    externalId: row.externalId?.trim() || null,
-    holderId,
-    imported: true,
-    organizationId: viewer.organizationId,
-  }));
-  const added = await db
-    .insert(schema.expense)
-    .values(values)
-    .onConflictDoNothing({ target: [schema.expense.holderId, schema.expense.externalId] })
-    .returning({ id: schema.expense.id });
-  return added.length;
+  const fileName = from.file?.fileName.trim().slice(0, 200);
+  if (from.file && !fileName) badInput('Falta o nome do arquivo');
+  // A file's line with no id of its own gets its fingerprint, so importing the same file again,
+  // or an export that overlaps it, adds nothing twice.
+  const seen = new Map<string, number>();
+  const checked = rows.map(row => {
+    const values = expenseValues(row);
+    let externalId = row.externalId?.trim() || null;
+    if (!externalId && from.file) {
+      const key = lineFingerprint(values, 0);
+      const nth = seen.get(key) ?? 0;
+      seen.set(key, nth + 1);
+      externalId = lineFingerprint(values, nth);
+    }
+    return { ...values, externalId };
+  });
+
+  return db.transaction(async tx => {
+    const [batch] = from.file
+      ? await tx
+          .insert(schema.expenseImport)
+          .values({
+            accountKind: from.file.accountKind ?? 'CHECKING',
+            bankName: bankNameOf(from.file.bankName),
+            fileName: fileName!,
+            holderId,
+            organizationId: viewer.organizationId,
+            source: from.file.source,
+          })
+          .returning({ id: schema.expenseImport.id })
+      : [];
+    const added = await tx
+      .insert(schema.expense)
+      .values(
+        checked.map(row => ({
+          ...row,
+          bankLinkId: from.bankLinkId ?? null,
+          holderId,
+          importId: batch?.id ?? null,
+          imported: true,
+          organizationId: viewer.organizationId,
+        }))
+      )
+      .onConflictDoNothing({ target: [schema.expense.holderId, schema.expense.externalId] })
+      .returning({ id: schema.expense.id });
+    if (batch && !added.length) {
+      await tx.delete(schema.expenseImport).where(eq(schema.expenseImport.id, batch.id));
+    }
+    return added.length;
+  });
+}
+
+/** Loads an Importação only if it belongs to the Viewer's Organization. */
+async function findImport(viewer: Viewer, id: string) {
+  const [row] = await db
+    .select()
+    .from(schema.expenseImport)
+    .where(owned(schema.expenseImport, viewer, id));
+  return row ?? notFound('Importação');
+}
+
+/**
+ * Corrects what an Importação came from (the bank's name, the kind of account) and, given a
+ * `category`, files every one of its Gastos under it (an empty one clears it).
+ */
+export async function updateExpenseImport(
+  viewer: Viewer,
+  id: string,
+  input: {
+    accountKind?: ImportAccountKind | null;
+    bankName?: string | null;
+    category?: string | null;
+  }
+) {
+  await findImport(viewer, id);
+  return db.transaction(async tx => {
+    const [row] = await tx
+      .update(schema.expenseImport)
+      .set({
+        ...(input.accountKind ? { accountKind: input.accountKind } : {}),
+        ...(input.bankName !== undefined ? { bankName: bankNameOf(input.bankName) } : {}),
+        updatedAt: new Date(),
+      })
+      .where(owned(schema.expenseImport, viewer, id))
+      .returning();
+    if (input.category !== undefined) {
+      await tx
+        .update(schema.expense)
+        .set({ category: input.category?.trim().slice(0, 80) || null })
+        .where(and(owned(schema.expense, viewer), eq(schema.expense.importId, id)));
+    }
+    return row!;
+  });
+}
+
+/** Deletes an Importação and, with it, every Gasto it brought in. */
+export async function deleteExpenseImport(viewer: Viewer, id: string): Promise<boolean> {
+  await findImport(viewer, id);
+  await db.delete(schema.expenseImport).where(owned(schema.expenseImport, viewer, id));
+  return true;
 }
 
 export type RecordKind =

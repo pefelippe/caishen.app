@@ -49,7 +49,7 @@ export function Logo({ className, size = 28 }: { className?: string; size?: numb
 export function Splash() {
   return (
     <div className="grid min-h-svh place-items-center bg-background" role="status">
-      <div className="flex flex-col items-center gap-5 text-header">
+      <div className="flex flex-col items-center gap-5 text-header dark:text-foreground">
         <Logo size={56} />
         <span className="splash-track">
           <span className="splash-bar" />

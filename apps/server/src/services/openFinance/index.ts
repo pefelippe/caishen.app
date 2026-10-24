@@ -1,9 +1,16 @@
 import type { Viewer } from '@zapbots/auth';
 import { db, schema, type BankLinkRow } from '@zapbots/database';
-import { addDays, isBillPayment, today } from '@zapbots/finance';
+import {
+  addDays,
+  importedCategory,
+  isBillPayment,
+  isInvestmentMove,
+  isOwnTransfer,
+  today,
+} from '@zapbots/finance';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 
-import { badInput, notFound, owned } from '../../resolvers/guards';
+import { badInput, findHolder, notFound, owned } from '../../resolvers/guards';
 import { MAX_IMPORTED_EXPENSES, importExpenses } from '../records';
 import { viewerHolder } from '../viewerHolder';
 import { pluggy } from './pluggy';
@@ -113,8 +120,9 @@ export async function linkBank(viewer: Viewer, itemId: string) {
 
 /**
  * Reads a Vínculo bancário again: its state, its accounts and the accounts' new lines. Money out
- * of an account becomes Gastos, but not paying a Fatura, which the Fatura already counts; money
- * in is left out (salary is a Fonte de Renda). Cards are only listed for now.
+ * of an account becomes Gastos, but not paying a Fatura, which the Fatura already counts, nor
+ * money moved to the Titular's investments or own accounts; money in is left out (salary is a
+ * Fonte de Renda). Cards are only listed for now.
  */
 export async function syncBankLink(viewer: Viewer, id: string) {
   await requireOpenFinance(viewer);
@@ -136,6 +144,8 @@ export async function syncBankLink(viewer: Viewer, id: string) {
 
   let added = 0;
   if (item.status === 'ACTIVE') {
+    // Money sent to the Titular's own accounts is not spent.
+    const owner = (await findHolder(viewer, link.holderId)).name;
     const since = link.lastSyncedAt
       ? addDays(link.lastSyncedAt.toISOString().slice(0, 10), -OVERLAP_DAYS)
       : addDays(today(), -FIRST_READ_DAYS);
@@ -157,17 +167,22 @@ export async function syncBankLink(viewer: Viewer, id: string) {
       const rows = (await provider.transactions(account.externalId, since))
         .filter(
           line =>
-            line.direction === 'OUT' && line.amountCents > 0 && !isBillPayment(line.description)
+            line.direction === 'OUT' &&
+            line.amountCents > 0 &&
+            !isBillPayment(line.description) &&
+            !isInvestmentMove(line.description) &&
+            !isOwnTransfer(line.description, owner)
         )
         .map(line => ({
           amountCents: line.amountCents,
+          category: importedCategory(line.description),
           date: line.date,
           description: line.description,
           externalId: `${provider.key.toLowerCase()}:${line.externalId}`,
         }));
       for (let start = 0; start < rows.length; start += MAX_IMPORTED_EXPENSES) {
         const batch = rows.slice(start, start + MAX_IMPORTED_EXPENSES);
-        added += await importExpenses(viewer, link.holderId, batch, link.id);
+        added += await importExpenses(viewer, link.holderId, batch, { bankLinkId: link.id });
       }
     }
   }

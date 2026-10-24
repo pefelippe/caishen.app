@@ -11,7 +11,7 @@ import {
   type TaxRegime,
 } from '@zapbots/graphql/client';
 import { PencilIcon, ReceiptTextIcon, XIcon } from 'lucide-react';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -144,7 +144,7 @@ export function TaxesPage() {
             Para quem tem CNPJ: o Caishen calcula o DAS, o INSS e o IRRF do pró-labore e põe as
             guias nas Saídas do mês em que vencem. IPVA, IPTU e outros impostos seus ficam em{' '}
             <Link className="text-primary hover:underline" to="/caishen/fixed#taxes">
-              Gastos fixos
+              Gastos
             </Link>
             .
           </>
@@ -192,8 +192,8 @@ export function TaxesPage() {
         <Alert>
           <AlertTitle>No Lucro Real, o cálculo é com o contador</AlertTitle>
           <AlertDescription>
-            O Caishen não calcula o Lucro Real. Registre as guias em Gastos fixos, em Impostos, para
-            que entrem nos meses certos.
+            O Caishen não calcula o Lucro Real. Registre as guias em Gastos, em Impostos, para que
+            entrem nos meses certos.
           </AlertDescription>
         </Alert>
       )}
@@ -243,7 +243,7 @@ function Upcoming({ guides }: { guides: Company['months'][number]['guides'] }) {
   return (
     <Sheet
       id="upcoming"
-      intro="O que a empresa ainda vai pagar. Já está nas Saídas de Lançamentos, no dia em que vence."
+      intro="O que a empresa ainda vai pagar. Já está nas Saídas do Fluxo de caixa, no dia em que vence."
       title="Guias a pagar"
       total={guides.length > 0 ? formatCents(total) : undefined}
     >
@@ -520,7 +520,7 @@ function RevenueDialog({
             </Field>
           )}
         </form>
-        {(problem || error) && <FormError message={problem ?? error!.message} />}
+        {(problem || error) && <FormError error={problem ?? error} />}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
             Cancelar
@@ -549,7 +549,7 @@ function Field({
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       {children}
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -609,8 +609,8 @@ function CompanyForm({
   };
 
   return (
-    <form className="flex flex-col gap-5" onSubmit={submit}>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] items-start gap-3">
+    <form className="@container flex flex-col gap-8" onSubmit={submit}>
+      <Group intro="Como ela aparece no CNPJ." title="A empresa">
         <Field id="company-cnpj" label="CNPJ">
           <Input
             autoComplete="off"
@@ -622,8 +622,19 @@ function CompanyForm({
           />
         </Field>
         <Field id="company-name" label="Nome (opcional)">
-          <Input defaultValue={company?.name ?? ''} id="company-name" name="name" />
+          <Input
+            defaultValue={company?.name ?? ''}
+            id="company-name"
+            name="name"
+            placeholder="Como você chama a empresa"
+          />
         </Field>
+      </Group>
+
+      <Group
+        intro="Está no PGDAS-D, no cartão CNPJ ou com o contador."
+        title="Como ela paga imposto"
+      >
         <Field
           hint={REGIMES.find(item => item.value === regime)!.hint}
           id="company-regime"
@@ -643,7 +654,7 @@ function CompanyForm({
           </Select>
         </Field>
         {regime === 'SIMPLES' ? (
-          <Field hint="Está no seu PGDAS-D ou com o contador." id="company-annex" label="Anexo">
+          <Field id="company-annex" label="Anexo">
             <Select onValueChange={value => setAnnex(value as SimplesAnnex)} value={annex}>
               <SelectTrigger className="w-full" id="company-annex">
                 <SelectValue />
@@ -673,6 +684,43 @@ function CompanyForm({
             </Select>
           </Field>
         )}
+        {regime === 'PRESUMIDO' && (
+          <Field hint="De 2% a 5%, conforme a cidade." id="company-iss" label="ISS (%)">
+            <Input
+              defaultValue={
+                company?.issRate != null ? String(company.issRate * 100).replace('.', ',') : ''
+              }
+              id="company-iss"
+              inputMode="decimal"
+              name="iss"
+              placeholder="5"
+            />
+          </Field>
+        )}
+        <div className="flex flex-col gap-2 @xl:col-span-2">
+          {regime === 'SIMPLES' && (
+            <Toggle
+              checked={fatorR}
+              hint="Anexo III quando a folha (com o pró-labore) é 28% ou mais do faturamento; senão, Anexo V."
+              id="company-fator-r"
+              label="Sujeita ao Fator R"
+              onChange={setFatorR}
+            />
+          )}
+          <Toggle
+            checked={exports}
+            hint="Faturamento do exterior não paga PIS, Cofins, ISS nem ICMS."
+            id="company-exports"
+            label="Exporta serviços ou produtos"
+            onChange={setExports}
+          />
+        </div>
+      </Group>
+
+      <Group
+        intro="O que a empresa paga a você e de onde o Caishen tira o faturamento de cada mês."
+        title="Pró-labore e faturamento"
+      >
         {regime !== 'MEI' && (
           <Field
             hint="O valor bruto, antes do INSS e do IRRF."
@@ -688,39 +736,6 @@ function CompanyForm({
             />
           </Field>
         )}
-        {regime === 'PRESUMIDO' && (
-          <Field hint="De 2% a 5%, conforme a cidade." id="company-iss" label="ISS (%)">
-            <Input
-              defaultValue={
-                company?.issRate != null ? String(company.issRate * 100).replace('.', ',') : ''
-              }
-              id="company-iss"
-              inputMode="decimal"
-              name="iss"
-              placeholder="5"
-            />
-          </Field>
-        )}
-        <Field
-          hint="Para o Caishen ler o faturamento de cada mês dela, quando você não informar."
-          id="company-source"
-          label="O faturamento chega como"
-        >
-          <Select onValueChange={setSource} value={source}>
-            <SelectTrigger className="w-full" id="company-source">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Só o que eu informar</SelectItem>
-              {holder.incomeSources.map(item => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.description}
-                  {item.currency === 'USD' ? ' (em dólar)' : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
         <Field id="company-starts" label="Calcular a partir de">
           <Input
             defaultValue={company?.startsOn ?? `${localToday().slice(0, 4)}-01-01`}
@@ -730,30 +745,95 @@ function CompanyForm({
             type="date"
           />
         </Field>
-      </div>
-      <div className="flex flex-col gap-3">
-        <Label className="flex items-center gap-2 font-normal">
-          <Checkbox checked={exports} onCheckedChange={on => setExports(on === true)} />
-          O faturamento vem do exterior (exportação): sem PIS, Cofins, ISS e ICMS
-        </Label>
-        {regime === 'SIMPLES' && (
-          <Label className="flex items-center gap-2 font-normal">
-            <Checkbox checked={fatorR} onCheckedChange={on => setFatorR(on === true)} />
-            Sujeita ao Fator R: Anexo III com folha de 28% ou mais do faturamento, senão Anexo V
-          </Label>
-        )}
-      </div>
-      {(problem || error) && <FormError message={problem ?? error!.message} />}
+        <div className="@xl:col-span-2">
+          <Field
+            hint="Usado nos meses em que você não informar o faturamento."
+            id="company-source"
+            label="O faturamento chega como"
+          >
+            <Select onValueChange={setSource} value={source}>
+              <SelectTrigger className="w-full" id="company-source">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Só o que eu informar</SelectItem>
+                {holder.incomeSources.map(item => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.description}
+                    {item.currency === 'USD' ? ' (em dólar)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      </Group>
+
+      {(problem || error) && <FormError error={problem ?? error} />}
       <div className="flex gap-2">
-        <Button disabled={loading} type="submit">
+        <Button disabled={loading} size="lg" type="submit">
           {loading ? 'Salvando…' : company ? 'Salvar' : 'Cadastrar empresa'}
         </Button>
         {onDone && (
-          <Button onClick={onDone} type="button" variant="ghost">
+          <Button onClick={onDone} size="lg" type="button" variant="ghost">
             Cancelar
           </Button>
         )}
       </div>
     </form>
+  );
+}
+
+/**
+ * Part of the company's form: its title and why on the left, its fields in two columns on the
+ * right; one column under the title where the form is narrow (the Editar empresa dialog).
+ */
+function Group({ children, intro, title }: { children: ReactNode; intro: string; title: string }) {
+  const id = useId();
+  return (
+    <fieldset
+      aria-labelledby={id}
+      className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] @3xl:gap-10"
+    >
+      <div className="flex flex-col gap-1">
+        <h3 className="font-semibold" id={id}>
+          {title}
+        </h3>
+        <p className="text-sm text-muted-foreground">{intro}</p>
+      </div>
+      <div className="grid items-start gap-4 @xl:grid-cols-2">{children}</div>
+    </fieldset>
+  );
+}
+
+/** A yes-or-no about the company, its consequence spelled out under it. */
+function Toggle({
+  checked,
+  hint,
+  id,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  hint: string;
+  id: string;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl bg-secondary/60 px-4 py-3">
+      <Checkbox
+        checked={checked}
+        className="mt-0.5 bg-card"
+        id={id}
+        onCheckedChange={on => onChange(on === true)}
+      />
+      <div className="flex flex-col gap-0.5">
+        <Label className="font-medium" htmlFor={id}>
+          {label}
+        </Label>
+        <p className="text-sm text-muted-foreground">{hint}</p>
+      </div>
+    </div>
   );
 }

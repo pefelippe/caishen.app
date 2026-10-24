@@ -115,6 +115,38 @@ enum BankAccountKind {
   CREDIT
 }
 
+"The kind of file an Importação came from."
+enum ImportSource {
+  CSV
+  XLSX
+  OFX
+  PDF
+}
+
+"The kind of account an Importação's statement is of, as the User says."
+enum ImportAccountKind {
+  CHECKING
+  CREDIT_CARD
+  SAVINGS
+  OTHER
+}
+
+"An Importação: one file of Gastos brought in at once. Deleting it takes its Gastos."
+type ExpenseImport {
+  id: ID!
+  fileName: String!
+  source: ImportSource!
+  bankName: String
+  accountKind: ImportAccountKind!
+  createdAt: DateTime!
+  "How many of its Gastos are still there."
+  expenseCount: Int!
+  totalCents: Cents!
+  "The first and last dates among its Gastos, while it has any."
+  firstDate: Date
+  lastDate: Date
+}
+
 "A Vínculo bancário: one bank authorized through Open Finance (docs/adr/0020)."
 type BankLink {
   id: ID!
@@ -267,7 +299,11 @@ type Mutation {
   clearCompanyRevenue(companyId: ID!, month: String!): Boolean!
   addExpense(input: ExpenseInput!): Expense!
   "Adds many Gastos at once, from a spreadsheet or an OFX; lines whose `externalId` is already there are skipped. Returns how many were added."
-  importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!): Int!
+  importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!, file: ImportFileInput): Int!
+  "Corrects the bank and the kind of account of an Importação."
+  updateExpenseImport(id: ID!, input: ExpenseImportInput!): ExpenseImport!
+  "Deletes an Importação and every Gasto it brought in."
+  deleteExpenseImport(id: ID!): Boolean!
   deleteExpense(id: ID!): Boolean!
   "Rewrites a saved record with the same checks as creating it."
   updateRecord(kind: RecordKind!, id: ID!, values: [RecordValueInput!]!): Boolean!
@@ -318,6 +354,8 @@ type Holder {
   recurringExpenses: [RecurringExpense!]!
   "Gastos, the latest first."
   expenses: [Expense!]!
+  "Importações, the latest first."
+  imports: [ExpenseImport!]!
   "One month (`YYYY-MM`): Receitas, Compromissos that fall due, Gastos and what is left."
   month(month: String!): MonthStatement!
   "Any span of days, `from` to `to` inclusive (up to two years), as one sheet; `month` reads `from..to`."
@@ -1024,6 +1062,21 @@ input ExpenseInput {
   description: String!
   category: String
   amountCents: Cents!
+}
+
+"The file the rows of `importExpenses` came from; with it, they make an Importação."
+input ImportFileInput {
+  fileName: String!
+  source: ImportSource!
+  bankName: String
+  accountKind: ImportAccountKind
+}
+
+input ExpenseImportInput {
+  bankName: String
+  accountKind: ImportAccountKind
+  "Puts every Gasto of the Importação under this category; an empty one clears it."
+  category: String
 }
 
 "One line of an imported spreadsheet, already read by the client."

@@ -1,4 +1,4 @@
-import { isBillPayment } from '@zapbots/finance';
+import { importedCategory, isBillPayment, isInvestmentMove, isOwnTransfer } from '@zapbots/finance';
 
 import { parseCents } from './format';
 
@@ -8,12 +8,16 @@ export interface Table {
   rows: unknown[][];
 }
 
-/** Which column holds each part of a Gasto; `category` is optional. */
+/**
+ * Which column holds each part of a Gasto; `category` and `kind` are optional. `kind` is what the
+ * bank calls the line ("Pix enviado", "Compra no débito", "Aplicação"), beside its description.
+ */
 export interface Columns {
   amount: number;
   category: number | null;
   date: number;
   description: number;
+  kind: number | null;
 }
 
 /** A Gasto read from one line, ready for `importExpenses`. */
@@ -32,6 +36,10 @@ export interface Reading {
   credits: number;
   /** Payments of a Cartão's Fatura, left out: the Fatura is counted already. */
   billPayments: number;
+  /** Money moved to or from the Titular's investments (a CDB, a caixinha), left out. */
+  investments: number;
+  /** Money the Titular sent to an account of their own, left out: it is spent from there. */
+  ownTransfers: number;
   /** Lines without a readable date, description or amount, left out. */
   invalid: number;
 }
@@ -39,9 +47,30 @@ export interface Reading {
 /** Reads a .csv, .txt or .xlsx file into a Table. */
 export async function readTable(file: File): Promise<Table> {
   const rows = /\.xlsx$/i.test(file.name) ? await readXlsx(file) : parseCsv(await file.text());
+  return toTable(rows);
+}
+
+/**
+ * The rows as a Table. Banks put a title, the account and the period above the statement, so the
+ * header is the row among the first ones that names the most parts of a Gasto (the first row when
+ * none names any), and what is above it is left out.
+ */
+export function toTable(rows: unknown[][]): Table {
   const filled = rows.filter(row => row.some(cell => cell !== null && String(cell).trim() !== ''));
-  const [headers = [], ...rest] = filled;
-  return { headers: headers.map(cell => String(cell ?? '').trim()), rows: rest };
+  const texts = (row: unknown[]) => row.map(cell => String(cell ?? '').trim());
+  let at = 0;
+  let best = 0;
+  filled.slice(0, 30).forEach((row, index) => {
+    const columns = guessColumns(texts(row));
+    const named =
+      [columns.date, columns.amount, columns.description].filter(column => column >= 0).length +
+      (columns.category == null ? 0 : 1);
+    if (named > best) {
+      best = named;
+      at = index;
+    }
+  });
+  return { headers: texts(filled[at] ?? []), rows: filled.slice(at + 1) };
 }
 
 async function readXlsx(file: File): Promise<unknown[][]> {
@@ -50,14 +79,13 @@ async function readXlsx(file: File): Promise<unknown[][]> {
 }
 
 /**
- * Parses CSV text: `;` or `,` between cells, whichever the first line uses most (Excel in pt-BR
- * writes `;`), quotes around cells that hold them.
+ * Parses CSV text: `;` or `,` between cells, whichever the first lines use most (Excel in pt-BR
+ * writes `;`; a bank's title line may have neither), quotes around cells that hold them.
  */
 export function parseCsv(text: string): string[][] {
   const body = text.replace(/^﻿/, '');
-  const firstLine = body.split(/\r?\n/, 1)[0] ?? '';
-  const separator =
-    (firstLine.match(/;/g)?.length ?? 0) >= (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
+  const head = body.split(/\r?\n/, 20).join('\n');
+  const separator = (head.match(/;/g)?.length ?? 0) >= (head.match(/,/g)?.length ?? 0) ? ';' : ',';
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = '';
@@ -109,24 +137,41 @@ const NAMES: Record<keyof Columns, string[]> = {
     'item',
     'detalhe',
   ],
+  kind: ['historico', 'tipo de transacao', 'tipo de lancamento', 'natureza', 'lancamento'],
 };
 
-/** Guesses each part's column from the headers; a part not found is `-1` (`null` for category). */
+/**
+ * Guesses each part's column from the headers; a part not found is `-1` (`null` for category).
+ * Names earlier in `NAMES` win, so beside "Histórico" the description is "Descrição".
+ */
 export function guessColumns(headers: string[]): Columns {
   const taken = new Set<number>();
   const find = (part: keyof Columns) => {
-    const index = headers.findIndex(
-      (header, at) => !taken.has(at) && NAMES[part].some(name => normalize(header).startsWith(name))
-    );
-    if (index >= 0) taken.add(index);
-    return index;
+    for (const name of NAMES[part]) {
+      const index = headers.findIndex(
+        (header, at) => !taken.has(at) && normalize(header).startsWith(name)
+      );
+      if (index >= 0) {
+        taken.add(index);
+        return index;
+      }
+    }
+    return -1;
   };
-  // The most specific first, so "Data lançamento" is a date and not a description.
+  // The most specific first, so "Data lançamento" is a date and not a description; the kind
+  // last, so a sheet with only "Histórico" takes it as the description.
   const date = find('date');
   const amount = find('amount');
   const category = find('category');
   const description = find('description');
-  return { amount, category: category >= 0 ? category : null, date, description };
+  const kind = find('kind');
+  return {
+    amount,
+    category: category >= 0 ? category : null,
+    date,
+    description,
+    kind: kind >= 0 ? kind : null,
+  };
 }
 
 /** "2026-10-21" from a Date cell, "21/10/2026", "21/10/26", "2026-10-21" or "21-10-2026". */
@@ -161,21 +206,33 @@ export function readCents(cell: unknown): number | null {
 /**
  * The Gastos in a Table. In a bank statement, with money in and out, only the negative lines are
  * Gastos and the positive ones (salary, transfers in) are left out, and so are the payments of a
- * Fatura; a sheet of expenses only, all
- * of one sign, is taken whole.
+ * Fatura; a sheet of expenses only, all of one sign, is taken whole. Money moved to the Titular's
+ * own investments, or to an account of their own (`owner` is their name), is never a Gasto. A line
+ * without a description takes its kind's; a Pix with no category is filed under "Pix".
  */
-export function readExpenses(table: Table, columns: Columns): Reading {
-  const parsed = table.rows.map(row => ({
-    amount: readCents(row[columns.amount]),
-    category: columns.category == null ? null : String(row[columns.category] ?? '').trim() || null,
-    date: readDate(row[columns.date]),
-    description: String(row[columns.description] ?? '').trim(),
-  }));
+export function readExpenses(table: Table, columns: Columns, owner = ''): Reading {
+  const cell = (row: unknown[], column: number | null) =>
+    column == null || column < 0 ? '' : String(row[column] ?? '').trim();
+  const parsed = table.rows.map(row => {
+    const kind = cell(row, columns.kind);
+    const description = cell(row, columns.description) || kind;
+    // What the bank says the line is, and to whom: "Aplicação" + "Cdb Porq…", "Pix enviado" + a name.
+    const said = `${kind} ${description}`;
+    return {
+      amount: readCents(row[columns.amount]),
+      category: cell(row, columns.category) || importedCategory(said),
+      date: readDate(row[columns.date]),
+      description,
+      said,
+    };
+  });
   const usable = parsed.filter(line => line.date && line.description && line.amount);
   const statement = usable.some(line => line.amount! < 0) && usable.some(line => line.amount! > 0);
   const spent = usable.filter(line => !statement || line.amount! < 0);
-  const lines = spent
-    .filter(line => !statement || !isBillPayment(line.description))
+  const invested = spent.filter(line => !isInvestmentMove(line.said));
+  const kept = invested.filter(line => !owner || !isOwnTransfer(line.description, owner));
+  const lines = kept
+    .filter(line => !statement || !isBillPayment(line.said))
     .map(line => ({
       amountCents: Math.abs(line.amount!),
       category: line.category,
@@ -183,9 +240,11 @@ export function readExpenses(table: Table, columns: Columns): Reading {
       description: line.description,
     }));
   return {
-    billPayments: spent.length - lines.length,
+    billPayments: kept.length - lines.length,
     credits: statement ? usable.filter(line => line.amount! > 0).length : 0,
     invalid: parsed.length - usable.length,
+    investments: spent.length - invested.length,
     lines,
+    ownTransfers: invested.length - kept.length,
   };
 }

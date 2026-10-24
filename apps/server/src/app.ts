@@ -200,7 +200,8 @@ await apollo.start();
 
 app.use(
   '/graphql',
-  express.json(),
+  // An imported statement goes in one mutation: up to MAX_IMPORTED_EXPENSES lines.
+  express.json({ limit: '1mb' }),
   expressMiddleware(apollo, {
     context: async ({ req }) => ({ viewer: await resolveViewer(req.headers) }),
   })

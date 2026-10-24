@@ -24,7 +24,8 @@ export async function connectDrive(): Promise<string | null> {
     provider: 'google',
     scopes: [DRIVE_SCOPE],
   });
-  return result.error ? (result.error.message ?? 'Não foi possível conectar o Drive') : null;
+  // Better Auth's own reasons are for developers.
+  return result.error ? 'Não foi possível conectar o Drive. Tente de novo.' : null;
 }
 
 interface PickerDocument {

@@ -98,7 +98,7 @@ function ModelRow({ bot, models }: { bot: Bot; models: Model[] }) {
         </span>
       }
     >
-      {error && <FormError message={error.message} />}
+      {error && <FormError error={error} />}
     </SheetRow>
   );
 }
