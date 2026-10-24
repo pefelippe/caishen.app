@@ -69,6 +69,7 @@ import { AddEntryButton } from './FinancePage';
 import { FormError } from '../components/FormError';
 import { localToday } from '../lib/bots';
 import { formatCents, formatDate } from '../lib/format';
+import { ofxExpenses, parseOfx, readOfxText, type OfxStatement } from '../lib/ofx';
 import {
   guessColumns,
   readExpenses,
@@ -76,6 +77,11 @@ import {
   type Columns,
   type Table as SpreadsheetTable,
 } from '../lib/spreadsheet';
+
+/** A picked file as read: a sheet still to map, or an OFX that already says what each line is. */
+type ImportSource =
+  | { kind: 'ofx'; statements: OfxStatement[] }
+  | { kind: 'table'; table: SpreadsheetTable };
 
 type Statement = NonNullable<PeriodQuery['holder']>['period'];
 
@@ -256,7 +262,9 @@ function entriesOf(statement: Statement): Entry[] {
               ? '/caishen/taxes'
               : line.kind === 'RECURRING'
                 ? '/caishen/fixed#recurring'
-                : '/caishen/debts',
+                : line.kind === 'STATEMENT'
+                  ? '/caishen/cards'
+                  : '/caishen/debts',
     })),
     ...statement.onCard.map(line => ({
       amountCents: line.amountCents,
@@ -542,7 +550,10 @@ const plain = (text: string) =>
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase();
 
-/** A .csv or .xlsx of Gastos picked, read and handed to the dialog that maps its columns. */
+/**
+ * A .csv, .xlsx or .ofx of Gastos picked, read and handed to the dialog: a sheet to map its
+ * columns, an OFX straight to what comes in. A Cartão's OFX is its Fatura, imported in Cartões.
+ */
 function ImportButton({
   holderId,
   onError,
@@ -551,18 +562,28 @@ function ImportButton({
   onError: (message: string | null) => void;
 }) {
   const file = useRef<HTMLInputElement>(null);
-  const [table, setTable] = useState<{
-    name: string;
-    table: SpreadsheetTable;
-  } | null>(null);
+  const [table, setTable] = useState<{ name: string; source: ImportSource } | null>(null);
+
+  const read = async (picked: File): Promise<ImportSource | string> => {
+    if (!/\.ofx$/i.test(picked.name)) {
+      return { kind: 'table', table: await readTable(picked) };
+    }
+    const statements = parseOfx(await readOfxText(picked));
+    if (statements.some(item => item.kind === 'BANK')) return { kind: 'ofx', statements };
+    return statements.length
+      ? 'Esse OFX é a fatura de um cartão: importe em Cartões, no cartão dela.'
+      : 'Esse OFX não tem extrato.';
+  };
 
   const open = async (picked: File | undefined) => {
     onError(null);
     if (!picked) return;
     try {
-      setTable({ name: picked.name, table: await readTable(picked) });
+      const source = await read(picked);
+      if (typeof source === 'string') onError(source);
+      else setTable({ name: picked.name, source });
     } catch {
-      onError('Não foi possível ler esse arquivo. Use .csv ou .xlsx.');
+      onError('Não foi possível ler esse arquivo. Use .csv, .xlsx ou .ofx.');
     }
     if (file.current) file.current.value = '';
   };
@@ -579,7 +600,7 @@ function ImportButton({
         Importar
       </Button>
       <input
-        accept=".csv,.txt,.xlsx"
+        accept=".csv,.txt,.xlsx,.ofx"
         className="hidden"
         onChange={event => void open(event.target.files?.[0])}
         ref={file}
@@ -590,7 +611,7 @@ function ImportButton({
           holderId={holderId}
           name={table.name}
           onClose={() => setTable(null)}
-          table={table.table}
+          source={table.source}
         />
       )}
     </>
@@ -986,24 +1007,40 @@ function Ledger({ statement }: { statement: Statement }) {
   );
 }
 
-/** The columns of an imported sheet, picked (guessed first), and what will come in. */
+const NO_TABLE: SpreadsheetTable = { headers: [], rows: [] };
+
+/**
+ * What an imported file brings in: for a sheet, its columns picked (guessed first); an OFX says
+ * what each line is. Lines imported before (the same OFX again) are skipped by the server.
+ */
 function ImportDialog({
   holderId,
   name,
   onClose,
-  table,
+  source,
 }: {
   holderId: string;
   name: string;
   onClose: () => void;
-  table: SpreadsheetTable;
+  source: ImportSource;
 }) {
+  const table = source.kind === 'table' ? source.table : NO_TABLE;
   const [columns, setColumns] = useState<Columns>(() => guessColumns(table.headers));
+  const [added, setAdded] = useState<number | null>(null);
   const [importRows, { error, loading }] = useMutation(ImportExpensesDocument, {
     refetchQueries: [PeriodDocument],
   });
   const ready = columns.date >= 0 && columns.description >= 0 && columns.amount >= 0;
-  const reading = ready ? readExpenses(table, columns) : null;
+  const reading =
+    source.kind === 'ofx'
+      ? { invalid: 0, ...ofxExpenses(source.statements) }
+      : ready
+        ? readExpenses(table, columns)
+        : null;
+  const lineCount =
+    source.kind === 'ofx'
+      ? source.statements.reduce((total, item) => total + item.transactions.length, 0)
+      : table.rows.length;
 
   const pick = (part: keyof Columns, label: string, optional = false) => (
     <div className="flex flex-col gap-1.5">
@@ -1035,12 +1072,34 @@ function ImportDialog({
   const confirm = async () => {
     if (!reading?.lines.length) return;
     try {
-      await importRows({ variables: { holderId, rows: reading.lines } });
-      onClose();
+      const result = await importRows({ variables: { holderId, rows: reading.lines } });
+      const count = result.data?.importExpenses ?? 0;
+      // All new: nothing to tell. Some were there already: say so before closing.
+      if (count === reading.lines.length) onClose();
+      else setAdded(count);
     } catch {
       // Shown by `error` in the dialog.
     }
   };
+
+  if (added != null && reading) {
+    return (
+      <Dialog onOpenChange={open => !open && onClose()} open>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Importado</DialogTitle>
+            <DialogDescription>
+              {added === 1 ? '1 gasto novo' : `${added} gastos novos`}.{' '}
+              {reading.lines.length - added} já tinham sido importados antes e ficaram como estavam.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={onClose}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog onOpenChange={open => !open && onClose()} open>
@@ -1048,20 +1107,27 @@ function ImportDialog({
         <DialogHeader>
           <DialogTitle>Importar {name}</DialogTitle>
           <DialogDescription>
-            {table.rows.length} linhas. Confira de qual coluna vem cada parte do gasto.
+            {lineCount} linhas.{' '}
+            {source.kind === 'table'
+              ? 'Confira de qual coluna vem cada parte do gasto.'
+              : 'Um lançamento importado antes não entra de novo.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {pick('date', 'Data')}
-          {pick('description', 'Descrição')}
-          {pick('amount', 'Valor')}
-          {pick('category', 'Categoria', true)}
-        </div>
+        {source.kind === 'table' && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {pick('date', 'Data')}
+            {pick('description', 'Descrição')}
+            {pick('amount', 'Valor')}
+            {pick('category', 'Categoria', true)}
+          </div>
+        )}
         {reading && (
           <div className="flex flex-col gap-3">
             <p>
               <strong>{reading.lines.length}</strong> gastos para importar
               {reading.credits > 0 && `, ${reading.credits} entradas de dinheiro deixadas de fora`}
+              {reading.billPayments > 0 &&
+                `, ${reading.billPayments} pagamentos de fatura deixados de fora (a Fatura já conta)`}
               {reading.invalid > 0 && `, ${reading.invalid} linhas sem data, descrição ou valor`}.
             </p>
             {reading.lines.length > 0 && (

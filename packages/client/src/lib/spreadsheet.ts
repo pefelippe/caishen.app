@@ -1,3 +1,5 @@
+import { isBillPayment } from '@zapbots/finance';
+
 import { parseCents } from './format';
 
 /** A spreadsheet as read: its first row as headers, then the rest. */
@@ -20,12 +22,16 @@ export interface ExpenseLine {
   category: string | null;
   date: string;
   description: string;
+  /** The line's key at its source (an OFX FITID, an Open Finance id), so importing again adds nothing. */
+  externalId?: string;
 }
 
 export interface Reading {
   lines: ExpenseLine[];
   /** Lines that were money coming in (in a statement with both signs), left out. */
   credits: number;
+  /** Payments of a Cartão's Fatura, left out: the Fatura is counted already. */
+  billPayments: number;
   /** Lines without a readable date, description or amount, left out. */
   invalid: number;
 }
@@ -154,7 +160,8 @@ export function readCents(cell: unknown): number | null {
 
 /**
  * The Gastos in a Table. In a bank statement, with money in and out, only the negative lines are
- * Gastos and the positive ones (salary, transfers in) are left out; a sheet of expenses only, all
+ * Gastos and the positive ones (salary, transfers in) are left out, and so are the payments of a
+ * Fatura; a sheet of expenses only, all
  * of one sign, is taken whole.
  */
 export function readExpenses(table: Table, columns: Columns): Reading {
@@ -166,8 +173,9 @@ export function readExpenses(table: Table, columns: Columns): Reading {
   }));
   const usable = parsed.filter(line => line.date && line.description && line.amount);
   const statement = usable.some(line => line.amount! < 0) && usable.some(line => line.amount! > 0);
-  const lines = usable
-    .filter(line => !statement || line.amount! < 0)
+  const spent = usable.filter(line => !statement || line.amount! < 0);
+  const lines = spent
+    .filter(line => !statement || !isBillPayment(line.description))
     .map(line => ({
       amountCents: Math.abs(line.amount!),
       category: line.category,
@@ -175,6 +183,7 @@ export function readExpenses(table: Table, columns: Columns): Reading {
       description: line.description,
     }));
   return {
+    billPayments: spent.length - lines.length,
     credits: statement ? usable.filter(line => line.amount! > 0).length : 0,
     invalid: parsed.length - usable.length,
     lines,

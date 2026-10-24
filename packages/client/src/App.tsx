@@ -27,6 +27,7 @@ const finance = <Name extends string>(name: Name) =>
 const IncomePage = finance('IncomePage');
 const FixedPage = finance('FixedPage');
 const DebtsPage = finance('DebtsPage');
+const CardsPage = finance('CardsPage');
 const SubscriptionsPage = finance('SubscriptionsPage');
 const CreditPage = finance('CreditPage');
 const EntriesPage = page(() => import('./pages/EntriesPage'), 'EntriesPage');
@@ -160,6 +161,7 @@ export function App() {
           <Route element={<IncomePage />} path="income" />
           <Route element={<FixedPage />} path="fixed" />
           <Route element={<DebtsPage />} path="debts" />
+          <Route element={<CardsPage />} path="cards" />
           <Route element={<SubscriptionsPage />} path="subscriptions" />
           <Route element={<TaxesPage />} path="taxes" />
           <Route element={<Navigate replace to="/caishen/entries" />} path="reports" />
@@ -176,7 +178,7 @@ export function App() {
             <Route element={<Navigate replace to="/caishen/entries" />} key={path} path={path} />
           ))}
           <Route element={<LegacyFinances />} path="finances" />
-          {['obligations', 'loans', 'financing', 'cards'].map(path => (
+          {['obligations', 'loans', 'financing'].map(path => (
             <Route element={<Navigate replace to="/caishen/debts" />} key={path} path={path} />
           ))}
           <Route element={<CreditOperationPage />} path="operations/:id" />

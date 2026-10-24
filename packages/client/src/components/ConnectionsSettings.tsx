@@ -27,6 +27,7 @@ import { INTEGRATION_GROUPS } from '../lib/integrations';
 import { matches } from '../lib/search';
 import { ModelsList } from '../pages/ModelsPage';
 import { FormError } from './FormError';
+import { OpenFinanceLinker } from './OpenFinanceLinker';
 import { PageSkeleton } from './PageSkeleton';
 import { SheetRow } from './Sheet';
 
@@ -37,6 +38,11 @@ const COPY: Record<ConnectionKind, { description: string; name: string }> = {
     description:
       'O Caishen só enxerga os arquivos que você escolher no seletor do Google e lê o texto dos que você entregar: Google Docs, PDFs com texto e arquivos de texto.',
     name: 'Google Drive',
+  },
+  OPEN_FINANCE: {
+    description:
+      'Seus bancos pelo Open Finance, só leitura: a autorização é dada no app do banco e pode ser retirada a qualquer hora. Os gastos das contas entram em Lançamentos.',
+    name: 'Open Finance',
   },
   OPENROUTER: {
     description:
@@ -281,6 +287,7 @@ function Details({ connection }: { connection: Connection }): ReactNode {
   return (
     <>
       {connection.kind === 'WHATSAPP' && <WhatsappLinker connected={connection.connected} />}
+      {connection.kind === 'OPEN_FINANCE' && connection.available && <OpenFinanceLinker />}
       {connection.detail && <p className="text-sm">{connection.detail}</p>}
       {connection.unavailableReason && (
         <p className="text-sm text-warning">{connection.unavailableReason}</p>

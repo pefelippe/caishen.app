@@ -114,6 +114,7 @@ const STRINGS = {
   'nav.calculators': { en: 'Calculators', pt: 'Calculadoras' },
   'nav.credit': { en: 'Credit score', pt: 'Score de crédito' },
   'nav.debts': { en: 'Debts', pt: 'Dívidas' },
+  'nav.cards': { en: 'Cards', pt: 'Cartões' },
   'nav.documents': { en: 'Documents', pt: 'Documentos' },
   'nav.entries': { en: 'Entries', pt: 'Lançamentos' },
   'nav.finances': { en: 'Finances', pt: 'Finanças' },

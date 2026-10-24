@@ -17,6 +17,7 @@ const TITLES: [RegExp, string][] = [
   [/^\/caishen\/fixed/, 'Gastos fixos'],
   [/^\/caishen\/subscriptions/, 'Assinaturas'],
   [/^\/caishen\/debts/, 'Dívidas'],
+  [/^\/caishen\/cards/, 'Cartões'],
   [/^\/caishen\/taxes/, 'Impostos'],
   [/^\/caishen\/budget/, 'Orçamento'],
   [/^\/caishen\/payoff/, 'Sair das dívidas'],

@@ -62,11 +62,12 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
   {
     description: 'Seus dados financeiros direto das instituições, com o seu consentimento.',
     id: 'finance',
-    kinds: [],
+    kinds: ['OPEN_FINANCE'],
     title: 'Bancos e finanças',
     upcoming: [
       {
         description: 'Contas, cartões e empréstimos pelo Open Finance, só leitura.',
+        kind: 'OPEN_FINANCE',
         name: 'Open Finance',
       },
       {

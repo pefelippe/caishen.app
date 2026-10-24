@@ -1,6 +1,7 @@
 import {
   BotIcon,
   CalculatorIcon,
+  CreditCardIcon,
   FileTextIcon,
   FlagIcon,
   GaugeIcon,
@@ -62,6 +63,7 @@ export function useNav(): Nav {
             owns: ['/caishen/operations'],
             to: '/caishen/debts',
           },
+          { icon: CreditCardIcon, label: t('nav.cards'), to: '/caishen/cards' },
           { icon: PercentIcon, label: t('nav.taxes'), to: '/caishen/taxes' },
           { icon: PieChartIcon, label: t('nav.budget'), to: '/caishen/budget' },
         ],

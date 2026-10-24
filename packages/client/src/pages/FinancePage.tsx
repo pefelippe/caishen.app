@@ -7,6 +7,7 @@ import {
   AddTaxDocument,
   CreateCreditCardDocument,
   CreateCreditOperationDocument,
+  DeleteCreditCardDocument,
   DeleteTaxDocument,
   HolderDocument,
   MonthDocument,
@@ -36,10 +37,12 @@ import {
   ChevronRightIcon,
   PencilIcon,
   PlusIcon,
+  Trash2Icon,
+  UploadIcon,
   XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -81,6 +84,7 @@ import { EditRecordDialog } from '../components/EditRecordDialog';
 import { Sheet, SheetRow } from '../components/Sheet';
 import { ScrPanel } from '../components/ScrPanel';
 import { localToday } from '../lib/bots';
+import { ofxStatementTotal, parseOfx, readOfxText } from '../lib/ofx';
 import {
   formatCents,
   formatDate,
@@ -449,8 +453,8 @@ export function FixedPage() {
 }
 
 /**
- * Dívidas: the Credit Operations (loans, financing) and Cartões, what is still owed, what goes out
- * in Parcelas every month and what is late. Each Operation opens on its own page.
+ * Dívidas: the Credit Operations (loans, financing), what is still owed, what goes out in Parcelas
+ * every month and what is late. Each Operation opens on its own page; Cartões have theirs.
  */
 export function DebtsPage() {
   const holder = useHolder();
@@ -458,7 +462,15 @@ export function DebtsPage() {
   return (
     <HolderSection
       actions={<AddEntryButton direction="OUT" />}
-      description={() => 'Empréstimos, financiamentos e cartões: quanto falta pagar e o que vence.'}
+      description={() => (
+        <>
+          Empréstimos e financiamentos: quanto falta pagar e o que vence. Os cartões ficam em{' '}
+          <Link className="text-primary underline-offset-4 hover:underline" to="/caishen/cards">
+            Cartões
+          </Link>
+          .
+        </>
+      )}
       title="Dívidas"
     >
       {holder => (
@@ -1647,11 +1659,11 @@ type OperationType = keyof typeof OPERATION_TYPES;
 function ObligationsSection({ holder }: { holder: Holder }) {
   return (
     <Part
-      count={holder.creditOperations.length + holder.creditCards.length}
-      empty="Nenhum empréstimo, financiamento ou cartão. Adicione pelo botão Adicionar saída."
+      count={holder.creditOperations.length}
+      empty="Nenhum empréstimo ou financiamento. Adicione pelo botão Adicionar saída."
       id="obligations"
-      intro="Empréstimos, financiamentos e cartões, com o que falta pagar."
-      title="Empréstimos e cartões"
+      intro="Empréstimos e financiamentos, com o que falta pagar."
+      title="Empréstimos e financiamentos"
       total={
         holder.creditOperations.length ? (
           <>
@@ -1661,10 +1673,7 @@ function ObligationsSection({ holder }: { holder: Holder }) {
         ) : undefined
       }
     >
-      <div className="flex flex-col gap-8">
-        {holder.creditOperations.length > 0 && <OperationsTable holder={holder} />}
-        {holder.creditCards.length > 0 && <CardsList holder={holder} />}
-      </div>
+      <OperationsTable holder={holder} />
     </Part>
   );
 }
@@ -1965,12 +1974,201 @@ export function CardForm({ holder, onDone }: { holder: Holder; onDone?: () => vo
   );
 }
 
-function CardsList({ holder }: { holder: Holder }) {
+type Card = Holder['creditCards'][number];
+
+/** `YYYY-MM` of a date. */
+const monthOf = (date: string) => date.slice(0, 7);
+
+/**
+ * The month a Fatura with purchases up to `lastDate` falls due: the purchase closes in this
+ * month's Fatura up to the closing day, the next one after it, and that Fatura is due the same
+ * month when the due day comes after the closing day, the month after otherwise.
+ */
+export function dueMonthOf(lastDate: string, card: Pick<Card, 'closingDay' | 'dueDay'>): string {
+  const day = Number(lastDate.slice(8, 10));
+  const next = (month: string) => monthOf(addMonths(`${month}-01`, 1));
+  const closing = day <= card.closingDay ? monthOf(lastDate) : next(monthOf(lastDate));
+  return card.dueDay > card.closingDay ? closing : next(closing);
+}
+
+/**
+ * Cartões: each Cartão with its limit, its Faturas, what is charged on it every month and the way
+ * to save or import (OFX) a Fatura. The Faturas count in Lançamentos and in Dívidas' totals.
+ */
+export function CardsPage() {
+  const [adding, setAdding] = useState(false);
+  useHashScroll(Boolean(useHolder()));
+  return (
+    <HolderSection
+      actions={
+        <Button onClick={() => setAdding(true)}>
+          <PlusIcon />
+          Adicionar cartão
+        </Button>
+      }
+      description={() =>
+        'Seus cartões de crédito, as Faturas de cada um e o que é cobrado neles todo mês.'
+      }
+      title="Cartões"
+    >
+      {holder => {
+        const month = monthOf(localToday());
+        const onCards = holder.recurringExpenses.filter(item => item.creditCard);
+        return (
+          <>
+            <Figures
+              figures={[
+                {
+                  label: 'Limite total',
+                  value: holder.creditCards.reduce((total, card) => total + card.limitCents, 0),
+                },
+                {
+                  label: 'Faturas deste mês',
+                  value: holder.creditCards.reduce(
+                    (total, card) =>
+                      total +
+                      (card.statements.find(item => item.referenceMonth === month)?.amountCents ??
+                        0),
+                    0
+                  ),
+                },
+                { label: 'Recorrentes nos cartões', value: perMonth(onCards) },
+              ]}
+            />
+            {holder.creditCards.length === 0 && (
+              <Sheet
+                id="cards"
+                intro="Cadastre um cartão para guardar as Faturas e ver o uso do limite."
+                title="Nenhum cartão ainda"
+              >
+                <div>
+                  <Button onClick={() => setAdding(true)} variant="outline">
+                    <PlusIcon />
+                    Adicionar cartão
+                  </Button>
+                </div>
+              </Sheet>
+            )}
+            {holder.creditCards.map(card => (
+              <CardSheet
+                card={card}
+                key={card.id}
+                recurring={onCards.filter(item => item.creditCard?.id === card.id)}
+              />
+            ))}
+            {adding && (
+              <Dialog onOpenChange={open => !open && setAdding(false)} open>
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Novo cartão</DialogTitle>
+                  </DialogHeader>
+                  <CardForm holder={holder} onDone={() => setAdding(false)} />
+                </DialogContent>
+              </Dialog>
+            )}
+          </>
+        );
+      }}
+    </HolderSection>
+  );
+}
+
+/** One Cartão: its terms, its Faturas, its Gastos recorrentes and the Fatura forms. */
+function CardSheet({ card, recurring }: { card: Card; recurring: Recurring[] }) {
+  const [deleting, setDeleting] = useState(false);
+  const month = monthOf(localToday());
+  const current = card.statements.find(item => item.referenceMonth === month);
+  const statements = [...card.statements]
+    .sort((a, b) => b.referenceMonth.localeCompare(a.referenceMonth))
+    .slice(0, 6);
+  const used = current && card.limitCents > 0 ? current.amountCents / card.limitCents : null;
+
+  return (
+    <Sheet
+      id={`card-${card.id}`}
+      intro={
+        <>
+          {card.issuer && `${card.issuer} · `}Limite {formatCents(card.limitCents)} · fecha dia{' '}
+          {card.closingDay} · vence dia {card.dueDay}
+        </>
+      }
+      title={card.name}
+      total={
+        current ? (
+          <>
+            {formatCents(current.amountCents)}
+            <span className="block text-sm font-normal text-muted-foreground">
+              Fatura deste mês{used != null && ` · ${formatPercent(used)} do limite`}
+            </span>
+          </>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold">Faturas</h3>
+        {statements.length ? (
+          <Table>
+            <TableBody>
+              {statements.map(item => (
+                <TableRow key={item.id}>
+                  <TableCell>Fatura {item.referenceMonth}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    vence {formatDate(item.dueDate)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCents(item.amountCents)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-muted-foreground">
+            Nenhuma Fatura ainda. Digite o valor abaixo ou importe o OFX da fatura.
+          </p>
+        )}
+      </div>
+
+      {recurring.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-lg font-semibold">Cobrado todo mês neste cartão</h3>
+          <Table>
+            <TableBody>
+              {recurring.map(item => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.description}</TableCell>
+                  <TableCell className="text-muted-foreground">{recurringDetail(item)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCents(item.amountCents)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <StatementForm card={card} />
+
+      <div className="flex flex-wrap gap-2">
+        <ImportStatementButton card={card} />
+        <Button onClick={() => setDeleting(true)} variant="ghost">
+          <Trash2Icon />
+          Apagar cartão
+        </Button>
+      </div>
+      {deleting && <DeleteCardDialog card={card} onClose={() => setDeleting(false)} />}
+    </Sheet>
+  );
+}
+
+/** A Fatura typed in: the month it is due and how much. The same month again replaces it. */
+function StatementForm({ card }: { card: Card }) {
   const [upsertStatement, { error }] = useMutation(UpsertStatementDocument, {
     refetchQueries: [HolderDocument],
   });
 
-  const submitStatement = (creditCardId: string) => async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
@@ -1979,76 +2177,194 @@ function CardsList({ holder }: { holder: Holder }) {
     try {
       await upsertStatement({
         variables: {
-          input: { amountCents, creditCardId, referenceMonth: String(values.get('month')) },
+          input: {
+            amountCents,
+            creditCardId: card.id,
+            referenceMonth: String(values.get('month')),
+          },
         },
       });
       form.reset();
     } catch {
-      // Shown by `error` under the Cards; the typed values stay.
+      // Shown by `error` under the form; the typed values stay.
     }
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold">Cartões</h3>
-      {holder.creditCards.map(card => (
-        <div className="flex flex-col gap-4 rounded-xl bg-secondary/60 p-5" key={card.id}>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span className="font-medium">
-              {card.name}
-              {card.issuer && (
-                <span className="font-normal text-muted-foreground"> · {card.issuer}</span>
-              )}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              Limite {formatCents(card.limitCents)} · fecha dia {card.closingDay} · vence dia{' '}
-              {card.dueDay}
-            </span>
-          </div>
-          {card.statements.length > 0 && (
-            <Table>
-              <TableBody>
-                {card.statements.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell>Fatura {item.referenceMonth}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      vence {formatDate(item.dueDate)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCents(item.amountCents)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-          <form className={FORM_GRID} onSubmit={submitStatement(card.id)}>
-            <Field id={`month-${card.id}`} label="Mês de vencimento">
-              <Input
-                className="bg-card"
-                id={`month-${card.id}`}
-                name="month"
-                required
-                type="month"
-              />
-            </Field>
-            <Field id={`amount-${card.id}`} label="Valor da Fatura (R$)">
-              <Input
-                className="bg-card"
-                id={`amount-${card.id}`}
-                inputMode="decimal"
-                name="amount"
-                placeholder="1.250,00"
-                required
-              />
-            </Field>
-            <Button className="mt-5.5" type="submit" variant="outline">
-              Salvar Fatura
-            </Button>
-          </form>
-        </div>
-      ))}
+    <div className="flex flex-col gap-3 rounded-xl bg-secondary/60 p-5">
+      <form className={FORM_GRID} onSubmit={submit}>
+        <Field id={`month-${card.id}`} label="Mês de vencimento">
+          <Input className="bg-card" id={`month-${card.id}`} name="month" required type="month" />
+        </Field>
+        <Field id={`amount-${card.id}`} label="Valor da Fatura (R$)">
+          <Input
+            className="bg-card"
+            id={`amount-${card.id}`}
+            inputMode="decimal"
+            name="amount"
+            placeholder="1.250,00"
+            required
+          />
+        </Field>
+        <Button className="mt-5.5" type="submit" variant="outline">
+          Salvar Fatura
+        </Button>
+      </form>
       {error && <FormError message={error.message} />}
     </div>
+  );
+}
+
+/**
+ * A Cartão's OFX read into its Fatura: the purchases less refunds, without the payment of the
+ * last one. The month it is due is guessed from the last purchase and can be changed.
+ */
+function ImportStatementButton({ card }: { card: Card }) {
+  const file = useRef<HTMLInputElement>(null);
+  const [readError, setReadError] = useState<string | null>(null);
+  const [reading, setReading] = useState<{
+    amountCents: number;
+    month: string;
+    name: string;
+    purchases: number;
+  } | null>(null);
+  const [upsertStatement, { error, loading }] = useMutation(UpsertStatementDocument, {
+    refetchQueries: [HolderDocument],
+  });
+
+  const open = async (picked: File | undefined) => {
+    setReadError(null);
+    if (file.current) file.current.value = '';
+    if (!picked) return;
+    try {
+      const statement = parseOfx(await readOfxText(picked)).find(
+        item => item.kind === 'CARD' && item.transactions.length
+      );
+      if (!statement) {
+        setReadError(
+          'Esse OFX não é a fatura de um cartão. O extrato da conta se importa em Lançamentos.'
+        );
+        return;
+      }
+      const total = ofxStatementTotal(statement);
+      setReading({
+        amountCents: total.amountCents,
+        month: dueMonthOf(total.lastDate ?? localToday(), card),
+        name: picked.name,
+        purchases: total.purchases,
+      });
+    } catch {
+      setReadError('Não foi possível ler esse arquivo. Use o .ofx da fatura.');
+    }
+  };
+
+  const confirm = async () => {
+    if (!reading) return;
+    try {
+      await upsertStatement({
+        variables: {
+          input: {
+            amountCents: reading.amountCents,
+            creditCardId: card.id,
+            referenceMonth: reading.month,
+          },
+        },
+      });
+      setReading(null);
+    } catch {
+      // Shown by `error` in the dialog.
+    }
+  };
+
+  return (
+    <>
+      <Button onClick={() => file.current?.click()} variant="outline">
+        <UploadIcon />
+        Importar fatura (OFX)
+      </Button>
+      <input
+        accept=".ofx"
+        className="hidden"
+        onChange={event => void open(event.target.files?.[0])}
+        ref={file}
+        type="file"
+      />
+      {readError && <FormError message={readError} />}
+      {reading && (
+        <Dialog onOpenChange={value => !value && setReading(null)} open>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Fatura de {card.name}</DialogTitle>
+              <DialogDescription>
+                {reading.name}: {reading.purchases} {reading.purchases === 1 ? 'compra' : 'compras'}
+                , menos estornos, sem o pagamento da fatura anterior.
+              </DialogDescription>
+            </DialogHeader>
+            <strong className="text-3xl font-semibold tracking-[-0.03em] tabular-nums">
+              {formatCents(reading.amountCents)}
+            </strong>
+            <Field id={`import-month-${card.id}`} label="Mês de vencimento">
+              <Input
+                id={`import-month-${card.id}`}
+                onChange={event =>
+                  setReading(current => current && { ...current, month: event.target.value })
+                }
+                required
+                type="month"
+                value={reading.month}
+              />
+            </Field>
+            <p className="text-sm text-muted-foreground">
+              Se já houver uma Fatura nesse mês, ela é trocada por esta.
+            </p>
+            {error && <FormError message={error.message} />}
+            <DialogFooter>
+              <Button onClick={() => setReading(null)} variant="ghost">
+                Cancelar
+              </Button>
+              <Button
+                disabled={loading || reading.amountCents <= 0 || !reading.month}
+                onClick={() => void confirm()}
+              >
+                {loading ? 'Salvando…' : 'Salvar Fatura'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+}
+
+/** Deletes a Cartão after saying what goes with it. */
+function DeleteCardDialog({ card, onClose }: { card: Card; onClose: () => void }) {
+  const [remove, { error, loading }] = useMutation(DeleteCreditCardDocument, {
+    refetchQueries: 'active',
+  });
+  const confirm = async () => {
+    const result = await remove({ variables: { id: card.id } }).catch(() => null);
+    if (result?.data) onClose();
+  };
+  return (
+    <Dialog onOpenChange={open => !open && onClose()} open>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Apagar “{card.name}”?</DialogTitle>
+          <DialogDescription>
+            O cartão sai com todas as Faturas. Os gastos recorrentes cobrados nele ficam, sem
+            cartão. Não dá para desfazer.
+          </DialogDescription>
+        </DialogHeader>
+        {error && <FormError message={error.message} />}
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost">
+            Cancelar
+          </Button>
+          <Button disabled={loading} onClick={() => void confirm()} variant="destructive">
+            {loading ? 'Apagando…' : 'Apagar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

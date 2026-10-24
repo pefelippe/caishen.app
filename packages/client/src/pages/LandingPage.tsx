@@ -498,19 +498,15 @@ function Import() {
         <div>
           <SectionHeading id="importacao-title">Sua planilha entra como está</SectionHeading>
           <motion.p className="mt-5 text-lg" variants={rise}>
-            Exporte o extrato do banco ou use a planilha que você já tem, em .csv ou .xlsx. O
+            Exporte o extrato do banco ou use a planilha que você já tem, em .csv, .xlsx ou .ofx. O
             Caishen lê as colunas, e num extrato com entradas e saídas só as saídas viram Gastos do
-            mês. Nada para instalar e nenhuma senha do banco.
+            mês. Importar o mesmo OFX de novo não duplica nada. Nada para instalar e nenhuma senha
+            do banco.
           </motion.p>
           <motion.ul className="mt-7 grid gap-3 text-base" variants={rise}>
             <li className="flex items-center gap-3">
               <FileSpreadsheetIcon className="size-5 text-primary" />
-              Excel (.xlsx) e CSV, hoje
-            </li>
-            <li className="flex items-center gap-3 text-muted-foreground">
-              <FileSpreadsheetIcon className="size-5" />
-              Arquivos OFX
-              <Badge variant="secondary">Em breve</Badge>
+              Excel (.xlsx), CSV e OFX, hoje
             </li>
             <li className="flex items-center gap-3 text-muted-foreground">
               <FileSpreadsheetIcon className="size-5" />
