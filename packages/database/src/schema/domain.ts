@@ -201,6 +201,35 @@ export const companyRevenue = pgTable(
   table => [unique('company_revenue_company_month_unique').on(table.companyId, table.month)]
 );
 
+export const importSource = pgEnum('import_source', ['CSV', 'XLSX', 'OFX', 'PDF']);
+export const importAccountKind = pgEnum('import_account_kind', [
+  'CHECKING',
+  'CREDIT_CARD',
+  'SAVINGS',
+  'OTHER',
+]);
+
+/**
+ * An Importação: one file of Gastos brought in at once, with the bank and the kind of account it
+ * came from, both editable later. Deleting it takes its Gastos.
+ */
+export const expenseImport = pgTable(
+  'expense_import',
+  {
+    accountKind: importAccountKind('account_kind').notNull().default('CHECKING'),
+    bankName: text('bank_name'),
+    fileName: text('file_name').notNull(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: organizationId(),
+    source: importSource('source').notNull(),
+    ...timestamps,
+  },
+  table => [index('expense_import_holder_idx').on(table.holderId, table.createdAt)]
+);
+
 /** A Gasto: money that went out on `date`, typed in or imported from a spreadsheet. */
 export const expense = pgTable(
   'expense',
@@ -219,6 +248,8 @@ export const expense = pgTable(
     externalId: text('external_id'),
     /** Came from a spreadsheet rather than typed in. */
     imported: boolean('imported').notNull().default(false),
+    /** The Importação it came in with; deleting the Importação takes it along. */
+    importId: uuid('import_id').references(() => expenseImport.id, { onDelete: 'cascade' }),
     organizationId: organizationId(),
     ...timestamps,
   },
