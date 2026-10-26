@@ -1,4 +1,4 @@
-import { ChevronDownIcon, PanelLeftIcon } from 'lucide-react';
+import { ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
@@ -10,7 +10,6 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -18,7 +17,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   useSidebar,
 } from '@zapbots/ui/components/sidebar';
 import { cn } from '@zapbots/ui/lib/utils';
@@ -126,16 +124,13 @@ function Group({ active, group }: { active: NavItem | undefined; group: NavGroup
 
 /**
  * The grey menu on the left, under the navy header and rounded where it meets it: the screens used
- * most on top, then Finanças, Planejamento and Automação, each opening and closing by its title,
- * and at the foot Perfil, Configurações and the button that collapses it to its icons (or
- * ⌘B/Ctrl+B). On a phone it slides in from the header's button.
+ * most on top, then Finanças, opening and closing by its title. ⌘B/Ctrl+B (or the command menu)
+ * collapses it to its icons. On a phone it slides in from the header's button.
  */
 export function AppSidebar() {
   const { pathname } = useLocation();
-  const { toggleSidebar } = useSidebar();
-  const { t } = useI18n();
   const nav = useNav();
-  const items = [...nav.main, ...nav.groups.flatMap(group => group.items), ...nav.footer];
+  const items = [...nav.main, ...nav.groups.flatMap(group => group.items)];
   const active = activeItem(items, pathname);
 
   return (
@@ -153,19 +148,6 @@ export function AppSidebar() {
           <Group active={active} group={group} key={group.key} />
         ))}
       </SidebarContent>
-      <SidebarFooter className="gap-1 px-3 pb-3 group-data-[collapsible=icon]:px-2">
-        <SidebarSeparator className="mx-0 mb-1" />
-        <NavItems active={active} items={nav.footer} />
-        <SidebarSeparator className="mx-0 my-1" />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton className={ITEM} onClick={toggleSidebar} tooltip={t('nav.collapse')}>
-              <PanelLeftIcon />
-              <span>{t('nav.collapse')}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }

@@ -48,7 +48,11 @@ export function OrganizationSettings() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    await rename({ variables: { name: value } }).catch(() => undefined);
+    // The new name shows everywhere at once; the old one comes back if the server says no.
+    await rename({
+      optimisticResponse: { renameOrganization: { ...organization, name: value.trim() } },
+      variables: { name: value },
+    }).catch(() => undefined);
     setName(null);
   };
 

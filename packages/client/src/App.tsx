@@ -6,6 +6,7 @@ import { Splash } from '@zapbots/ui/blocks/logo';
 import { Layout, Scrolling } from './components/Layout';
 import { authClient } from './lib/auth';
 import { isLanguage, useI18n } from './lib/i18n';
+import { DOCUMENTS_ENABLED } from './lib/nav';
 import { useAppliedTheme } from './lib/theme';
 import { useDocumentTitle } from './lib/title';
 import { LoginPage, ResetPasswordPage } from './pages/LoginPage';
@@ -19,6 +20,8 @@ function page<Name extends string, Props>(
 }
 
 const LandingPage = page(() => import('./pages/LandingPage'), 'LandingPage');
+const TermsPage = page(() => import('./pages/LegalPage'), 'TermsPage');
+const PrivacyPage = page(() => import('./pages/LegalPage'), 'PrivacyPage');
 const BotLayout = page(() => import('./components/BotLayout'), 'BotLayout');
 const CreditOperationPage = page(
   () => import('./pages/CreditOperationPage'),
@@ -29,7 +32,6 @@ const finance = <Name extends string>(name: Name) =>
 const IncomePage = finance('IncomePage');
 const FixedPage = finance('FixedPage');
 const EntriesPage = page(() => import('./pages/EntriesPage'), 'EntriesPage');
-const TaxesPage = page(() => import('./pages/TaxesPage'), 'TaxesPage');
 const PayoffPage = page(() => import('./pages/PayoffPage'), 'PayoffPage');
 const CalculatorsPage = page(() => import('./pages/CalculatorsPage'), 'CalculatorsPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
@@ -114,6 +116,8 @@ export function App() {
           <Route element={<LandingPage />} path="landing" />
           <Route element={<LoginPage />} path="sign-in" />
           <Route element={<ResetPasswordPage />} path="reset-password" />
+          <Route element={<TermsPage />} path="terms" />
+          <Route element={<PrivacyPage />} path="privacy" />
           <Route element={<Navigate replace to="/sign-in" />} path="*" />
         </Routes>
       </Suspense>
@@ -134,6 +138,23 @@ export function App() {
       />
       {/* A reset link opened while signed in still works; choosing the password signs out. */}
       <Route element={<ResetPasswordPage />} path="reset-password" />
+      {/* The Termos and the Política read the same signed in or out (docs/adr/0027). */}
+      <Route
+        element={
+          <Suspense fallback={null}>
+            <TermsPage />
+          </Suspense>
+        }
+        path="terms"
+      />
+      <Route
+        element={
+          <Suspense fallback={null}>
+            <PrivacyPage />
+          </Suspense>
+        }
+        path="privacy"
+      />
       <Route element={<Layout user={session.user} />}>
         <Route
           element={
@@ -162,13 +183,20 @@ export function App() {
         />
         <Route
           element={
-            <Scrolling>
-              <DocumentsPage />
-            </Scrolling>
+            DOCUMENTS_ENABLED ? (
+              <Scrolling>
+                <DocumentsPage />
+              </Scrolling>
+            ) : (
+              <Navigate replace to="/" />
+            )
           }
           path="documents"
         />
-        <Route element={<DocumentPage />} path="documents/:id" />
+        <Route
+          element={DOCUMENTS_ENABLED ? <DocumentPage /> : <Navigate replace to="/" />}
+          path="documents/:id"
+        />
         <Route element={<BotLayout bot="FINANCE" />} path="caishen">
           <Route element={<Navigate replace to="entries" />} index />
           <Route element={<EntriesPage />} path="entries" />
@@ -179,14 +207,14 @@ export function App() {
             element={<Navigate replace to="/caishen/fixed#subscriptions" />}
             path="subscriptions"
           />
-          <Route element={<TaxesPage />} path="taxes" />
+          <Route element={<Navigate replace to="/caishen/fixed#taxes" />} path="taxes" />
           <Route element={<Navigate replace to="/caishen/entries" />} path="reports" />
           <Route element={<PayoffPage />} path="payoff" />
           <Route element={<CalculatorsPage />} path="calculators" />
           {/* Old addresses: the tabs of Lançamentos, Visão geral, Relatório, Mês, Financeiro, Orçamento, Score. */}
           <Route element={<Navigate replace to="/caishen/income" />} path="entries/income" />
           <Route element={<LegacyFixed />} path="entries/fixed" />
-          <Route element={<Navigate replace to="/caishen/taxes" />} path="entries/taxes" />
+          <Route element={<Navigate replace to="/caishen/fixed#taxes" />} path="entries/taxes" />
           <Route element={<Navigate replace to="/caishen/entries" />} path="report" />
           {['overview', 'month', 'budget', 'credit'].map(path => (
             <Route element={<Navigate replace to="/caishen/entries" />} key={path} path={path} />

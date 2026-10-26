@@ -15,13 +15,14 @@ const TITLES: [RegExp, string][] = [
   [/^\/caishen\/entries/, 'Fluxo de caixa'],
   [/^\/caishen\/income/, 'Entradas'],
   [/^\/caishen\/fixed/, 'Gastos'],
-  [/^\/caishen\/taxes/, 'Impostos'],
   [/^\/caishen\/budget/, 'Orçamento'],
   [/^\/caishen\/payoff/, 'Sair das dívidas'],
   [/^\/caishen\/calculators/, 'Calculadoras'],
   [/^\/caishen\/credit/, 'Score de crédito'],
   [/^\/caishen\/operations/, 'Operação de crédito'],
   [/^\/sign-in/, 'Entrar'],
+  [/^\/terms/, 'Termos de Uso'],
+  [/^\/privacy/, 'Política de Privacidade'],
   [/^\/landing/, 'Saia das dívidas'],
 ];
 

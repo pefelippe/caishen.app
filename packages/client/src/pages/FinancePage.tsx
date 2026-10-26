@@ -83,6 +83,7 @@ import { ConfirmDelete } from '../components/ConfirmDelete';
 import { QueryError } from '../components/QueryError';
 import { EditRecordDialog } from '../components/EditRecordDialog';
 import { ScrPanel } from '../components/ScrPanel';
+import { useUndoableDelete } from '../components/Toaster';
 import { localToday } from '../lib/bots';
 import { ofxStatementTotal, parseOfx, readOfxText } from '../lib/ofx';
 import {
@@ -646,7 +647,7 @@ function daysLabel(days: number[]): string {
 /** A Fonte de Renda: what comes in every month, net, on one or more paydays. */
 export function IncomeForm({ holder, onDone }: { holder: Holder; onDone?: () => void }) {
   // 'active': the month on screen (Entradas, Lançamentos) shows the new payments too.
-  const [addIncome, { error }] = useMutation(AddIncomeSourceDocument, {
+  const [addIncome, { error, loading }] = useMutation(AddIncomeSourceDocument, {
     refetchQueries: 'active',
   });
   const [times, setTimes] = useState(1);
@@ -779,7 +780,7 @@ export function IncomeForm({ holder, onDone }: { holder: Holder; onDone?: () => 
           <Input id="income-starts" name="startsOn" type="date" />
         </Field>
       </div>
-      <Button className="self-start" type="submit">
+      <Button className="self-start" disabled={loading} type="submit">
         Salvar salário
       </Button>
       {error && <FormError error={error} />}
@@ -929,7 +930,7 @@ export function RecurringForm({
   holder: Holder;
   onDone?: () => void;
 }) {
-  const [add, { error }] = useMutation(AddRecurringExpenseDocument, {
+  const [add, { error, loading }] = useMutation(AddRecurringExpenseDocument, {
     refetchQueries: [HolderDocument],
   });
   const [more, setMore] = useState(false);
@@ -1093,7 +1094,7 @@ export function RecurringForm({
           </Field>
         </div>
       )}
-      <Button className="self-start" type="submit">
+      <Button className="self-start" disabled={loading} type="submit">
         Adicionar gasto recorrente
       </Button>
       {error && <FormError error={error} />}
@@ -1316,7 +1317,7 @@ function OneOffForm({
           <Input defaultValue={day} id="one-off-date" name="date" required type="date" />
         </Field>
       </div>
-      <Button className="self-start" type="submit">
+      <Button className="self-start" disabled={expense.loading || income.loading} type="submit">
         {direction === 'IN' ? 'Adicionar receita' : 'Adicionar gasto'}
       </Button>
       {error && <FormError error={error} />}
@@ -1425,7 +1426,7 @@ function taxLabel(tax: Holder['taxes'][number]): string {
 
 /** An Imposto: monthly, or yearly in one or more installments. */
 export function TaxForm({ holder, onDone }: { holder: Holder; onDone?: () => void }) {
-  const [addTax, { error }] = useMutation(AddTaxDocument, {
+  const [addTax, { error, loading }] = useMutation(AddTaxDocument, {
     refetchQueries: [HolderDocument],
   });
   const [frequency, setFrequency] = useState<TaxFrequency>('YEARLY');
@@ -1541,7 +1542,7 @@ export function TaxForm({ holder, onDone }: { holder: Holder; onDone?: () => voi
           />
         </Field>
       </div>
-      <Button className="self-start" type="submit">
+      <Button className="self-start" disabled={loading} type="submit">
         Adicionar imposto
       </Button>
       {error && <FormError error={error} />}
@@ -1549,10 +1550,13 @@ export function TaxForm({ holder, onDone }: { holder: Holder; onDone?: () => voi
   );
 }
 
-export function TaxesSection({ holder }: { holder: Holder }) {
+export function TaxesSection({ holder: saved }: { holder: Holder }) {
   const [deleteTax] = useMutation(DeleteTaxDocument, {
     refetchQueries: [HolderDocument],
   });
+  // A removed Imposto leaves the list and the yearly total at once, while its toast can undo it.
+  const { hidden, remove } = useUndoableDelete();
+  const holder = { ...saved, taxes: saved.taxes.filter(tax => !hidden.has(tax.id)) };
 
   return (
     <Part
@@ -1576,7 +1580,13 @@ export function TaxesSection({ holder }: { holder: Holder }) {
             action={
               <Button
                 aria-label={`Remover ${tax.name}`}
-                onClick={() => void deleteTax({ variables: { id: tax.id } })}
+                onClick={() =>
+                  remove({
+                    commit: () => deleteTax({ variables: { id: tax.id } }),
+                    ids: [tax.id],
+                    message: `Imposto removido: ${tax.name}`,
+                  })
+                }
                 size="icon-sm"
                 title="Remover"
                 variant="ghost"
@@ -1758,7 +1768,7 @@ export function OperationForm({
   type: OperationType;
 }) {
   const config = OPERATION_TYPES[type];
-  const [createOperation, { error }] = useMutation(CreateCreditOperationDocument, {
+  const [createOperation, { error, loading }] = useMutation(CreateCreditOperationDocument, {
     refetchQueries: [HolderDocument],
   });
   const [system, setSystem] = useState<'PRICE' | 'SAC'>('PRICE');
@@ -1888,7 +1898,7 @@ export function OperationForm({
             <Input id="op-collateral" name="collateral" placeholder="Opcional" />
           </Field>
         )}
-        <Button className="mt-5.5" type="submit">
+        <Button className="mt-5.5" disabled={loading} type="submit">
           {config.submit}
         </Button>
       </form>
@@ -1913,7 +1923,7 @@ export function OperationForm({
 }
 
 export function CardForm({ holder, onDone }: { holder: Holder; onDone?: () => void }) {
-  const [createCard, { error }] = useMutation(CreateCreditCardDocument, {
+  const [createCard, { error, loading }] = useMutation(CreateCreditCardDocument, {
     refetchQueries: [HolderDocument],
   });
 
@@ -1959,7 +1969,7 @@ export function CardForm({ holder, onDone }: { holder: Holder; onDone?: () => vo
         <Field id="card-due" label="Dia de vencimento">
           <Input id="card-due" max={31} min={1} name="dueDay" required type="number" />
         </Field>
-        <Button className="mt-5.5" type="submit">
+        <Button className="mt-5.5" disabled={loading} type="submit">
           Adicionar cartão
         </Button>
       </form>
@@ -2121,7 +2131,7 @@ function CardSheet({ card, recurring }: { card: Card; recurring: Recurring[] }) 
 
 /** A Fatura typed in: the month it is due and how much. The same month again replaces it. */
 function StatementForm({ card }: { card: Card }) {
-  const [upsertStatement, { error }] = useMutation(UpsertStatementDocument, {
+  const [upsertStatement, { error, loading }] = useMutation(UpsertStatementDocument, {
     refetchQueries: [HolderDocument],
   });
 
@@ -2163,7 +2173,7 @@ function StatementForm({ card }: { card: Card }) {
             required
           />
         </Field>
-        <Button className="mt-5.5" type="submit" variant="outline">
+        <Button className="mt-5.5" disabled={loading} type="submit" variant="outline">
           Salvar Fatura
         </Button>
       </form>
