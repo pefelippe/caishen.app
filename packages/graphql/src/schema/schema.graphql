@@ -974,6 +974,8 @@ type CreditCard {
   closingDay: Int!
   dueDay: Int!
   statements: [Statement!]!
+  "How much of the limit is in use, as the bank reports it; only on a Cartão read through Open Finance."
+  usedCents: Cents
 }
 
 type Statement {

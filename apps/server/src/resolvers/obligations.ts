@@ -54,6 +54,14 @@ function checkDay(day: number, label: string) {
 
 export const obligationResolvers: Resolvers = {
   CreditCard: {
+    usedCents: async card => {
+      if (!card.bankAccountId) return null;
+      const [account] = await db
+        .select({ balanceCents: schema.bankAccount.balanceCents })
+        .from(schema.bankAccount)
+        .where(eq(schema.bankAccount.id, card.bankAccountId));
+      return account?.balanceCents ?? null;
+    },
     statements: card =>
       db
         .select()

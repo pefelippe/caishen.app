@@ -14,11 +14,11 @@ import { badInput, findHolder, notFound, owned } from '../../resolvers/guards';
 import { MAX_IMPORTED_EXPENSES, importExpenses } from '../records';
 import { viewerHolder } from '../viewerHolder';
 import { pluggy } from './pluggy';
-import type { OpenFinanceProvider } from './provider';
+import type { OpenFinanceProvider, ProviderAccount } from './provider';
 
 /**
  * Open Finance (docs/adr/0020): a bank a Titular authorized, read through a provider, its debits
- * brought in as Gastos. Only reads (docs/adr/0009); the consent is given at the bank.
+ * brought in as Gastos and its cards as Cartões with their Faturas. Only reads (docs/adr/0009); the consent is given at the bank.
  */
 const provider: OpenFinanceProvider = pluggy;
 
@@ -73,6 +73,65 @@ export function bankAccounts(link: BankLinkRow) {
 }
 
 /**
+ * A card of the bank as the Titular's Cartão: made on its first read, then its limit, days and
+ * Faturas follow the bank (its name stays as the User leaves it). Its Gastos are not brought in:
+ * the Fatura counts them.
+ */
+async function syncCard(
+  link: BankLinkRow,
+  account: ProviderAccount,
+  bankAccountId: string,
+  organizationId: string
+) {
+  const bills = await provider.bills(account.externalId);
+  const latest = bills.reduce<(typeof bills)[number] | undefined>(
+    (last, bill) => (!last || bill.dueDate > last.dueDate ? bill : last),
+    undefined
+  );
+  // The last Fatura's days, or the bank's word on the open one.
+  const dayOf = (date?: string | null) => (date ? Number(date.slice(8, 10)) : null);
+  const dueDay = dayOf(latest?.dueDate) ?? account.credit?.dueDay;
+  const closingDay = dayOf(latest?.closingDate) ?? account.credit?.closingDay;
+  const known = {
+    ...(account.credit?.limitCents != null && { limitCents: account.credit.limitCents }),
+    ...(dueDay && { dueDay }),
+    ...(closingDay && { closingDay }),
+  };
+  const [card] = await db
+    .insert(schema.creditCard)
+    .values({
+      bankAccountId,
+      // A card the bank says little about still gets days, until a Fatura tells them.
+      closingDay: 1,
+      dueDay: 10,
+      holderId: link.holderId,
+      issuer: link.institution,
+      limitCents: 0,
+      name: account.name,
+      organizationId,
+      ...known,
+    })
+    .onConflictDoUpdate({
+      set: { ...known, updatedAt: new Date() },
+      target: schema.creditCard.bankAccountId,
+    })
+    .returning({ id: schema.creditCard.id });
+  for (const bill of bills) {
+    await db
+      .insert(schema.statement)
+      .values({
+        amountCents: bill.amountCents,
+        creditCardId: card!.id,
+        referenceMonth: bill.dueDate.slice(0, 7),
+      })
+      .onConflictDoUpdate({
+        set: { amountCents: bill.amountCents, updatedAt: new Date() },
+        target: [schema.statement.creditCardId, schema.statement.referenceMonth],
+      });
+  }
+}
+
+/**
  * Links a bank by the provider's id for it (Meu Pluggy's item, copied from Pluggy's dashboard),
  * records the consent and reads it a first time.
  */
@@ -122,7 +181,7 @@ export async function linkBank(viewer: Viewer, itemId: string) {
  * Reads a Vínculo bancário again: its state, its accounts and the accounts' new lines. Money out
  * of an account becomes Gastos, but not paying a Fatura, which the Fatura already counts, nor
  * money moved to the Titular's investments or own accounts; money in is left out (salary is a
- * Fonte de Renda). Cards are only listed for now.
+ * Fonte de Renda). A card becomes a Cartão, its limit and Faturas read from the bank.
  */
 export async function syncBankLink(viewer: Viewer, id: string) {
   await requireOpenFinance(viewer);
@@ -150,9 +209,17 @@ export async function syncBankLink(viewer: Viewer, id: string) {
       ? addDays(link.lastSyncedAt.toISOString().slice(0, 10), -OVERLAP_DAYS)
       : addDays(today(), -FIRST_READ_DAYS);
     for (const account of await provider.accounts(link.externalId)) {
-      await db
+      const [saved] = await db
         .insert(schema.bankAccount)
-        .values({ ...account, bankLinkId: link.id, organizationId: viewer.organizationId })
+        .values({
+          balanceCents: account.balanceCents,
+          bankLinkId: link.id,
+          externalId: account.externalId,
+          kind: account.kind,
+          name: account.name,
+          number: account.number,
+          organizationId: viewer.organizationId,
+        })
         .onConflictDoUpdate({
           set: {
             balanceCents: account.balanceCents,
@@ -162,8 +229,12 @@ export async function syncBankLink(viewer: Viewer, id: string) {
             updatedAt: new Date(),
           },
           target: [schema.bankAccount.bankLinkId, schema.bankAccount.externalId],
-        });
-      if (account.kind !== 'BANK') continue;
+        })
+        .returning({ id: schema.bankAccount.id });
+      if (account.kind === 'CREDIT') {
+        await syncCard(link, account, saved!.id, viewer.organizationId);
+        continue;
+      }
       const rows = (await provider.transactions(account.externalId, since))
         .filter(
           line =>
@@ -203,7 +274,7 @@ export async function syncBankLink(viewer: Viewer, id: string) {
 }
 
 /**
- * Unlinks a bank: its accounts and the Gastos that came from it go, and the consent is marked
+ * Unlinks a bank: its accounts, the Cartões read from them and the Gastos that came from it go, and the consent is marked
  * revoked. The authorization at the bank ends in Meu Pluggy, where it was given.
  */
 export async function unlinkBank(viewer: Viewer, id: string): Promise<boolean> {

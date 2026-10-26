@@ -409,6 +409,7 @@ query Home($month: String!) {
       name
       issuer
       limitCents
+      usedCents
       statements {
         id
         referenceMonth

@@ -1,0 +1,3 @@
+ALTER TABLE "credit_card" ADD COLUMN "bank_account_id" uuid;--> statement-breakpoint
+ALTER TABLE "credit_card" ADD CONSTRAINT "credit_card_bank_account_id_bank_account_id_fk" FOREIGN KEY ("bank_account_id") REFERENCES "public"."bank_account"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "credit_card" ADD CONSTRAINT "credit_card_bank_account_unique" UNIQUE("bank_account_id");

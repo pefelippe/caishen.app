@@ -51,6 +51,24 @@ const UNLINK = /* GraphQL */ `
     unlinkBank(id: $id)
   }
 `;
+const CARDS = /* GraphQL */ `
+  query ($id: ID!) {
+    holder(id: $id) {
+      creditCards {
+        name
+        issuer
+        limitCents
+        closingDay
+        dueDay
+        usedCents
+        statements {
+          referenceMonth
+          amountCents
+        }
+      }
+    }
+  }
+`;
 const CONNECTIONS = /* GraphQL */ `
   query {
     connections {
@@ -88,6 +106,7 @@ function bank(): { itemId: string; item: FakeItem } {
         },
         {
           balance: 800,
+          creditData: { balanceDueDate: '2026-09-28T00:00:00.000Z', creditLimit: 5000 },
           id: `${id}-card`,
           name: 'Nubank Ultravioleta',
           number: '9876',
@@ -139,6 +158,20 @@ function bank(): { itemId: string; item: FakeItem } {
         ],
         [`${id}-card`]: [
           [{ amount: 99, date: daysAgo(2), description: 'Loja', id: `${id}-c1`, type: 'DEBIT' }],
+        ],
+      },
+      bills: {
+        [`${id}-card`]: [
+          {
+            billClosingDate: '2026-09-21T00:00:00.000Z',
+            dueDate: '2026-09-28T00:00:00.000Z',
+            totalAmount: 932.72,
+          },
+          {
+            billClosingDate: '2026-08-21T00:00:00.000Z',
+            dueDate: '2026-08-28T00:00:00.000Z',
+            totalAmount: 520.25,
+          },
         ],
       },
     },
@@ -194,9 +227,14 @@ describe('Open Finance through Meu Pluggy', () => {
     ]);
     const second = fake.requests.find(url => url.searchParams.get('after') === '1');
     expect(second?.searchParams.get('accountId')).toBe(`${itemId}-acc`);
-    expect(fake.requests.some(url => url.searchParams.get('accountId') === `${itemId}-card`)).toBe(
-      false
-    );
+    // The card's lines are not Gastos: its Fatura counts them.
+    expect(
+      fake.requests.some(
+        url =>
+          url.pathname === '/v2/transactions' &&
+          url.searchParams.get('accountId') === `${itemId}-card`
+      )
+    ).toBe(false);
 
     const expenses = await expensesOf(viewer);
     expect(expenses.map(row => [row.description, row.amountCents, row.imported]).sort()).toEqual([
@@ -218,6 +256,66 @@ describe('Open Finance through Meu Pluggy', () => {
     expect((await gql(viewer, SYNC, { id: link })).data.syncBankLink.added).toBe(1);
     // Pasting the same item again reads it, without a second link.
     expect((await gql(viewer, LINK, { itemId })).data.linkBank.link.id).toBe(link);
+  });
+
+  it('reads a card as a Cartão, its limit and Faturas following the bank', async () => {
+    const viewer = await createViewer();
+    await allow(viewer);
+    const { item, itemId } = bank();
+    mswServer.use(...pluggyHandlers({ [itemId]: item }).handlers);
+    const { data } = await gql(viewer, LINK, { itemId });
+    const holder = await viewerHolder(viewer);
+
+    const { data: read } = await gql(viewer, CARDS, { id: holder.id });
+    expect(read.holder.creditCards).toEqual([
+      {
+        closingDay: 21,
+        dueDay: 28,
+        issuer: 'MeuPluggy',
+        limitCents: 500000,
+        name: 'Nubank Ultravioleta',
+        statements: [
+          { amountCents: 52025, referenceMonth: '2026-08' },
+          { amountCents: 93272, referenceMonth: '2026-09' },
+        ],
+        usedCents: 80000,
+      },
+    ]);
+
+    // Renamed by the User, the name stays; the limit and a new Fatura come from the bank.
+    const [card] = await db
+      .update(schema.creditCard)
+      .set({ name: 'Roxinho' })
+      .where(eq(schema.creditCard.holderId, holder.id))
+      .returning();
+    item.accounts[1]!.creditData!.creditLimit = 6000;
+    item.bills![`${itemId}-card`]!.unshift({
+      billClosingDate: '2026-10-21T00:00:00.000Z',
+      dueDate: '2026-10-28T00:00:00.000Z',
+      totalAmount: 100,
+    });
+    await gql(viewer, SYNC, { id: data.linkBank.link.id });
+    const { data: again } = await gql(viewer, CARDS, { id: holder.id });
+    expect(again.holder.creditCards).toHaveLength(1);
+    expect(again.holder.creditCards[0]).toMatchObject({ limitCents: 600000, name: 'Roxinho' });
+    expect(again.holder.creditCards[0].statements).toHaveLength(3);
+
+    // A Cartão typed in is not one of the bank's.
+    await db.insert(schema.creditCard).values({
+      closingDay: 5,
+      dueDay: 12,
+      holderId: holder.id,
+      limitCents: 100000,
+      name: 'Digitado',
+      organizationId: viewer.organizationId,
+    });
+    await gql(viewer, UNLINK, { id: data.linkBank.link.id });
+    const left = await db
+      .select({ id: schema.creditCard.id, name: schema.creditCard.name })
+      .from(schema.creditCard)
+      .where(eq(schema.creditCard.holderId, holder.id));
+    expect(left.map(row => row.name)).toEqual(['Digitado']);
+    expect(left.some(row => row.id === card!.id)).toBe(false);
   });
 
   it('keeps one bank to one Organization, and its link to itself', async () => {

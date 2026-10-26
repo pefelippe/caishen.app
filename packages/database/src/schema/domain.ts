@@ -1,6 +1,7 @@
 import { MODALITY_KEYS } from '@zapbots/finance';
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   date,
@@ -346,6 +347,13 @@ export const extraAmortization = pgTable('extra_amortization', {
 export const creditCard = pgTable(
   'credit_card',
   {
+    /**
+     * The Open Finance card it is read from (docs/adr/0020): its limit, days and Faturas come from
+     * the bank on each read. `null` when typed in.
+     */
+    bankAccountId: uuid('bank_account_id')
+      .unique('credit_card_bank_account_unique')
+      .references((): AnyPgColumn => bankAccount.id, { onDelete: 'cascade' }),
     closingDay: integer('closing_day').notNull(),
     dueDay: integer('due_day').notNull(),
     holderId: uuid('holder_id')

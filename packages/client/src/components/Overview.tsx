@@ -113,7 +113,12 @@ function Cards({ cards }: { cards: CreditCard[] }) {
   const open = cards.map(card => ({ card, statement: openStatement(card) }));
   const total = open.reduce((sum, { statement }) => sum + (statement?.amountCents ?? 0), 0);
   const limit = cards.reduce((sum, card) => sum + card.limitCents, 0);
-  const used = limit ? Math.min(total / limit, 1) : 0;
+  // What the bank says is in use (installments to come included), or else the open Fatura.
+  const inUse = open.reduce(
+    (sum, { card, statement }) => sum + (card.usedCents ?? statement?.amountCents ?? 0),
+    0
+  );
+  const used = limit ? Math.min(inUse / limit, 1) : 0;
   return (
     <OverviewCard figure={formatCents(total)} icon={CreditCardIcon} title="Cartões de crédito">
       {cards.length ? (

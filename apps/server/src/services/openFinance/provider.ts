@@ -13,12 +13,27 @@ export interface ProviderItem {
 }
 
 export interface ProviderAccount {
-  /** Whole cents; for a CREDIT account, what the provider reports as its balance. */
+  /** Whole cents; for a CREDIT account, how much of its limit is in use. */
   balanceCents: number | null;
+  /** A CREDIT account's limit and days, as far as the bank reports them; `null` for a BANK one. */
+  credit: {
+    closingDay: number | null;
+    dueDay: number | null;
+    limitCents: number | null;
+  } | null;
   externalId: string;
   kind: 'BANK' | 'CREDIT';
   name: string;
   number: string | null;
+}
+
+/** A card's Fatura, closed by the bank. */
+export interface ProviderBill {
+  amountCents: number;
+  /** `YYYY-MM-DD`, when the bank says. */
+  closingDate: string | null;
+  /** `YYYY-MM-DD`. */
+  dueDate: string;
 }
 
 /** One line of an account: money out (`OUT`) or in, in positive whole cents. */
@@ -38,6 +53,8 @@ export interface OpenFinanceProvider {
   /** `null` when the provider has no such item. */
   item(id: string): Promise<ProviderItem | null>;
   accounts(itemId: string): Promise<ProviderAccount[]>;
+  /** The Faturas of a CREDIT account. */
+  bills(accountId: string): Promise<ProviderBill[]>;
   /** The settled lines of an account dated `since` (`YYYY-MM-DD`) or later. */
   transactions(accountId: string, since: string): Promise<ProviderTransaction[]>;
 }

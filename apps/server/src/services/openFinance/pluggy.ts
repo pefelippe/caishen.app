@@ -3,6 +3,7 @@ import { Decimal, toCents } from '@zapbots/finance';
 import type {
   OpenFinanceProvider,
   ProviderAccount,
+  ProviderBill,
   ProviderItem,
   ProviderTransaction,
 } from './provider';
@@ -60,11 +61,22 @@ interface Item {
 
 interface Account {
   balance?: number | null;
+  creditData?: {
+    balanceCloseDate?: string | null;
+    balanceDueDate?: string | null;
+    creditLimit?: number | null;
+  } | null;
   id: string;
   marketingName?: string | null;
   name: string;
   number?: string | null;
   type: 'BANK' | 'CREDIT';
+}
+
+interface Bill {
+  billClosingDate?: string | null;
+  dueDate: string;
+  totalAmount: number;
 }
 
 interface Transaction {
@@ -75,6 +87,9 @@ interface Transaction {
   status?: string | null;
   type: 'CREDIT' | 'DEBIT';
 }
+
+/** The day of the month of one of Pluggy's dates (`2026-09-28T00:00:00.000Z`). */
+const dayOf = (date?: string | null) => (date ? Number(date.slice(8, 10)) : null);
 
 function itemOf(item: Item): ProviderItem {
   const expired = item.error?.code === 'USER_AUTHORIZATION_EXPIRED';
@@ -93,12 +108,42 @@ export const pluggy: OpenFinanceProvider = {
     return (page?.results ?? []).map(
       (account): ProviderAccount => ({
         balanceCents: account.balance == null ? null : cents(account.balance),
+        credit:
+          account.type === 'CREDIT'
+            ? {
+                closingDay: dayOf(account.creditData?.balanceCloseDate),
+                dueDay: dayOf(account.creditData?.balanceDueDate),
+                limitCents:
+                  account.creditData?.creditLimit == null
+                    ? null
+                    : cents(account.creditData.creditLimit),
+              }
+            : null,
         externalId: account.id,
         kind: account.type,
         name: account.marketingName || account.name,
         number: account.number ?? null,
       })
     );
+  },
+  // `/bills` pages by number, newest first.
+  bills: async accountId => {
+    const bills: ProviderBill[] = [];
+    for (let page = 1, pages = 1; page <= pages; page++) {
+      const result = await get<{ results: Bill[]; totalPages?: number }>('/bills', {
+        accountId,
+        page: String(page),
+      });
+      for (const bill of result?.results ?? []) {
+        bills.push({
+          amountCents: cents(bill.totalAmount),
+          closingDate: bill.billClosingDate?.slice(0, 10) ?? null,
+          dueDate: bill.dueDate.slice(0, 10),
+        });
+      }
+      pages = result?.totalPages ?? 1;
+    }
+    return bills;
   },
   configured: () => Boolean(process.env.PLUGGY_CLIENT_ID && process.env.PLUGGY_CLIENT_SECRET),
   item: async id => {

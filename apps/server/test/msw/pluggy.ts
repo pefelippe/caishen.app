@@ -11,9 +11,16 @@ export interface FakeTransaction {
   type: 'CREDIT' | 'DEBIT';
 }
 
+export interface FakeBill {
+  billClosingDate: string;
+  dueDate: string;
+  totalAmount: number;
+}
+
 export interface FakeItem {
   accounts: {
     balance: number;
+    creditData?: { balanceDueDate: string; creditLimit: number };
     id: string;
     name: string;
     number: string;
@@ -21,13 +28,15 @@ export interface FakeItem {
   }[];
   error?: { code: string; message: string };
   status?: string;
+  /** Per card, its Faturas, newest first, as one page. */
+  bills?: Record<string, FakeBill[]>;
   /** Per account, pages of lines: each page's `next` points at the following one. */
   transactions: Record<string, FakeTransaction[][]>;
 }
 
 /**
- * Fakes the parts of Pluggy's API zapbots reads: `/auth`, `/items/:id`, `/accounts` and the
- * cursor-paged `/v2/transactions`. Records what was asked, so tests see the cursor followed.
+ * Fakes the parts of Pluggy's API zapbots reads: `/auth`, `/items/:id`, `/accounts`, `/bills` and
+ * the cursor-paged `/v2/transactions`. Records what was asked, so tests see the cursor followed.
  */
 export function pluggyHandlers(items: Record<string, FakeItem>): {
   handlers: HttpHandler[];
@@ -60,6 +69,15 @@ export function pluggyHandlers(items: Record<string, FakeItem>): {
       requests.push(url);
       const item = items[url.searchParams.get('itemId') ?? ''];
       return HttpResponse.json({ page: 1, results: item?.accounts ?? [], total: 0, totalPages: 1 });
+    }),
+    http.get(`${API}/bills`, ({ request }) => {
+      const url = new URL(request.url);
+      requests.push(url);
+      const accountId = url.searchParams.get('accountId') ?? '';
+      const results = Object.values(items).find(item => item.bills?.[accountId])?.bills?.[
+        accountId
+      ];
+      return HttpResponse.json({ page: 1, results: results ?? [], total: 0, totalPages: 1 });
     }),
     http.get(`${API}/v2/transactions`, ({ request }) => {
       const url = new URL(request.url);
