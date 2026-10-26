@@ -105,7 +105,11 @@ export const auth = betterAuth({
   // production alias); signing in from any of them must work, not only from CLIENT_ORIGIN.
   trustedOrigins: [
     clientOrigin,
-    ...[process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
+    ...[
+      process.env.VERCEL_URL,
+      process.env.VERCEL_BRANCH_URL,
+      process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    ]
       .filter(Boolean)
       .map(host => `https://${host}`),
   ],
