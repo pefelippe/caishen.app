@@ -198,12 +198,20 @@ const apollo = new ApolloServer<Context>({
 });
 await apollo.start();
 
+/** A client's Idempotency-Key, if it looks like one (Stripe takes up to 255 characters). */
+function idempotencyKey(value: string | undefined): string | undefined {
+  return value && /^[\w-]{8,200}$/.test(value) ? value : undefined;
+}
+
 app.use(
   '/graphql',
   // An imported statement goes in one mutation: up to MAX_IMPORTED_EXPENSES lines.
   express.json({ limit: '1mb' }),
   expressMiddleware(apollo, {
-    context: async ({ req }) => ({ viewer: await resolveViewer(req.headers) }),
+    context: async ({ req }) => ({
+      idempotencyKey: idempotencyKey(req.header('idempotency-key')),
+      viewer: await resolveViewer(req.headers),
+    }),
   })
 );
 

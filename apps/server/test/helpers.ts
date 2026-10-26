@@ -40,15 +40,19 @@ interface Result {
   errors: string[];
 }
 
-/** Runs a GraphQL operation as `viewer` through the real schema and resolvers. */
+/**
+ * Runs a GraphQL operation as `viewer` through the real schema and resolvers; `context` adds what
+ * the request's headers would (e.g. `idempotencyKey`).
+ */
 export async function gql(
   viewer: Viewer | null,
   query: string,
-  variables: Record<string, unknown> = {}
+  variables: Record<string, unknown> = {},
+  context: Omit<Context, 'viewer'> = {}
 ): Promise<Result> {
   const response = await apollo.executeOperation(
     { query, variables },
-    { contextValue: { viewer } }
+    { contextValue: { ...context, viewer } }
   );
   if (response.body.kind !== 'single') throw new Error('Unexpected incremental response');
   const { data, errors } = response.body.singleResult;
