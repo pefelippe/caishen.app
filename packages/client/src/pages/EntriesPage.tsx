@@ -5,7 +5,6 @@ import {
   ExpenseImportsDocument,
   ImportExpensesDocument,
   PeriodDocument,
-  UpdateRecordDocument,
   ViewerHolderDocument,
   type ImportAccountKind,
   type MonthLineKind,
@@ -13,22 +12,27 @@ import {
 } from '@zapbots/graphql/client';
 import { addDays, addMonths } from '@zapbots/finance';
 import {
+  ArrowDownLeftIcon,
+  ArrowUpRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ClockIcon,
   DownloadIcon,
   FileSpreadsheetIcon,
   PrinterIcon,
+  ReceiptIcon,
   SearchIcon,
   Trash2Icon,
   UploadIcon,
   XIcon,
+  type LucideIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { Badge } from '@zapbots/ui/components/badge';
 import { Button } from '@zapbots/ui/components/button';
+import { Card } from '@zapbots/ui/components/card';
 import { Checkbox } from '@zapbots/ui/components/checkbox';
 import {
   Dialog,
@@ -54,25 +58,17 @@ import {
   SelectValue,
 } from '@zapbots/ui/components/select';
 import { Skeleton } from '@zapbots/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@zapbots/ui/components/table';
+import { Table, TableBody, TableCell, TableRow } from '@zapbots/ui/components/table';
 import { cn } from '@zapbots/ui/lib/utils';
 
 import { ConfirmDelete } from '../components/ConfirmDelete';
+import { EditRecordDialog } from '../components/EditRecordDialog';
 import { ACCOUNT_KINDS, ImportsCard } from '../components/ImportsCard';
-import { MonthSummary } from '../components/MonthSummary';
 import { QueryError } from '../components/QueryError';
 import { useUndoableDelete } from '../components/Toaster';
 import { AddEntryButton } from './FinancePage';
 import { FormError } from '../components/FormError';
 import { localToday } from '../lib/bots';
-import { friendlyError } from '../lib/errors';
 import { formatCents, formatDate } from '../lib/format';
 import { ofxExpenses, parseOfx, readOfxText, type OfxStatement } from '../lib/ofx';
 import { PdfError, readPdfTable } from '../lib/pdf';
@@ -189,12 +185,6 @@ const SHORT_MONTHS = [
   'dez',
 ];
 
-/** "05 out", and "05 out 2025" when the line is not in `year`. */
-function shortDate(iso: string, year: string) {
-  const [y, m, d] = iso.slice(0, 10).split('-') as [string, string, string];
-  const day = `${d} ${SHORT_MONTHS[Number(m) - 1]}`;
-  return y === year ? day : `${day} ${y}`;
-}
 
 /** Where each kind of line is filed when it has no category of its own. */
 const KIND_CATEGORIES: Record<MonthLineKind, string> = {
@@ -296,96 +286,95 @@ function entriesOf(statement: Statement): Entry[] {
 
 type Filter = 'ALL' | 'IN' | 'OUT';
 
-/** Cents as people type them back: 4590 → "45,90". */
-const typed = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
-
-/** Moves to the same column in the row `delta` away, as Enter and Shift+Enter do in a spreadsheet. */
-function moveFrom(cell: HTMLInputElement, delta: number) {
-  const [column, row] = (cell.dataset.cell ?? '').split(':');
-  const next = document.querySelector<HTMLInputElement>(
-    `[data-cell="${column}:${Number(row) + delta}"]`
+/** "Sábado". */
+function weekday(iso: string) {
+  const name = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', weekday: 'long' }).format(
+    new Date(`${iso.slice(0, 10)}T00:00:00Z`)
   );
-  if (next) next.focus();
-  else cell.blur();
+  return name[0]!.toUpperCase() + name.slice(1);
+}
+
+interface CategoryTotal {
+  amountCents: number;
+  name: string;
+}
+
+/** Spending by category, largest first: the first seven, then the rest together as Outras. */
+function byCategory(entries: Entry[]): CategoryTotal[] {
+  const totals = new Map<string, number>();
+  for (const entry of entries) {
+    totals.set(entry.category, (totals.get(entry.category) ?? 0) + entry.amountCents);
+  }
+  const sorted = [...totals]
+    .map(([name, amountCents]) => ({ amountCents, name }))
+    .sort((a, b) => b.amountCents - a.amountCents);
+  if (sorted.length <= 8) return sorted;
+  const rest = sorted.slice(7).reduce((total, category) => total + category.amountCents, 0);
+  return [...sorted.slice(0, 7), { amountCents: rest, name: 'Outras' }];
 }
 
 /**
- * One cell of the sheet you can type in: it saves when you leave it or press Enter (which also
- * moves down a row), and Esc puts back what was there. It reads as plain text until touched.
+ * One kind of spending of the period by category, after Meu Pluggy's: the total on top, then each
+ * category with its amount and a bar as long as its share of the largest one. One color for every
+ * bar: they measure how much, and the name beside each says which.
  */
-function SheetCell({
-  align,
-  cell,
-  label,
-  list,
-  className,
-  onCommit,
-  placeholder,
-  type = 'text',
-  value,
+function CategoryCard({
+  empty,
+  icon: Icon,
+  note,
+  title,
+  total,
+  rows,
 }: {
-  align?: 'right';
-  className?: string;
-  placeholder?: string;
-  /** "column:row", for moving between cells with Enter. */
-  cell: string;
-  label: string;
-  list?: string;
-  /** Saves the new value; false puts the old one back. */
-  onCommit: (value: string) => Promise<boolean>;
-  type?: 'date' | 'text';
-  value: string;
+  empty: string;
+  icon: LucideIcon;
+  note: string;
+  rows: CategoryTotal[];
+  title: string;
+  total: number;
 }) {
-  const [draft, setDraft] = useState(value);
-  const [saving, setSaving] = useState(false);
-  useEffect(() => setDraft(value), [value]);
-
-  const commit = async () => {
-    const next = draft.trim();
-    if (next === value) return;
-    setSaving(true);
-    const saved = await onCommit(next);
-    setSaving(false);
-    if (!saved) setDraft(value);
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      moveFrom(event.currentTarget, event.shiftKey ? -1 : 1);
-    } else if (event.key === 'Escape') {
-      setDraft(value);
-      // Leave the cell without saving what was undone.
-      requestAnimationFrame(() => (event.target as HTMLInputElement).blur());
-    }
-  };
-
+  const largest = rows[0]?.amountCents ?? 0;
   return (
-    <Input
-      aria-label={label}
-      className={cn(
-        'h-8 rounded-md border-transparent bg-transparent px-2 shadow-none hover:border-border focus-visible:border-ring focus-visible:bg-card print:border-0',
-        align === 'right' && 'text-right tabular-nums',
-        saving && 'opacity-60',
-        className
-      )}
-      data-cell={cell}
-      inputMode={align === 'right' ? 'decimal' : undefined}
-      list={list}
-      onBlur={() => void commit()}
-      onChange={event => setDraft(event.target.value)}
-      onKeyDown={onKeyDown}
-      placeholder={placeholder}
-      type={type}
-      value={draft}
-    />
+    <Card className="gap-0 p-0">
+      <div className="flex flex-col gap-1 px-6 pt-6 pb-5">
+        <p className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+          <Icon className="size-4 text-primary" />
+          {title}
+        </p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+          {formatCents(total)}
+        </p>
+        <p className="text-sm text-muted-foreground">{note}</p>
+      </div>
+      <ul className="flex flex-col gap-4 border-t px-6 py-5">
+        {rows.map(row => {
+          const share = total ? Math.round((row.amountCents / total) * 100) : 0;
+          return (
+            <li key={row.name} title={`${row.name}: ${formatCents(row.amountCents)} (${share}%)`}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="truncate">{row.name}</span>
+                <span className="shrink-0 tabular-nums">{formatCents(row.amountCents)}</span>
+              </div>
+              <div className="mt-1.5 h-1.5 rounded-full bg-muted">
+                <div
+                  className="h-full min-w-1 rounded-full bg-primary"
+                  style={{ width: `${largest ? (row.amountCents / largest) * 100 : 0}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+        {!rows.length && <li className="text-sm text-muted-foreground">{empty}</li>}
+      </ul>
+    </Card>
   );
 }
 
 /**
- * Lançamentos: one month of money as one spreadsheet. Salários, Parcelas, Faturas and Impostos show
- * up by themselves (from Gastos); Receitas avulsas and Gastos are typed in here, and
- * Gastos also come in from a .csv or .xlsx. It filters, totals, and exports as CSV or PDF.
+ * Fluxo de caixa, after Meu Pluggy's: what was spent and what is still to be spent in the period,
+ * by category, then every line of the period by day. Salários, Parcelas, Faturas and Impostos show
+ * up by themselves (from Gastos); Receitas avulsas and Gastos are typed in here, or imported from a
+ * file. It filters, totals, and exports as CSV or PDF.
  */
 export function EntriesPage() {
   const [params, setParams] = useSearchParams();
@@ -414,7 +403,82 @@ export function EntriesPage() {
   const [readError, setReadError] = useState<string | null>(null);
   const file = isMonth ? month : `${from}_${to}`;
 
-  // Only the month's part of the page waits or fails; the header and the tabs always show.
+  // The period, at the top of the list as in Meu Pluggy's: walked by month with the arrows, or
+  // picked from the spans.
+  const periodBar = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {isMonth && (
+        <Button
+          aria-label="Mês anterior"
+          className="rounded-xl print:hidden"
+          onClick={() => go(-1)}
+          size="icon"
+          variant="outline"
+        >
+          <ChevronLeftIcon />
+        </Button>
+      )}
+      <motion.h2
+        animate={{ opacity: 1, y: 0 }}
+        className="min-w-0 px-2 text-lg font-medium"
+        initial={{ opacity: 0, y: 6 }}
+        key={`${from}..${to}`}
+      >
+        {name}
+        {!isMonth && preset !== 'custom' && (
+          <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
+            {spanName(from, to)}
+          </span>
+        )}
+      </motion.h2>
+      {isMonth && (
+        <Button
+          aria-label="Próximo mês"
+          className="rounded-xl print:hidden"
+          onClick={() => go(1)}
+          size="icon"
+          variant="outline"
+        >
+          <ChevronRightIcon />
+        </Button>
+      )}
+      <Select onValueChange={value => choose(value as Preset)} value={preset}>
+        <SelectTrigger aria-label="Período" className="h-9 rounded-xl print:hidden">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PRESETS.map(item => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {preset === 'custom' && (
+        <div className="flex items-center gap-2">
+          <Input
+            aria-label="De"
+            className="w-40 rounded-xl"
+            max={to}
+            onChange={event => setSpan('from', event.target.value)}
+            type="date"
+            value={from}
+          />
+          <span className="text-muted-foreground">até</span>
+          <Input
+            aria-label="Até"
+            className="w-40 rounded-xl"
+            min={from}
+            onChange={event => setSpan('to', event.target.value)}
+            type="date"
+            value={to}
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  // Only the period's part of the page waits or fails; the title and the period always show.
   const body = viewer.error ? (
     <QueryError
       error={viewer.error}
@@ -422,15 +486,21 @@ export function EntriesPage() {
       title="Não foi possível carregar suas finanças"
     />
   ) : backwards ? (
-    <FormError message="O início do período vem depois do fim. Troque as datas." />
+    <>
+      <Card>{periodBar}</Card>
+      <FormError message="O início do período vem depois do fim. Troque as datas." />
+    </>
   ) : !statement && (loading || !holderId) ? (
     <MonthSkeleton />
   ) : !statement ? (
-    <QueryError
-      error={error}
-      onRetry={() => refetch()}
-      title={`Não foi possível carregar ${isMonth ? name.toLowerCase() : 'o período'}`}
-    />
+    <>
+      <Card>{periodBar}</Card>
+      <QueryError
+        error={error}
+        onRetry={() => refetch()}
+        title={`Não foi possível carregar ${isMonth ? name.toLowerCase() : 'o período'}`}
+      />
+    </>
   ) : (
     <>
       {error && (
@@ -440,8 +510,8 @@ export function EntriesPage() {
           title="Parte do período não carregou; o resto está abaixo"
         />
       )}
-      <MonthSummary figures={statement} />
-      <Ledger statement={statement} />
+      <Spending statement={statement} />
+      <Ledger head={periodBar} statement={statement} />
       {holderId && <ImportsCard holderId={holderId} />}
     </>
   );
@@ -449,74 +519,12 @@ export function EntriesPage() {
   return (
     // Laid out by the panel's own width (`@container`), which the menu and the chat both narrow.
     <div className="@container flex flex-col gap-6" data-bot="FINANCE">
-      {/* One bar: the period on the left, everything that puts lines in or takes them out on the right. */}
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {isMonth && (
-            <Button
-              aria-label="Mês anterior"
-              className="rounded-full bg-card print:hidden"
-              onClick={() => go(-1)}
-              size="icon"
-              variant="outline"
-            >
-              <ChevronLeftIcon />
-            </Button>
-          )}
-          <motion.h1
-            animate={{ opacity: 1, y: 0 }}
-            className="min-w-0"
-            initial={{ opacity: 0, y: 6 }}
-            key={`${from}..${to}`}
-          >
-            {name}
-          </motion.h1>
-          {isMonth && (
-            <Button
-              aria-label="Próximo mês"
-              className="rounded-full bg-card print:hidden"
-              onClick={() => go(1)}
-              size="icon"
-              variant="outline"
-            >
-              <ChevronRightIcon />
-            </Button>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <Select onValueChange={value => choose(value as Preset)} value={preset}>
-            <SelectTrigger aria-label="Período" className="h-9 rounded-full border-0 bg-secondary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PRESETS.map(item => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {preset === 'custom' && (
-            <div className="flex items-center gap-2">
-              <Input
-                aria-label="De"
-                className="w-40 rounded-full bg-card"
-                max={to}
-                onChange={event => setSpan('from', event.target.value)}
-                type="date"
-                value={from}
-              />
-              <span className="text-muted-foreground">até</span>
-              <Input
-                aria-label="Até"
-                className="w-40 rounded-full bg-card"
-                min={from}
-                onChange={event => setSpan('to', event.target.value)}
-                type="date"
-                value={to}
-              />
-            </div>
-          )}
+      <header className="flex flex-wrap items-end gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <h1>Fluxo de caixa</h1>
+          <p className="mt-1 text-muted-foreground">
+            Despesas, receitas e movimentações das suas contas.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 @3xl:ml-auto print:hidden">
           <ImportButton
@@ -529,9 +537,6 @@ export function EntriesPage() {
           <AddEntryButton direction="OUT" month={isMonth ? month : undefined} />
         </div>
       </header>
-      {!isMonth && preset !== 'custom' && (
-        <p className="-mt-3 text-muted-foreground tabular-nums">{spanName(from, to)}</p>
-      )}
       {readError && <FormError message={readError} />}
 
       {body}
@@ -539,13 +544,49 @@ export function EntriesPage() {
   );
 }
 
-/** The month's place while it loads: the totals and the sheet, as shapes. */
+/**
+ * The period's spending by category, in two cards: what was already spent (up to today) and what
+ * is still to come (Parcelas, Faturas and the rest due later). A Gasto recorrente charged on a
+ * Cartão counts in its Fatura, so it is left out here.
+ */
+function Spending({ statement }: { statement: Statement }) {
+  const today = localToday();
+  const out = entriesOf(statement).filter(entry => entry.direction === 'OUT' && !entry.informative);
+  const spent = out.filter(entry => entry.date.slice(0, 10) <= today);
+  const coming = out.filter(entry => entry.date.slice(0, 10) > today);
+  const sum = (entries: Entry[]) => entries.reduce((total, entry) => total + entry.amountCents, 0);
+  return (
+    <div className="grid gap-4 @3xl:grid-cols-2">
+      <CategoryCard
+        empty="Nada gasto neste período até hoje."
+        icon={ReceiptIcon}
+        note="Até hoje, por categoria"
+        rows={byCategory(spent)}
+        title="Despesas"
+        total={sum(spent)}
+      />
+      <CategoryCard
+        empty="Nada mais a pagar neste período."
+        icon={ClockIcon}
+        note="Ainda a pagar no período"
+        rows={byCategory(coming)}
+        title="Despesas futuras"
+        total={sum(coming)}
+      />
+    </div>
+  );
+}
+
+/** The period's place while it loads: the two cards and the list, as shapes. */
 function MonthSkeleton() {
   return (
     <div aria-busy className="flex flex-col gap-6" role="status">
-      <span className="sr-only">Carregando o mês…</span>
-      <Skeleton className="h-44 w-full rounded-2xl" />
-      <Skeleton className="h-96 w-full rounded-2xl" />
+      <span className="sr-only">Carregando o período…</span>
+      <div className="grid gap-4 @3xl:grid-cols-2">
+        <Skeleton className="h-72 w-full rounded-[20px]" />
+        <Skeleton className="h-72 w-full rounded-[20px]" />
+      </div>
+      <Skeleton className="h-96 w-full rounded-[20px]" />
     </div>
   );
 }
@@ -685,25 +726,23 @@ function guessBank(fileName: string, source: ImportSource): string {
 }
 
 /**
- * The period's spreadsheet, straight under the summary: a search and filters, then every line with
- * its category and amount.
+ * Every line of the period, after Meu Pluggy's Fluxo: the period and its totals in and out on top,
+ * a search and filters, then the lines by day, newest first. A typed or imported line opens Editar;
+ * a line from elsewhere links to where it is managed.
  */
-function Ledger({ statement }: { statement: Statement }) {
+function Ledger({ head, statement }: { head: ReactNode; statement: Statement }) {
   const [removeExpense] = useMutation(DeleteExpenseDocument, {
     refetchQueries: [PeriodDocument],
   });
   const [removeIncome] = useMutation(DeleteOneOffIncomeDocument, {
     refetchQueries: [PeriodDocument],
   });
-  const [update] = useMutation(UpdateRecordDocument, {
-    awaitRefetchQueries: true,
-    refetchQueries: [PeriodDocument],
-  });
   /** Ids of the typed or imported lines picked to delete together. */
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [saveError, setSaveError] = useState<string | null>(null);
   /** A Fonte de Renda or Operação about to be deleted from one of its lines. */
   const [deleting, setDeleting] = useState<Entry | null>(null);
+  /** A typed or imported line open in Editar. */
+  const [editing, setEditing] = useState<Entry | null>(null);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [category, setCategory] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -716,20 +755,26 @@ function Ledger({ statement }: { statement: Statement }) {
   const categories = [...new Set(entries.map(entry => entry.category))].sort();
   const query = plain(search.trim());
   const filtered = filter !== 'ALL' || category !== 'ALL' || query !== '';
-  // Dates show without their year when it is the period's own.
-  const year = (statement.incomes[0]?.date ?? localToday()).slice(0, 4);
-  const shown = entries.filter(
-    entry =>
-      (filter === 'ALL' || entry.direction === filter) &&
-      (category === 'ALL' || entry.category === category) &&
-      (!query || plain(`${entry.description} ${entry.category}`).includes(query))
-  );
-  const shownTotal = shown
-    .filter(entry => !entry.informative)
-    .reduce(
-      (total, entry) => total + (entry.direction === 'IN' ? entry.amountCents : -entry.amountCents),
-      0
-    );
+  const shown = entries
+    .filter(
+      entry =>
+        (filter === 'ALL' || entry.direction === filter) &&
+        (category === 'ALL' || entry.category === category) &&
+        (!query || plain(`${entry.description} ${entry.category}`).includes(query))
+    )
+    .reverse();
+  const counted = (entries: Entry[], direction: Entry['direction']) =>
+    entries
+      .filter(entry => entry.direction === direction && !entry.informative)
+      .reduce((total, entry) => total + entry.amountCents, 0);
+  const shownTotal = counted(shown, 'IN') - counted(shown, 'OUT');
+  // One month or one year: the day headers say only what changes between them.
+  const months = new Set(entries.map(entry => entry.date.slice(0, 7))).size;
+  const days = new Map<string, Entry[]>();
+  for (const entry of shown) {
+    const date = entry.date.slice(0, 10);
+    days.set(date, [...(days.get(date) ?? []), entry]);
+  }
 
   const send = (entry: Entry) => {
     const variables = { id: entry.removable!.id };
@@ -748,38 +793,6 @@ function Ledger({ statement }: { statement: Statement }) {
     });
   };
 
-  /** Saves one cell of a typed or imported line, checked by the server like when it was added. */
-  const save = async (entry: Entry, field: string, value: string): Promise<boolean> => {
-    if (!entry.removable) return false;
-    const expense = entry.removable.kind === 'EXPENSE';
-    const current: Record<string, string> = {
-      amount: typed(entry.amountCents),
-      date: entry.date,
-      description: entry.description,
-      ...(expense ? { category: entry.category === 'Sem categoria' ? '' : entry.category } : {}),
-    };
-    setSaveError(null);
-    try {
-      await update({
-        variables: {
-          id: entry.removable.id,
-          kind: expense ? 'EXPENSE' : 'ONE_OFF_INCOME',
-          values: Object.entries({ ...current, [field]: value }).map(([key, next]) => ({
-            key,
-            value: next,
-          })),
-        },
-      });
-      return true;
-    } catch (failure) {
-      setSaveError(friendlyError(failure, 'Não foi possível salvar.'));
-      return false;
-    }
-  };
-
-  const editable = shown.filter(entry => entry.removable);
-  const allPicked =
-    editable.length > 0 && editable.every(entry => selected.has(entry.removable!.id));
   const pick = (id: string, on: boolean) =>
     setSelected(current => {
       const next = new Set(current);
@@ -802,52 +815,37 @@ function Ledger({ statement }: { statement: Statement }) {
   };
 
   return (
-    <motion.section
-      aria-label="Fluxo de caixa"
-      className="flex flex-col gap-4 rounded-2xl bg-card p-6 md:p-8"
-      id="entries"
-      initial={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      viewport={{ amount: 0.15, once: true }}
-      whileInView={{ opacity: 1, y: 0 }}
-    >
-      <div className="flex flex-wrap items-center gap-2 print:hidden">
-        <div className="relative w-full @xl:w-64">
+    <Card aria-label="Fluxo de caixa" className="gap-0 overflow-hidden p-0" id="entries">
+      <div className="flex flex-wrap items-center gap-3 border-b px-4 py-4 md:px-6">
+        {head}
+        <p className="ml-auto flex items-center gap-4 text-sm font-medium tabular-nums">
+          <span className="flex items-center gap-1 text-success" title="Entradas do período">
+            <ArrowDownLeftIcon className="size-4" />
+            <span className="sr-only">Entradas</span>
+            {formatCents(counted(entries, 'IN'))}
+          </span>
+          <span className="flex items-center gap-1 text-destructive" title="Saídas do período">
+            <ArrowUpRightIcon className="size-4" />
+            <span className="sr-only">Saídas</span>
+            {formatCents(counted(entries, 'OUT'))}
+          </span>
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3 md:px-6 print:hidden">
+        <div className="relative min-w-48 flex-1">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Buscar lançamentos"
-            className="h-10 rounded-full border-0 bg-secondary pl-10 shadow-none"
+            className="h-10 rounded-xl pl-10"
             onChange={event => setSearch(event.target.value)}
-            placeholder="Buscar"
+            placeholder="Buscar lançamento…"
             type="search"
             value={search}
           />
         </div>
-        <div className="flex gap-1 rounded-full bg-secondary p-1">
-          {(
-            [
-              ['ALL', 'Tudo'],
-              ['IN', 'Entradas'],
-              ['OUT', 'Saídas'],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              aria-pressed={filter === value}
-              className={cn('h-8 rounded-full px-4', filter === value && 'bg-card shadow-xs')}
-              key={value}
-              onClick={() => setFilter(value)}
-              size="sm"
-              variant="ghost"
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
         <Select onValueChange={setCategory} value={category}>
-          <SelectTrigger
-            aria-label="Categoria"
-            className="h-10 w-52 rounded-full border-0 bg-secondary"
-          >
+          <SelectTrigger aria-label="Categoria" className="h-10 w-full rounded-xl @xl:w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -859,24 +857,45 @@ function Ledger({ statement }: { statement: Statement }) {
             ))}
           </SelectContent>
         </Select>
-        {/* The whole period is in the summary above; here only what a filter leaves. */}
-        {filtered && (
-          <p className="ml-auto text-muted-foreground tabular-nums">
-            {shown.length} {shown.length === 1 ? 'lançamento' : 'lançamentos'} ·{' '}
-            <strong
+        <div className="flex gap-1 rounded-xl border p-1">
+          {(
+            [
+              ['ALL', 'Todos'],
+              ['IN', 'Entradas'],
+              ['OUT', 'Saídas'],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              aria-pressed={filter === value}
               className={cn(
-                'font-semibold',
-                shownTotal < 0 ? 'text-destructive' : 'text-foreground'
+                'h-8 rounded-lg px-4 font-normal',
+                filter === value && 'bg-accent font-medium text-primary hover:bg-accent'
               )}
+              key={value}
+              onClick={() => setFilter(value)}
+              size="sm"
+              variant="ghost"
             >
-              {formatCents(shownTotal)}
-            </strong>
-          </p>
-        )}
+              {label}
+            </Button>
+          ))}
+        </div>
       </div>
 
+      {/* The whole period is in the totals above; here only what a filter leaves. */}
+      {filtered && shown.length > 0 && (
+        <p className="border-b px-4 py-2 text-sm text-muted-foreground tabular-nums md:px-6">
+          {shown.length} {shown.length === 1 ? 'lançamento' : 'lançamentos'} ·{' '}
+          <strong
+            className={cn('font-semibold', shownTotal < 0 ? 'text-destructive' : 'text-foreground')}
+          >
+            {formatCents(shownTotal)}
+          </strong>
+        </p>
+      )}
+
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg bg-secondary px-4 py-2 print:hidden">
+        <div className="flex items-center gap-3 border-b bg-accent px-4 py-2 md:px-6 print:hidden">
           <span className="text-sm">
             {selected.size}{' '}
             {selected.size === 1 ? 'lançamento selecionado' : 'lançamentos selecionados'}
@@ -891,162 +910,127 @@ function Ledger({ statement }: { statement: Statement }) {
         </div>
       )}
 
-      <datalist id="entry-categories">
-        {categories.map(name => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
-      <Table className="border-separate border-spacing-y-0.5">
-        <TableHeader className="[&_tr]:border-0">
-          <TableRow className="hover:bg-transparent [&>th]:text-xs [&>th]:font-medium [&>th]:text-muted-foreground">
-            <TableHead className="w-10 print:hidden">
-              <Checkbox
-                aria-label="Selecionar todos os lançamentos editáveis"
-                checked={allPicked}
-                disabled={!editable.length}
-                onCheckedChange={on =>
-                  setSelected(on ? new Set(editable.map(entry => entry.removable!.id)) : new Set())
-                }
-              />
-            </TableHead>
-            <TableHead className="w-32 px-4">Data</TableHead>
-            <TableHead className="px-4">Descrição</TableHead>
-            <TableHead className="w-48 px-4">Categoria</TableHead>
-            <TableHead className="w-36 text-right">Valor</TableHead>
-            <TableHead className="w-12 print:hidden" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {shown.map((entry, index) => {
-            const own = entry.removable;
-            const sign = entry.direction === 'IN' ? '+' : '−';
-            return (
-              <TableRow
-                className="group border-0 hover:bg-secondary/70 data-[state=selected]:bg-accent [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl"
-                data-state={own && selected.has(own.id) ? 'selected' : undefined}
-                key={`${entry.source}-${own?.id ?? entry.description}-${entry.date}-${index}`}
-              >
-                <TableCell className="print:hidden">
-                  {own && (
-                    <Checkbox
-                      aria-label={`Selecionar ${entry.description}`}
-                      checked={selected.has(own.id)}
-                      onCheckedChange={on => pick(own.id, on === true)}
-                    />
-                  )}
-                </TableCell>
-                {own ? (
-                  <>
-                    <TableCell className="py-1.5">
-                      <SheetCell
-                        cell={`date:${index}`}
-                        label={`Data de ${entry.description}`}
-                        onCommit={value => save(entry, 'date', value)}
-                        type="date"
-                        value={entry.date}
-                      />
-                    </TableCell>
-                    <TableCell className="py-1.5">
-                      <SheetCell
-                        cell={`description:${index}`}
-                        className="font-medium"
-                        label={`Descrição de ${entry.description}`}
-                        onCommit={value => save(entry, 'description', value)}
-                        value={entry.description}
-                      />
-                    </TableCell>
-                  </>
-                ) : (
-                  <>
-                    <TableCell className="px-4 tabular-nums">
-                      {shortDate(entry.date, year)}
-                    </TableCell>
-                    <TableCell className="py-3">
-                      {entry.to ? (
-                        <Link
-                          className="block px-2 font-medium underline-offset-4 hover:underline"
-                          title="Gerenciado em outra página"
-                          to={entry.to}
-                        >
-                          {entry.description}
-                        </Link>
-                      ) : (
-                        <span className="block px-2 font-medium">{entry.description}</span>
-                      )}
-                    </TableCell>
-                  </>
-                )}
-                <TableCell className="px-4 py-1.5">
-                  {own?.kind === 'EXPENSE' ? (
-                    <SheetCell
-                      cell={`category:${index}`}
-                      className="-mx-2 text-muted-foreground"
-                      label={`Categoria de ${entry.description}`}
-                      list="entry-categories"
-                      onCommit={value => save(entry, 'category', value)}
-                      placeholder="Sem categoria"
-                      value={entry.category === 'Sem categoria' ? '' : entry.category}
-                    />
-                  ) : (
-                    <Badge
-                      className="bg-card font-normal text-muted-foreground"
-                      title={entry.informative ? 'Já contado na Fatura do cartão' : undefined}
-                      variant="outline"
-                    >
-                      {entry.informative ? 'No cartão' : entry.category}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell
-                  className={cn(
-                    'text-right font-medium tabular-nums',
-                    own && 'py-1',
-                    entry.direction === 'IN' && 'text-success',
-                    entry.informative && 'font-normal text-muted-foreground'
-                  )}
+      {[...days].map(([date, lines]) => (
+        <section aria-label={formatDate(date)} key={date}>
+          <h3 className="flex items-baseline gap-2 bg-muted/60 px-4 py-2 md:px-6">
+            <span className="text-lg font-semibold tabular-nums">{date.slice(8, 10)}</span>
+            <span className="text-sm text-muted-foreground">
+              {weekday(date)}
+              {months > 1 && `, ${SHORT_MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`}
+            </span>
+          </h3>
+          <ul>
+            {lines.map((entry, index) => {
+              const own = entry.removable;
+              const into = entry.direction === 'IN';
+              const Arrow = into ? ArrowDownLeftIcon : ArrowUpRightIcon;
+              return (
+                <li
+                  className="group flex items-center gap-3 border-b px-4 py-3 last:border-b-0 hover:bg-muted/40 data-[state=selected]:bg-accent md:px-6"
+                  data-state={own && selected.has(own.id) ? 'selected' : undefined}
+                  key={`${entry.source}-${own?.id ?? entry.description}-${index}`}
                 >
-                  {own ? (
-                    <span className="flex items-center justify-end gap-1">
-                      {sign}
-                      <SheetCell
-                        align="right"
-                        cell={`amount:${index}`}
-                        label={`Valor de ${entry.description}`}
-                        onCommit={value => save(entry, 'amount', value)}
-                        value={typed(entry.amountCents)}
+                  <span className="flex w-4 shrink-0 print:hidden">
+                    {own && (
+                      <Checkbox
+                        aria-label={`Selecionar ${entry.description}`}
+                        checked={selected.has(own.id)}
+                        className={cn(
+                          !selected.size &&
+                            'pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100'
+                        )}
+                        onCheckedChange={on => pick(own.id, on === true)}
                       />
-                    </span>
-                  ) : (
-                    `${sign} ${formatCents(entry.amountCents)}`
-                  )}
-                </TableCell>
-                <TableCell className="print:hidden">
-                  {(own || entry.owner) && (
-                    // Out of sight until the row is pointed at or reached by keyboard.
-                    <Button
-                      aria-label={`Apagar ${entry.description}`}
-                      className="pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
-                      onClick={() => (own ? remove(entry) : setDeleting(entry))}
-                      size="icon-sm"
-                      variant="ghost"
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      'grid size-10 shrink-0 place-items-center rounded-xl',
+                      entry.informative
+                        ? 'bg-muted text-muted-foreground'
+                        : into
+                          ? 'bg-success/10 text-success'
+                          : 'bg-destructive/10 text-destructive'
+                    )}
+                  >
+                    <Arrow className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {own ? (
+                      <Button
+                        className="h-auto max-w-full justify-start p-0 text-left text-base font-medium whitespace-normal text-foreground"
+                        onClick={() => setEditing(entry)}
+                        title="Editar"
+                        variant="link"
+                      >
+                        {entry.description}
+                      </Button>
+                    ) : entry.to ? (
+                      <Link
+                        className="font-medium underline-offset-4 hover:underline"
+                        title="Gerenciado em outra página"
+                        to={entry.to}
+                      >
+                        {entry.description}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{entry.description}</span>
+                    )}
+                    <p
+                      className="truncate text-sm text-muted-foreground"
+                      title={entry.informative ? 'Já contado na Fatura do cartão' : undefined}
                     >
-                      <XIcon />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      {entry.source} · {entry.informative ? 'No cartão' : entry.category}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'shrink-0 text-right font-medium tabular-nums',
+                      entry.informative
+                        ? 'font-normal text-muted-foreground'
+                        : into
+                          ? 'text-success'
+                          : 'text-destructive'
+                    )}
+                  >
+                    {into ? '+' : '−'}
+                    {formatCents(entry.amountCents)}
+                  </span>
+                  <span className="flex w-8 shrink-0 justify-end print:hidden">
+                    {(own || entry.owner) && (
+                      // Out of sight until the line is pointed at or reached by keyboard.
+                      <Button
+                        aria-label={`Apagar ${entry.description}`}
+                        className="pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
+                        onClick={() => (own ? remove(entry) : setDeleting(entry))}
+                        size="icon-sm"
+                        variant="ghost"
+                      >
+                        <XIcon />
+                      </Button>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
       {!shown.length && (
-        <p className="rounded-xl bg-secondary/60 px-4 py-8 text-center text-muted-foreground">
+        <p className="px-6 py-10 text-center text-muted-foreground">
           {filtered
             ? 'Nenhum lançamento com esse filtro.'
             : 'Nenhum lançamento neste período. Salários, Parcelas, Faturas e Impostos entram sozinhos; Gastos e Receitas avulsas você adiciona ou importa.'}
         </p>
       )}
-      {saveError && <FormError message={saveError} />}
+      {editing?.removable && (
+        <EditRecordDialog
+          id={editing.removable.id}
+          kind={editing.removable.kind === 'EXPENSE' ? 'EXPENSE' : 'ONE_OFF_INCOME'}
+          onClose={() => setEditing(null)}
+          title={editing.description}
+        />
+      )}
       {deleting?.owner && (
         <ConfirmDelete
           id={deleting.owner.id}
@@ -1055,7 +1039,7 @@ function Ledger({ statement }: { statement: Statement }) {
           onClose={() => setDeleting(null)}
         />
       )}
-    </motion.section>
+    </Card>
   );
 }
 
