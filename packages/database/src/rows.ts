@@ -9,7 +9,6 @@ export type CreditOperationRow = typeof schema.creditOperation.$inferSelect;
 export type HolderRow = typeof schema.holder.$inferSelect;
 export type IncomeSourceRow = typeof schema.incomeSource.$inferSelect;
 export type TaxRow = typeof schema.tax.$inferSelect;
-export type CompanyGuideRow = typeof schema.companyGuide.$inferSelect;
 export type ExpenseRow = typeof schema.expense.$inferSelect;
 export type RecurringExpenseRow = typeof schema.recurringExpense.$inferSelect;
 export type OneOffIncomeRow = typeof schema.oneOffIncome.$inferSelect;

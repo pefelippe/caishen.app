@@ -36,6 +36,8 @@ Isto substitui a parte do ADR 0009 que dizia "uma única chave no servidor (`OPE
 - `simulate_prepayment`: uma Amortização Extraordinária;
 - `payoff_plan`: o Plano de Quitação.
 
+Depois veio uma quinta, `company_lookup`, o cadastro de um CNPJ na Receita (ADR 0024).
+
 A descrição e os argumentos de cada uma ficam em `@zapbots/finance` (`tools.ts`), sem I/O. O que elas fazem fica no server (`services/bots/tools.ts`). Leem só o Titular da sessão (`viewerHolder`), nunca um id que venha do Modelo, e respondem com o dinheiro já formatado, calculado por `@zapbots/finance`. Continua valendo o ADR 0004: o Modelo cita, não calcula. O ADR 0009 dizia que não há ferramenta de Modelo, e o 0013 abriu só as de propor. As de leitura são a terceira categoria e não gravam nada.
 
 Os Workflows passam a usar o mesmo prompt e as mesmas ferramentas de leitura do chat, mas não propõem: uma Proposta precisa de uma Conversa para ser confirmada.

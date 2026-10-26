@@ -2,18 +2,10 @@ import { db, schema } from '@zapbots/database';
 import { addMonths, dateInMonth, recurringDueInMonth, taxDueInMonth } from '@zapbots/finance';
 import { and, asc, eq, gte, isNull, lte, or } from 'drizzle-orm';
 
-import { guidesDueIn } from './company';
 import { incomePayments } from './income';
 import { scheduleFor, statementDueDate } from './obligations';
 
-type LineKind =
-  | 'COMPANY_TAX'
-  | 'INSTALLMENT'
-  | 'ONE_OFF'
-  | 'RECURRING'
-  | 'SALARY'
-  | 'STATEMENT'
-  | 'TAX';
+type LineKind = 'INSTALLMENT' | 'ONE_OFF' | 'RECURRING' | 'SALARY' | 'STATEMENT' | 'TAX';
 
 /** One line of a month: what came in or what fell due, on a date. */
 export interface MonthLine {
@@ -148,16 +140,6 @@ export async function monthStatement(holderId: string, yearMonth: string) {
       kind: 'TAX',
       label:
         tax.installments > 1 ? `${tax.name} · ${due.installment}/${tax.installments}` : tax.name,
-    });
-  }
-  // The company's guides (DAS, DARF…) of the competência before, due this month (docs/adr/0016).
-  for (const guide of await guidesDueIn(holderId, yearMonth)) {
-    commitments.push({
-      amountCents: guide.amountCents,
-      date: guide.dueDate,
-      id: null,
-      kind: 'COMPANY_TAX',
-      label: guide.name,
     });
   }
   // Gastos recorrentes: on a Cartão they are already in its Fatura, so they are shown, not counted.

@@ -214,6 +214,8 @@ type Query {
   "The Organization's keys to Model providers, masked (docs/adr/0022)."
   aiKeys: [AiKey!]!
   aiStatus: AiStatus!
+  "The dollar, the Selic, the CDI and the IPCA, from the Banco Central, for the Dashboard."
+  indicators: Indicators!
   "Newest first. Without `botId`, the Conversations with every Bot of the team."
   conversations(botId: ID): [Conversation!]!
   conversation(id: ID!): Conversation
@@ -264,6 +266,11 @@ type Mutation {
   redeemUsageCode(code: String!): Billing!
   "Renames the Viewer's Organization; owners and admins only."
   renameOrganization(name: String!): Organization!
+  """
+  Deletes the signed-in User for good, with every Organization only they belong to and its data
+  (docs/adr/0027). `confirm` is the account's e-mail, typed by the User.
+  """
+  deleteAccount(confirm: String!): Boolean!
   "Picks the Model a Bot uses; null goes back to the server default."
   setBotModel(id: ID!, model: String): Bot!
   startConversation(botId: ID!): Conversation!
@@ -304,6 +311,8 @@ type Mutation {
   "The rate a foreign payment really got on `date`; null goes back to the PTAX."
   setIncomeRate(incomeSourceId: ID!, date: Date!, rate: Float): Boolean!
   deleteTax(id: ID!): Boolean!
+  "Registers the CNPJ of the Titular's own company, checked and looked up at the Receita; null forgets it."
+  setCompanyCnpj(holderId: ID!, cnpj: String): Holder!
   addExpense(input: ExpenseInput!): Expense!
   "Adds many Gastos at once, from a spreadsheet or an OFX; lines whose `externalId` is already there are skipped. Returns how many were added."
   importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!, file: ImportFileInput): Int!
@@ -355,8 +364,10 @@ type Holder {
   monthlyIncomeCents: Cents!
   incomeSources: [IncomeSource!]!
   taxes: [Tax!]!
-  "The guides of the Titular's company (DAS, DARF), read from Adaflow (docs/adr/0023); latest competência first."
-  companyGuides: [CompanyGuide!]!
+  "The CNPJ of the Titular's own company, digits only, if registered (docs/adr/0024)."
+  companyCnpj: String
+  "That company as the Receita registers it (BrasilAPI); null without a CNPJ, an error when the lookup fails."
+  company: CompanyRegistry
   "Gastos recorrentes: gym, subscriptions, insurance; cancelled ones included."
   recurringExpenses: [RecurringExpense!]!
   "Gastos, the latest first."
@@ -818,8 +829,6 @@ type Tax {
 }
 
 enum MonthLineKind {
-  "A guide of the Titular's company (DAS, DARF), read from Adaflow and counted in the month it is due."
-  COMPANY_TAX
   SALARY
   ONE_OFF
   INSTALLMENT
@@ -838,6 +847,31 @@ type MonthLine {
   amountCents: Cents!
   "A payment in a foreign currency: its amount there and the rate it was converted at."
   foreign: ForeignAmount
+}
+
+"Market figures from the Banco Central's open data; each null when its source does not answer."
+type Indicators {
+  dollar: DollarRate
+  "The Selic target set by the Copom."
+  selic: Indicator
+  cdi: Indicator
+  "The IPCA over the last 12 months."
+  ipca12m: Indicator
+}
+
+"A rate a year as a fraction (0.1375 = 13,75% a.a.), as published on `date`."
+type Indicator {
+  rate: Float!
+  date: Date!
+}
+
+"The dollar's PTAX de compra on `date`."
+type DollarRate {
+  "Reais per dollar."
+  rate: Float!
+  date: Date!
+  "Since the business day before, as a fraction (0.004 = +0,4%); null when unknown."
+  change: Float
 }
 
 type MonthStatement {
@@ -1228,14 +1262,27 @@ type Billing {
   used: Allowance!
 }
 
-"A guide the Titular's company owes, as Adaflow shows it."
-type CompanyGuide {
-  id: ID!
-  name: String!
-  "The month it is for, `YYYY-MM`."
-  competence: String!
-  amountCents: Cents!
-  dueDate: Date!
-  "As Adaflow says; the Caishen never marks a guide paid."
-  paid: Boolean!
+"Whether a company opted into a regime (Simples, MEI), and when."
+type RegimeOption {
+  opted: Boolean!
+  "When it opted in, if known."
+  since: Date
+  "When it left, if it did."
+  until: Date
+}
+
+"A company as the Receita registers it, read from BrasilAPI (docs/adr/0024)."
+type CompanyRegistry {
+  cnpj: String!
+  legalName: String!
+  tradeName: String
+  "As the Receita writes it: ATIVA, BAIXADA, INAPTA…"
+  status: String!
+  openedOn: Date
+  cnaeCode: String
+  cnaeDescription: String
+  "City/UF."
+  city: String
+  simples: RegimeOption
+  mei: RegimeOption
 }

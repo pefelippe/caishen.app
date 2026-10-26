@@ -278,16 +278,11 @@ categorias com o nome do tipo.
 _Avoid_: bucket, envelope, pote
 
 **Empresa**:
-A empresa de um Titular, pelo CNPJ. O Caishen não calcula os impostos dela: lê
-as Guias da contabilidade, a Adaflow (docs/adr/0023). Na tela, a aba "Pessoa
-jurídica" de Impostos.
+A empresa de um Titular, pelo CNPJ. O Caishen não calcula os impostos dela
+(docs/adr/0023) e não tem tela. O Titular pode ter o CNPJ guardado (`companyCnpj`), e o
+cadastro dela na Receita (situação, CNAE, Simples, MEI) é consultado na
+BrasilAPI, sem guardar nada além do CNPJ (docs/adr/0024).
 _Avoid_: PJ (como entidade), negócio, firma
-
-**Guia** (`CompanyGuide`, linha `COMPANY_TAX`):
-O que a Empresa paga por uma competência (`YYYY-MM`), como a Adaflow mostra: DAS,
-DARF, com valor, vencimento e se foi paga. Entra nas Saídas de Lançamentos no mês
-em que vence, paga ou não.
-_Avoid_: boleto, imposto (Imposto é o registrado à mão)
 
 ### Avaliação
 

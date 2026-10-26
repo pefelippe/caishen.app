@@ -9,8 +9,15 @@ import {
   type AiProvider,
   type AiKeysQuery,
 } from '@zapbots/graphql/client';
+import type { LucideIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
+import {
+  AnthropicLogo,
+  GeminiLogo,
+  OpenAiLogo,
+  OpenRouterLogo,
+} from '@zapbots/ui/blocks/provider-logos';
 import { Button } from '@zapbots/ui/components/button';
 import { Input } from '@zapbots/ui/components/input';
 import { Label } from '@zapbots/ui/components/label';
@@ -21,15 +28,31 @@ import { FormError } from './FormError';
 type AiKey = AiKeysQuery['aiKeys'][number];
 
 /** The providers a key can be pasted for, in this order, and where each one is created. */
-const PROVIDERS: { href: string; label: string; provider: AiProvider }[] = [
-  { href: 'https://openrouter.ai/keys', label: 'OpenRouter', provider: 'OPENROUTER' },
+const PROVIDERS: { href: string; icon: LucideIcon; label: string; provider: AiProvider }[] = [
+  {
+    href: 'https://openrouter.ai/keys',
+    icon: OpenRouterLogo,
+    label: 'OpenRouter',
+    provider: 'OPENROUTER',
+  },
   {
     href: 'https://console.anthropic.com/settings/keys',
+    icon: AnthropicLogo,
     label: 'Anthropic',
     provider: 'ANTHROPIC',
   },
-  { href: 'https://aistudio.google.com/apikey', label: 'Google', provider: 'GOOGLE' },
-  { href: 'https://platform.openai.com/api-keys', label: 'OpenAI', provider: 'OPENAI' },
+  {
+    href: 'https://aistudio.google.com/apikey',
+    icon: GeminiLogo,
+    label: 'Google',
+    provider: 'GOOGLE',
+  },
+  {
+    href: 'https://platform.openai.com/api-keys',
+    icon: OpenAiLogo,
+    label: 'OpenAI',
+    provider: 'OPENAI',
+  },
 ];
 
 const refetchQueries = [AiKeysDocument, BotsDocument, ConnectionsDocument, ModelsDocument];
@@ -75,26 +98,37 @@ function KeyRow({ entry, saved }: { entry: (typeof PROVIDERS)[number]; saved: Ai
   return (
     <li
       className={cn(
-        'grid gap-x-4 gap-y-2 rounded-lg px-3 py-2.5 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center',
+        'grid gap-x-4 gap-y-2 rounded-lg px-3 py-2.5 sm:grid-cols-[10.5rem_minmax(0,1fr)] sm:items-center',
         saved && 'bg-card'
       )}
     >
-      <div className="flex items-baseline justify-between gap-2 sm:flex-col sm:gap-0.5">
-        <Label htmlFor={id}>{entry.label}</Label>
-        {saved ? (
-          <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground tabular-nums">
-            •••• {saved.last4}
-          </span>
-        ) : (
-          <a
-            className="text-sm text-primary underline-offset-4 hover:underline"
-            href={entry.href}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Criar chave
-          </a>
-        )}
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className={cn(
+            'flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground',
+            saved ? 'bg-muted' : 'bg-card'
+          )}
+        >
+          <entry.icon className="size-5" />
+        </span>
+        <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2 sm:flex-col sm:gap-0.5">
+          <Label htmlFor={id}>{entry.label}</Label>
+          {saved ? (
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground tabular-nums">
+              •••• {saved.last4}
+            </span>
+          ) : (
+            <a
+              className="text-sm text-primary underline-offset-4 hover:underline"
+              href={entry.href}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Criar chave
+            </a>
+          )}
+        </div>
       </div>
       <form className="flex gap-2" onSubmit={event => void submit(event)}>
         <Input

@@ -48,6 +48,8 @@ export const holder = pgTable(
   'holder',
   {
     birthDate: date('birth_date'),
+    /** The CNPJ of the Titular's own company, digits only; looked up at the Receita (docs/adr/0024). */
+    companyCnpj: text('company_cnpj'),
     /** CPF (PF) or CNPJ (PJ), digits only. */
     document: text('document'),
     id: uuid('id').primaryKey().defaultRandom(),
@@ -145,8 +147,8 @@ export const companyActivity = pgEnum('company_activity', [
 ]);
 
 /**
- * A Titular's company (Empresa) as ADR 0016 worked out its taxes. Unused since ADR 0023: the
- * guides come from the accountant (`company_guide`). Kept because migrations stay additive.
+ * A Titular's company (Empresa) as ADR 0016 worked out its taxes. Unused since ADR 0023, which stopped
+ * working out a company's taxes. Kept because migrations stay additive.
  */
 export const company = pgTable(
   'company',
@@ -202,8 +204,8 @@ export const companyRevenue = pgTable(
 );
 
 /**
- * A guide the Titular's company owes (DAS, DARF…), as its accounting service shows it (docs/adr/0023):
- * read from Adaflow, never worked out here. Counted in the month it falls due, before the debts.
+ * A guide the Titular's company owes (DAS, DARF…), meant to be read from Adaflow (docs/adr/0023).
+ * Unused: Adaflow's API has no way to read guides. Kept because migrations stay additive.
  */
 export const companyGuide = pgTable(
   'company_guide',
