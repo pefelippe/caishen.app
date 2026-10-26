@@ -1,4 +1,4 @@
-import { closeDb } from '@zapbots/database';
+import { closeDb, db, schema } from '@zapbots/database';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { createViewer, gql } from '../../test/helpers';
@@ -8,35 +8,16 @@ afterAll(async () => {
   await closeDb();
 });
 
-const SAVE = /* GraphQL */ `
-  mutation ($input: CompanyInput!) {
-    saveCompany(input: $input) {
-      id
-      cnpj
-      proLabore {
-        inssCents
-        irrfCents
-        netCents
-      }
-    }
-  }
-`;
-const REVENUE = /* GraphQL */ `
-  mutation ($input: CompanyRevenueInput!) {
-    setCompanyRevenue(input: $input) {
-      bracket
-      effectiveRate
-      guides {
-        name
-        amountCents
-        dueDate
-      }
-    }
-  }
-`;
-const MONTH = /* GraphQL */ `
+const GUIDES = /* GraphQL */ `
   query ($id: ID!, $month: String!) {
     holder(id: $id) {
+      companyGuides {
+        name
+        competence
+        amountCents
+        dueDate
+        paid
+      }
       month(month: $month) {
         commitmentsCents
         commitments {
@@ -50,174 +31,73 @@ const MONTH = /* GraphQL */ `
   }
 `;
 
-describe('Empresa', () => {
-  it('works out a Simples DAS and the pró-labore DARF, due in the month after', async () => {
+describe('Impostos da empresa', () => {
+  it('shows the guides read from Adaflow and counts them in the month they fall due', async () => {
     const viewer = await createViewer();
     const holder = await viewerHolder(viewer);
-    const saved = await gql(viewer, SAVE, {
-      input: {
-        annex: 'III',
-        cnpj: '11.222.333/0001-81',
-        exports: true,
+    const other = await viewerHolder(await createViewer('Bia'));
+    const guide = (values: {
+      amountCents: number;
+      competence: string;
+      dueDate: string;
+      externalId: string;
+      holderId: string;
+      name: string;
+      paid?: boolean;
+    }) => ({ ...values, organizationId: viewer.organizationId });
+    await db.insert(schema.companyGuide).values([
+      guide({
+        amountCents: 71_736,
+        competence: '2026-09',
+        dueDate: '2026-10-20',
+        externalId: 'das-2026-09',
         holderId: holder.id,
-        proLaboreCents: 162_100,
-        regime: 'SIMPLES',
-        startsOn: '2026-01-01',
-      },
-    });
-    expect(saved.errors).toEqual([]);
-    expect(saved.data.saveCompany).toMatchObject({
-      cnpj: '11222333000181',
-      proLabore: { inssCents: 17_831, irrfCents: 0, netCents: 144_269 },
-    });
-
-    const september = await gql(viewer, REVENUE, {
-      input: {
-        amountCents: 2_348_910,
-        companyId: saved.data.saveCompany.id,
-        month: '2026-09',
-        rbt12Cents: 15_000_000,
-      },
-    });
-    expect(september.errors).toEqual([]);
-    expect(september.data.setCompanyRevenue.bracket).toBe(1);
-    expect(september.data.setCompanyRevenue.guides).toEqual([
-      { amountCents: 71_736, dueDate: '2026-10-20', name: 'DAS · 09/2026' },
-      { amountCents: 17_831, dueDate: '2026-10-20', name: 'DARF · pró-labore 09/2026' },
+        name: 'DAS - Documento de Arrecadação do Simples Nacional',
+      }),
+      guide({
+        amountCents: 17_831,
+        competence: '2026-09',
+        dueDate: '2026-10-20',
+        externalId: 'darf-2026-09',
+        holderId: holder.id,
+        name: 'DARF - Documento de Arrecadação de Receitas Federais',
+        paid: true,
+      }),
+      guide({
+        amountCents: 70_000,
+        competence: '2026-08',
+        dueDate: '2026-09-22',
+        externalId: 'das-2026-08',
+        holderId: holder.id,
+        name: 'DAS - Documento de Arrecadação do Simples Nacional',
+        paid: true,
+      }),
     ]);
-
-    // In Lançamentos, October pays September's guides.
-    const october = (await gql(viewer, MONTH, { id: holder.id, month: '2026-10' })).data.holder
-      .month;
-    expect(october.commitments).toEqual(
-      expect.arrayContaining([
-        { amountCents: 71_736, date: '2026-10-20', kind: 'COMPANY_TAX', label: 'DAS · 09/2026' },
-        {
-          amountCents: 17_831,
-          date: '2026-10-20',
-          kind: 'COMPANY_TAX',
-          label: 'DARF · pró-labore 09/2026',
-        },
-      ])
-    );
-  });
-
-  it('reads a month without a declaration from its Fonte de Renda, and averages the first year', async () => {
-    const viewer = await createViewer();
-    const holder = await viewerHolder(viewer);
-    const source = await gql(
-      viewer,
-      /* GraphQL */ `
-        mutation ($input: AddIncomeSourceInput!) {
-          addIncomeSource(input: $input) {
-            id
-          }
-        }
-      `,
-      {
-        input: {
-          description: 'Faturamento',
-          holderId: holder.id,
-          monthlyNetCents: 500_000,
-          paydays: [5],
-          startsOn: '2026-01-01',
-        },
-      }
-    );
-    expect(source.errors).toEqual([]);
-    const saved = await gql(viewer, SAVE, {
-      input: {
-        annex: 'III',
-        cnpj: '11222333000181',
-        holderId: holder.id,
-        regime: 'SIMPLES',
-        revenueSourceId: source.data.addIncomeSource.id,
-        startsOn: '2026-07-01',
-      },
+    await db.insert(schema.companyGuide).values({
+      amountCents: 99_999,
+      competence: '2026-09',
+      dueDate: '2026-10-20',
+      externalId: 'das-2026-09',
+      holderId: other.id,
+      name: 'DAS de outra pessoa',
+      organizationId: other.organizationId,
     });
-    const months = await gql(
-      viewer,
-      /* GraphQL */ `
-        query ($id: ID!) {
-          holder(id: $id) {
-            company {
-              months(upTo: "2026-09", last: 1) {
-                revenueCents
-                revenueOrigin
-                rbt12Cents
-                rbt12Typed
-                guides {
-                  name
-                  amountCents
-                }
-              }
-            }
-          }
-        }
-      `,
-      { id: holder.id }
+
+    const { data, errors } = await gql(viewer, GUIDES, { id: holder.id, month: '2026-10' });
+    expect(errors).toEqual([]);
+    expect(
+      data.holder.companyGuides.map((item: { competence: string }) => item.competence)
+    ).toEqual(['2026-09', '2026-09', '2026-08']);
+    expect(data.holder.companyGuides[1]).toMatchObject({ amountCents: 17_831, paid: true });
+
+    // Paid or not, a guide is money out of that month, before what is left for the debts.
+    const company = data.holder.month.commitments.filter(
+      (line: { kind: string }) => line.kind === 'COMPANY_TAX'
     );
-    expect(saved.errors).toEqual([]);
-    // July and August, R$ 5.000 each, averaged times 12: R$ 60.000, the first bracket (6%).
-    expect(months.data.holder.company.months).toEqual([
-      {
-        guides: [{ amountCents: 30_000, name: 'DAS · 09/2026' }],
-        rbt12Cents: 6_000_000,
-        rbt12Typed: false,
-        revenueCents: 500_000,
-        revenueOrigin: 'INCOME_SOURCE',
-      },
+    expect(company).toEqual([
+      expect.objectContaining({ amountCents: 71_736, date: '2026-10-20' }),
+      expect.objectContaining({ amountCents: 17_831, date: '2026-10-20' }),
     ]);
-  });
-
-  it('works out only the pró-labore DARF in the Lucro Real', async () => {
-    const viewer = await createViewer();
-    const holder = await viewerHolder(viewer);
-    const saved = await gql(viewer, SAVE, {
-      input: {
-        cnpj: '11222333000181',
-        holderId: holder.id,
-        proLaboreCents: 162_100,
-        regime: 'REAL',
-        startsOn: '2026-01-01',
-      },
-    });
-    const september = await gql(viewer, REVENUE, {
-      input: { amountCents: 1_000_000, companyId: saved.data.saveCompany.id, month: '2026-09' },
-    });
-    // The company's 20% too: in the Lucro Real it is paid apart from any DAS.
-    expect(september.data.setCompanyRevenue.guides).toEqual([
-      { amountCents: 17_831 + 32_420, dueDate: '2026-10-20', name: 'DARF · pró-labore 09/2026' },
-    ]);
-  });
-
-  it('refuses a wrong CNPJ and a Simples company without its Anexo', async () => {
-    const viewer = await createViewer();
-    const holder = await viewerHolder(viewer);
-    const base = { holderId: holder.id, regime: 'SIMPLES', startsOn: '2026-01-01' };
-    const wrong = await gql(viewer, SAVE, {
-      input: { ...base, annex: 'III', cnpj: '11.222.333/0001-82' },
-    });
-    expect(wrong.errors).toEqual(['BAD_USER_INPUT']);
-    const noAnnex = await gql(viewer, SAVE, { input: { ...base, cnpj: '11222333000181' } });
-    expect(noAnnex.errors).toEqual(['BAD_USER_INPUT']);
-  });
-
-  it('keeps one company to its Organization', async () => {
-    const viewer = await createViewer();
-    const stranger = await createViewer('Bruno');
-    const holder = await viewerHolder(viewer);
-    const saved = await gql(viewer, SAVE, {
-      input: {
-        cnpj: '11222333000181',
-        holderId: holder.id,
-        regime: 'MEI',
-        startsOn: '2026-01-01',
-      },
-    });
-    const theirs = await gql(stranger, REVENUE, {
-      input: { amountCents: 100, companyId: saved.data.saveCompany.id, month: '2026-09' },
-    });
-    expect(theirs.errors).toEqual(['NOT_FOUND']);
+    expect(data.holder.month.commitmentsCents).toBe(89_567);
   });
 });

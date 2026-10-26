@@ -145,8 +145,8 @@ export const companyActivity = pgEnum('company_activity', [
 ]);
 
 /**
- * A Titular's company (Empresa): its CNPJ, its tax regime and what the Caishen needs to work out
- * its taxes (docs/adr/0016). One per Titular.
+ * A Titular's company (Empresa) as ADR 0016 worked out its taxes. Unused since ADR 0023: the
+ * guides come from the accountant (`company_guide`). Kept because migrations stay additive.
  */
 export const company = pgTable(
   'company',
@@ -182,7 +182,7 @@ export const company = pgTable(
   table => [index('company_organization_idx').on(table.organizationId)]
 );
 
-/** A company's revenue (Faturamento) for one competência, as declared, and its RBT12 if typed. */
+/** A company's revenue for one competência (ADR 0016). Unused since ADR 0023, kept like `company`. */
 export const companyRevenue = pgTable(
   'company_revenue',
   {
@@ -199,6 +199,36 @@ export const companyRevenue = pgTable(
     ...timestamps,
   },
   table => [unique('company_revenue_company_month_unique').on(table.companyId, table.month)]
+);
+
+/**
+ * A guide the Titular's company owes (DAS, DARF…), as its accounting service shows it (docs/adr/0023):
+ * read from Adaflow, never worked out here. Counted in the month it falls due, before the debts.
+ */
+export const companyGuide = pgTable(
+  'company_guide',
+  {
+    amountCents: cents('amount_cents').notNull(),
+    /** `YYYY-MM`, the month the guide is for. */
+    competence: text('competence').notNull(),
+    dueDate: date('due_date').notNull(),
+    /** The guide's id at the source, so reading it again updates it. */
+    externalId: text('external_id').notNull(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** As the source names it: "DAS - Documento de Arrecadação do Simples Nacional". */
+    name: text('name').notNull(),
+    organizationId: organizationId(),
+    /** As the source says; the Caishen never marks a guide paid (docs/adr/0009). */
+    paid: boolean('paid').notNull().default(false),
+    ...timestamps,
+  },
+  table => [
+    unique('company_guide_holder_external_unique').on(table.holderId, table.externalId),
+    index('company_guide_holder_due_idx').on(table.holderId, table.dueDate),
+  ]
 );
 
 export const importSource = pgEnum('import_source', ['CSV', 'XLSX', 'OFX', 'PDF']);

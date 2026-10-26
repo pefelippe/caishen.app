@@ -370,79 +370,18 @@ mutation SetIncomeRate($incomeSourceId: ID!, $date: Date!, $rate: Float) {
   setIncomeRate(incomeSourceId: $incomeSourceId, date: $date, rate: $rate)
 }
 
-fragment CompanyFields on Company {
-  id
-  cnpj
-  name
-  regime
-  annex
-  fatorR
-  activity
-  exports
-  issRate
-  proLaboreCents
-  revenueSourceId
-  startsOn
-  proLabore {
-    grossCents
-    inssCents
-    irrfCents
-    netCents
-    employerInssCents
-  }
-}
-
-query Company($holderId: ID!, $upTo: String!) {
+query CompanyGuides($holderId: ID!) {
   holder(id: $holderId) {
     id
-    incomeSources {
+    companyGuides {
       id
-      description
-      currency
-    }
-    company {
-      ...CompanyFields
-      months(upTo: $upTo, last: 12) {
-        month
-        revenueCents
-        revenueOrigin
-        rbt12Cents
-        rbt12Typed
-        annex
-        bracket
-        nominalRate
-        effectiveRate
-        overLimit
-        guides {
-          name
-          detail
-          amountCents
-          dueDate
-          competence
-        }
-      }
+      name
+      competence
+      amountCents
+      dueDate
+      paid
     }
   }
-}
-
-mutation SaveCompany($input: CompanyInput!) {
-  saveCompany(input: $input) {
-    ...CompanyFields
-  }
-}
-
-mutation DeleteCompany($id: ID!) {
-  deleteCompany(id: $id)
-}
-
-mutation SetCompanyRevenue($input: CompanyRevenueInput!) {
-  setCompanyRevenue(input: $input) {
-    month
-  }
-}
-
-mutation ClearCompanyRevenue($companyId: ID!, $month: String!) {
-  clearCompanyRevenue(companyId: $companyId, month: $month)
 }
 
 query Home {

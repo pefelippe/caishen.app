@@ -127,7 +127,7 @@ const FORM_GRID = 'grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] items-st
  * `holder` is `null` while loading and `undefined` when it failed.
  */
 /** The Holder with how its load went: still loading, failed (and how to try again), or there. */
-function useHolderQuery() {
+export function useHolderQuery() {
   const viewer = useQuery(ViewerHolderDocument);
   const id = viewer.data?.viewerHolder.id;
   const holder = useQuery(HolderDocument, {
@@ -1236,7 +1236,7 @@ const ENTRY_KINDS: Record<'IN' | 'OUT', { hint: string; label: string; value: En
       label: 'Cartão de crédito',
       value: 'CARD',
     },
-    { hint: 'IPVA, IPTU, DAS.', label: 'Imposto', value: 'TAX' },
+    { hint: 'IPVA, IPTU.', label: 'Imposto', value: 'TAX' },
   ],
 };
 
@@ -1465,7 +1465,7 @@ export function TaxForm({ holder, onDone }: { holder: Holder; onDone?: () => voi
     <form className="flex flex-col gap-5" onSubmit={submit}>
       <div className={FORM_GRID}>
         <Field id="tax-name" label="Imposto">
-          <Input id="tax-name" name="name" placeholder="IPVA, IPTU, DAS…" required />
+          <Input id="tax-name" name="name" placeholder="IPVA, IPTU…" required />
         </Field>
         <Field id="tax-frequency" label="Frequência">
           <Select onValueChange={value => setFrequency(value as TaxFrequency)} value={frequency}>
@@ -1549,7 +1549,7 @@ export function TaxForm({ holder, onDone }: { holder: Holder; onDone?: () => voi
   );
 }
 
-function TaxesSection({ holder }: { holder: Holder }) {
+export function TaxesSection({ holder }: { holder: Holder }) {
   const [deleteTax] = useMutation(DeleteTaxDocument, {
     refetchQueries: [HolderDocument],
   });
@@ -1557,7 +1557,7 @@ function TaxesSection({ holder }: { holder: Holder }) {
   return (
     <Part
       count={holder.taxes.length}
-      empty="Nenhum imposto cadastrado. IPVA, IPTU e DAS entram nos vencimentos do mês."
+      empty="Nenhum imposto cadastrado. IPVA e IPTU entram nos vencimentos do mês."
       id="taxes"
       intro="O que vai para o governo, todo mês ou uma vez por ano."
       title="Impostos"

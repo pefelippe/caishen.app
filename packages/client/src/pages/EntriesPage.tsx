@@ -264,7 +264,7 @@ function entriesOf(statement: Statement): Entry[] {
           : line.kind === 'TAX'
             ? '/caishen/fixed#taxes'
             : line.kind === 'COMPANY_TAX'
-              ? '/caishen/taxes'
+              ? '/caishen/taxes?tab=pj'
               : line.kind === 'RECURRING'
                 ? '/caishen/fixed#recurring'
                 : line.kind === 'STATEMENT'

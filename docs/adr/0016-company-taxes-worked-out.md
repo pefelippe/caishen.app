@@ -1,5 +1,7 @@
 # Impostos da Empresa calculados pelo Caishen
 
+> Substituída pela ADR 0023: as guias passam a vir da Adaflow, e o Caishen não as calcula mais.
+
 Quem tem CNPJ cadastra a Empresa (uma por Titular, filha do Titular PF da ADR 0007, não um segundo Titular PJ) com o regime tributário, e o Caishen calcula as guias de cada competência: o DAS do Simples Nacional, o DAS fixo do MEI, o DARF do pró-labore (INSS de 11% até o teto, IRRF com a redução de 2026 da Lei 15.270/2025 e, quando o regime não o paga dentro do DAS, o INSS patronal de 20%) e, no Lucro Presumido, PIS e Cofins cumulativos, ISS e, por trimestre, IRPJ e CSLL. As guias de uma competência vencem no mês seguinte e entram nas Saídas de Lançamentos como `COMPANY_TAX`, diminuindo o saldo do mês em que vencem.
 
 Os números vêm de três lugares. O faturamento de cada competência é o declarado pelo Usuário; sem ele, o que a Fonte de Renda escolhida pagou naquele mês (quem recebe o faturamento da própria empresa por ela, como um salário em dólar, não precisa digitá-lo). O RBT12 é o informado junto do faturamento, como o PGDAS-D mostra; sem ele, a soma dos 12 meses anteriores, ou a média vezes 12 no primeiro ano (LC 123, art. 18, §2º). As tabelas (Anexos I a V com a repartição dos tributos, salário mínimo, teto do INSS, tabela do IRRF) ficam em `packages/bots/finance/src/company.ts`, com a fonte de cada uma; um ano novo é uma constante nova lá.

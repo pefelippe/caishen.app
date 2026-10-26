@@ -304,13 +304,6 @@ type Mutation {
   "The rate a foreign payment really got on `date`; null goes back to the PTAX."
   setIncomeRate(incomeSourceId: ID!, date: Date!, rate: Float): Boolean!
   deleteTax(id: ID!): Boolean!
-  "Registers or changes the Titular's company (one per Titular)."
-  saveCompany(input: CompanyInput!): Company!
-  deleteCompany(id: ID!): Boolean!
-  "Records what was declared for a competência (`YYYY-MM`), and the RBT12 if typed."
-  setCompanyRevenue(input: CompanyRevenueInput!): CompanyMonth!
-  "Forgets a competência's declared revenue; it goes back to the Fonte de Renda, or none."
-  clearCompanyRevenue(companyId: ID!, month: String!): Boolean!
   addExpense(input: ExpenseInput!): Expense!
   "Adds many Gastos at once, from a spreadsheet or an OFX; lines whose `externalId` is already there are skipped. Returns how many were added."
   importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!, file: ImportFileInput): Int!
@@ -362,8 +355,8 @@ type Holder {
   monthlyIncomeCents: Cents!
   incomeSources: [IncomeSource!]!
   taxes: [Tax!]!
-  "The Titular's company, when a CNPJ was registered; its taxes are worked out (docs/adr/0016)."
-  company: Company
+  "The guides of the Titular's company (DAS, DARF), read from Adaflow (docs/adr/0023); latest competência first."
+  companyGuides: [CompanyGuide!]!
   "Gastos recorrentes: gym, subscriptions, insurance; cancelled ones included."
   recurringExpenses: [RecurringExpense!]!
   "Gastos, the latest first."
@@ -825,7 +818,7 @@ type Tax {
 }
 
 enum MonthLineKind {
-  "A guide of the Titular's company (DAS, DARF), due the month after its competência."
+  "A guide of the Titular's company (DAS, DARF), read from Adaflow and counted in the month it is due."
   COMPANY_TAX
   SALARY
   ONE_OFF
@@ -1235,116 +1228,14 @@ type Billing {
   used: Allowance!
 }
 
-enum TaxRegime {
-  MEI
-  SIMPLES
-  PRESUMIDO
-  REAL
-}
-
-enum SimplesAnnex {
-  I
-  II
-  III
-  IV
-  V
-}
-
-enum CompanyActivity {
-  COMMERCE
-  INDUSTRY
-  SERVICES
-  COMMERCE_SERVICES
-}
-
-"Where a competência's revenue comes from."
-enum RevenueOrigin {
-  DECLARED
-  INCOME_SOURCE
-  NONE
-}
-
-"A Titular's company: its CNPJ, tax regime and what its taxes are worked out from."
-type Company {
+"A guide the Titular's company owes, as Adaflow shows it."
+type CompanyGuide {
   id: ID!
-  cnpj: String!
-  name: String
-  regime: TaxRegime!
-  "Simples Nacional: the Anexo registered."
-  annex: SimplesAnnex
-  "Simples: Anexo III or V by payroll (28% of the RBT12)."
-  fatorR: Boolean!
-  activity: CompanyActivity!
-  "Revenue from abroad: no PIS, Cofins, ISS, ICMS or IPI."
-  exports: Boolean!
-  "Lucro Presumido: the city's ISS rate, as a fraction."
-  issRate: Float
-  proLaboreCents: Cents!
-  "What the monthly pró-labore keeps and pays."
-  proLabore: ProLabore!
-  "The Fonte de Renda the revenue arrives as, if any."
-  revenueSourceId: ID
-  startsOn: Date!
-  "The last `last` competências (up to 24) through `upTo` (`YYYY-MM`), newest first."
-  months(upTo: String!, last: Int!): [CompanyMonth!]!
-}
-
-type ProLabore {
-  grossCents: Cents!
-  "The partner's INSS, 11% up to the ceiling."
-  inssCents: Cents!
-  irrfCents: Cents!
-  netCents: Cents!
-  "The company's 20%, when its regime does not pay it inside the DAS."
-  employerInssCents: Cents!
-}
-
-"One competência of a company: its revenue, RBT12, Simples bracket and the guides it owes."
-type CompanyMonth {
-  month: String!
-  revenueCents: Cents!
-  revenueOrigin: RevenueOrigin!
-  rbt12Cents: Cents!
-  "Whether the RBT12 was typed (as the PGDAS-D shows it) or worked out."
-  rbt12Typed: Boolean!
-  annex: SimplesAnnex
-  bracket: Int
-  nominalRate: Float
-  "The rate on this month's revenue, after the parcela a deduzir and what exports leave out."
-  effectiveRate: Float
-  "The RBT12 is over the Simples limit (R$ 4,8 milhões)."
-  overLimit: Boolean!
-  guides: [TaxGuide!]!
-}
-
-"A guide to pay (DAS, DARF, ISS) for one competência, due the month after."
-type TaxGuide {
   name: String!
-  detail: String!
+  "The month it is for, `YYYY-MM`."
+  competence: String!
   amountCents: Cents!
   dueDate: Date!
-  competence: String!
-}
-
-input CompanyInput {
-  holderId: ID!
-  cnpj: String!
-  name: String
-  regime: TaxRegime!
-  annex: SimplesAnnex
-  fatorR: Boolean
-  activity: CompanyActivity
-  exports: Boolean
-  "Percent as typed, e.g. \"2\" for 2%."
-  issRate: String
-  proLaboreCents: Cents
-  revenueSourceId: ID
-  startsOn: Date!
-}
-
-input CompanyRevenueInput {
-  companyId: ID!
-  month: String!
-  amountCents: Cents!
-  rbt12Cents: Cents
+  "As Adaflow says; the Caishen never marks a guide paid."
+  paid: Boolean!
 }
