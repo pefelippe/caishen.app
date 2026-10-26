@@ -1,11 +1,10 @@
-import { keysFromEnv } from '@zapbots/ai';
 import type { Viewer } from '@zapbots/auth';
 import { db, schema } from '@zapbots/database';
 import type { ConnectionCategory, ConnectionKind } from '@zapbots/graphql/server';
 import { and, eq } from 'drizzle-orm';
 
 import { driveConnected, googleConfigured } from './drive';
-import { defaultModel, listModels } from './models';
+import { aiConfigured, defaultModel, listModels } from './models';
 import { bankLinks, openFinanceUnavailable } from './openFinance';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
 import { whatsappConfigured } from './whatsapp/meta';
@@ -27,22 +26,19 @@ interface Provider {
 const openRouter: Provider = {
   category: 'AI',
   kind: 'OPENROUTER',
-  // One key on the server serves every User (docs/adr/0009), so there is nothing to connect here.
-  status: async () => {
-    if (!keysFromEnv().openrouter) {
-      return {
-        available: true,
-        connected: false,
-        detail: null,
-        unavailableReason: 'O servidor está sem a chave do OpenRouter (OPENROUTER_API_KEY).',
-      };
+  // The Organization's own keys, pasted on this page (docs/adr/0022).
+  status: async viewer => {
+    // Without keys of its own, the server's OpenRouter key may still serve the free Models.
+    if (!(await aiConfigured(viewer.organizationId))) {
+      // Nothing is missing on the server: the card itself asks for a key.
+      return { available: true, connected: false, detail: null, unavailableReason: null };
     }
-    const models = await listModels();
+    const models = await listModels(viewer.organizationId);
     return {
       available: true,
       connected: true,
       detail: models.length
-        ? `${models.length} Modelos, ${models.filter(model => model.free).length} gratuitos. Padrão: ${await defaultModel()}.`
+        ? `${models.length} Modelos, ${models.filter(model => model.free).length} gratuitos. Padrão: ${await defaultModel(viewer.organizationId)}.`
         : 'O OpenRouter não respondeu à lista de Modelos.',
       unavailableReason: null,
     };

@@ -57,10 +57,10 @@ O login com Google é opcional. Para ligá-lo, crie um OAuth Client do tipo "Web
 origem `http://localhost:5173` e a redirect URI `http://localhost:5173/api/auth/callback/google`,
 e preencha `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no `.env`.
 
-Os Bots usam o [OpenRouter](https://openrouter.ai/keys): uma chave em `OPENROUTER_API_KEY` dá
-acesso a Modelos de vários fornecedores, inclusive gratuitos, e o Modelo de cada Bot é escolhido em
-Modelos. Sem a chave, os Bots ficam em silêncio e as telas explicam o que falta. Modelos gratuitos
-têm limite diário de uso.
+Os Bots usam as chaves de IA que cada Organização cola em Integrações (ADR 0022): OpenRouter
+(Modelos de vários fornecedores, inclusive gratuitos), Anthropic, Google ou OpenAI. O Modelo de cada
+Bot é escolhido no mesmo card. Sem chave, os Bots ficam em silêncio e as telas explicam o que falta.
+Modelos gratuitos têm limite diário de uso.
 
 A Integração com o Google Drive exige login com Google, a Google Drive API
 e a Google Picker API habilitadas no projeto, e `VITE_GOOGLE_API_KEY` e `VITE_GOOGLE_APP_ID` no

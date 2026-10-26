@@ -7,6 +7,7 @@ import {
 } from '@zapbots/graphql/client';
 import { HistoryIcon, PlusIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
 import { Button } from '@zapbots/ui/components/button';
@@ -130,8 +131,11 @@ export function BotPanel({
         <Alert>
           <AlertTitle>{bot.name} ainda está dormindo</AlertTitle>
           <AlertDescription>
-            Falta a chave do OpenRouter no servidor (OPENROUTER_API_KEY). Com ela no .env, o Caishen
-            passam a responder.
+            Falta a chave de um provedor de IA. Cole-a em{' '}
+            <Link className="underline underline-offset-4" to="/integrations#ai">
+              Integrações
+            </Link>{' '}
+            e o Caishen passa a responder.
           </AlertDescription>
         </Alert>
       ) : (

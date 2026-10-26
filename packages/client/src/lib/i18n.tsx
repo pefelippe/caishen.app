@@ -331,14 +331,7 @@ const STRINGS = {
   locale: { en: 'en-US', pt: 'pt-BR' },
   'models.free': { en: 'free', pt: 'gratuito' },
   'models.none': { en: 'No Model available', pt: 'Nenhum Modelo disponível' },
-  'models.notConfigured': {
-    en: 'The Caishen is not working yet',
-    pt: 'O Caishen ainda não trabalha',
-  },
-  'models.notConfiguredText': {
-    en: 'The server is missing the OpenRouter key (OPENROUTER_API_KEY in .env). You can pick the Models now; they start working once the key exists.',
-    pt: 'Falta a chave do OpenRouter no servidor (OPENROUTER_API_KEY no .env). Você já pode escolher os Modelos; eles começam a trabalhar quando a chave existir.',
-  },
+  'models.perBot': { en: 'Model of each Bot', pt: 'Modelo de cada Bot' },
 } satisfies Record<string, Record<Language, string>>;
 
 export type StringKey = keyof typeof STRINGS;

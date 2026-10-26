@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { forProvider } from '../agent';
 import { directModels } from '../catalog';
 import { failure } from '../errors';
-import { formatModelRef, keysFromEnv, parseModelRef } from '../providers';
+import { formatModelRef, parseModelRef } from '../providers';
 
 describe('Model ids', () => {
   it('reads a prefixed id as a direct provider and anything else as OpenRouter', () => {
@@ -24,9 +24,7 @@ describe('Model ids', () => {
   });
 
   it('lists the direct Models only of providers with a key', () => {
-    const keys = keysFromEnv({ GEMINI_API_KEY: 'g', OPENROUTER_API_KEY: '' });
-    expect(keys).toEqual({ google: 'g' });
-    const ids = directModels(keys).map(model => model.id);
+    const ids = directModels({ google: 'g' }).map(model => model.id);
     expect(ids).toContain('google:gemini-3.8-flash');
     expect(ids.every(id => id.startsWith('google:'))).toBe(true);
   });
@@ -59,9 +57,9 @@ describe('the history for each provider', () => {
 describe('failures in pt-BR', () => {
   it('names the provider whose key was refused', () => {
     expect(failure('openrouter', 401, '').message).toBe(
-      'A chave do OpenRouter foi recusada. Confira OPENROUTER_API_KEY.'
+      'A chave do OpenRouter foi recusada. Confira-a em Integrações.'
     );
-    expect(failure('anthropic', 403, '').message).toContain('ANTHROPIC_API_KEY');
+    expect(failure('anthropic', 403, '').message).toContain('Anthropic');
     expect(failure('openai', 429, '').modelSpecific).toBe(true);
     expect(failure('google', 404, 'not found').modelSpecific).toBe(false);
   });

@@ -104,15 +104,18 @@ function stream(completion: Extract<Completion, { text: string } | { tool: strin
 }
 
 /**
- * Answers chat completions with `completions`, in order, and records every request body in `log`.
- * A request beyond the scripted ones fails the test with a 500.
+ * Answers chat completions with `completions`, in order, and records every request body in `log`
+ * and the key it came with in `keys`. A request beyond the scripted ones fails the test with a 500.
  */
 export function completionHandler(completions: Completion[]): {
   handler: HttpHandler;
+  keys: (string | null)[];
   log: CompletionRequest[];
 } {
   const log: CompletionRequest[] = [];
+  const keys: (string | null)[] = [];
   const handler = http.post(`${BASE_URL}/chat/completions`, async ({ request }) => {
+    keys.push(request.headers.get('authorization')?.replace(/^Bearer /, '') ?? null);
     log.push((await request.json()) as CompletionRequest);
     const completion = completions[log.length - 1];
     if (!completion)
@@ -121,5 +124,5 @@ export function completionHandler(completions: Completion[]): {
     if ('pieces' in completion) return slowStream(completion.pieces, completion.delayMs);
     return stream(completion);
   });
-  return { handler, log };
+  return { handler, keys, log };
 }

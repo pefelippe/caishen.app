@@ -4,11 +4,18 @@ import { db, schema } from '@zapbots/database';
 import { type Context, typeDefs } from '@zapbots/graphql/server';
 
 import { resolvers } from '../src/resolvers';
+import { saveAiKey } from '../src/services/aiKeys';
 
 const apollo = new ApolloServer<Context>({ resolvers, typeDefs });
 
-/** A new User with their own Organization, as the first sign-in leaves them. */
-export async function createViewer(name = 'Ana'): Promise<Viewer> {
+/**
+ * A new User with their own Organization, as the first sign-in leaves them, plus an OpenRouter key
+ * pasted on Integrações (`aiKey: false` leaves it out).
+ */
+export async function createViewer(
+  name = 'Ana',
+  { aiKey = true }: { aiKey?: boolean } = {}
+): Promise<Viewer> {
   const userId = crypto.randomUUID();
   const organizationId = crypto.randomUUID();
   await db
@@ -20,7 +27,9 @@ export async function createViewer(name = 'Ana'): Promise<Viewer> {
   await db
     .insert(schema.member)
     .values({ id: crypto.randomUUID(), organizationId, role: 'owner', userId });
-  return { organizationId, role: 'owner', userId };
+  const viewer: Viewer = { organizationId, role: 'owner', userId };
+  if (aiKey) await saveAiKey(viewer, 'openrouter', 'test-openrouter-key');
+  return viewer;
 }
 
 interface Result {

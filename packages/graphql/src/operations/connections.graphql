@@ -71,3 +71,26 @@ mutation SyncBankLink($id: ID!) {
 mutation UnlinkBank($id: ID!) {
   unlinkBank(id: $id)
 }
+
+fragment AiKeyFields on AiKey {
+  provider
+  label
+  last4
+  updatedAt
+}
+
+query AiKeys {
+  aiKeys {
+    ...AiKeyFields
+  }
+}
+
+mutation SetAiKey($provider: AiProvider!, $key: String!) {
+  setAiKey(provider: $provider, key: $key) {
+    ...AiKeyFields
+  }
+}
+
+mutation RemoveAiKey($provider: AiProvider!) {
+  removeAiKey(provider: $provider)
+}

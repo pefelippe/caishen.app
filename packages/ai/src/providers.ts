@@ -6,24 +6,16 @@ import type { LanguageModel } from 'ai';
 
 export type ProviderName = 'anthropic' | 'google' | 'openai' | 'openrouter';
 
-/** Each provider a Model can come from, and the server variable that holds its key. */
-export const PROVIDERS: Record<ProviderName, { envKey: string; label: string }> = {
-  anthropic: { envKey: 'ANTHROPIC_API_KEY', label: 'Anthropic' },
-  google: { envKey: 'GEMINI_API_KEY', label: 'Google' },
-  openai: { envKey: 'OPENAI_API_KEY', label: 'OpenAI' },
-  openrouter: { envKey: 'OPENROUTER_API_KEY', label: 'OpenRouter' },
+/** Each provider a Model can come from. */
+export const PROVIDERS: Record<ProviderName, { label: string }> = {
+  anthropic: { label: 'Anthropic' },
+  google: { label: 'Google' },
+  openai: { label: 'OpenAI' },
+  openrouter: { label: 'OpenRouter' },
 };
 
+/** One key per provider, as the caller keeps them (the server: each Organization's, ADR 0022). */
 export type ProviderKeys = Partial<Record<ProviderName, string>>;
-
-/** The keys set on the server, one per provider. */
-export function keysFromEnv(env: Record<string, string | undefined> = process.env): ProviderKeys {
-  return Object.fromEntries(
-    (Object.keys(PROVIDERS) as ProviderName[])
-      .map(provider => [provider, env[PROVIDERS[provider].envKey]] as const)
-      .filter(([, key]) => Boolean(key))
-  );
-}
 
 /** A Model as the `bot` table keeps it. */
 export interface ModelRef {

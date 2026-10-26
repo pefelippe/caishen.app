@@ -3,14 +3,7 @@ import { db, schema, type MessageRow } from '@zapbots/database';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
 import { PlanLimitError, requireWithinLimit } from '../billing/billing';
-import {
-  aiConfigured,
-  defaultModel,
-  listModels,
-  ModelError,
-  talk,
-  type ModelMessage,
-} from '../models';
+import { aiConfigured, botModel, listModels, ModelError, talk, type ModelMessage } from '../models';
 import { attachedNote, userContent, type ChatAttachment } from './attachments';
 import { CATALOG } from './catalog';
 import { botPrompt } from './prompt';
@@ -63,8 +56,10 @@ export async function replyInConversation(options: {
   const content = options.content.trim();
   const attachments = options.attachments ?? [];
   if (!content && !attachments.length) throw new ChatError('Escreva uma mensagem.');
-  if (!aiConfigured()) {
-    throw new ChatError('Os Bots ainda não estão ligados: falta OPENROUTER_API_KEY no servidor.');
+  if (!(await aiConfigured(viewer.organizationId))) {
+    throw new ChatError(
+      'Os Bots ainda não estão ligados: cole a chave de um provedor de IA em Integrações.'
+    );
   }
   try {
     await requireWithinLimit(viewer, 'messages');
@@ -86,7 +81,7 @@ export async function replyInConversation(options: {
   if (!row) throw new ChatError('Conversa não encontrada.');
   const { bot, conversation } = row;
 
-  const model = bot.model ?? (await defaultModel());
+  const model = await botModel(viewer.organizationId, bot.model);
   if (!model) {
     throw new ChatError(`Nenhum Modelo disponível. Escolha um para ${CATALOG[bot.key].name}.`);
   }
@@ -113,7 +108,7 @@ export async function replyInConversation(options: {
 
   // Models that cannot call tools still chat; they just cannot read with tools or propose records
   // (docs/adr/0013, 0021).
-  const listed = (await listModels()).find(entry => entry.id === model);
+  const listed = (await listModels(viewer.organizationId)).find(entry => entry.id === model);
   const canUseTools = listed?.supportsTools ?? true;
   if (listed && !listed.readsImages && attachments.some(file => file.kind === 'IMAGE')) {
     throw new ChatError(
@@ -165,7 +160,7 @@ export async function replyInConversation(options: {
   let reply = '';
   let proposed = 0;
   try {
-    await talk(model, {
+    await talk(viewer.organizationId, model, {
       execute: async call => {
         if (isReadTool(call.name)) return runReadTool(viewer, call);
         const { proposal, result } = await proposeFromToolCall(viewer, conversation.id, call);

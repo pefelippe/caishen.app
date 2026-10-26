@@ -877,3 +877,24 @@ export const whatsappUsage = pgTable('whatsapp_usage', {
   month: text('month').primaryKey(),
   sent: integer('sent').notNull().default(0),
 });
+
+/** The companies a Model can be called through (`@zapbots/ai`'s ProviderName, upper case). */
+export const aiProvider = pgEnum('ai_provider', ['ANTHROPIC', 'GOOGLE', 'OPENAI', 'OPENROUTER']);
+
+/**
+ * An Organization's key to a Model provider, pasted on Integrações (docs/adr/0022). Kept sealed
+ * with AES-256-GCM; only its last four characters ever leave the server.
+ */
+export const aiKey = pgTable(
+  'ai_key',
+  {
+    /** `iv.tag.ciphertext`, each in base64url. */
+    ciphertext: text('ciphertext').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    last4: text('last4').notNull(),
+    organizationId: organizationId(),
+    provider: aiProvider('provider').notNull(),
+    ...timestamps,
+  },
+  table => [unique('ai_key_organization_provider_unique').on(table.organizationId, table.provider)]
+);

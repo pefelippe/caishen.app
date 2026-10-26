@@ -8,7 +8,13 @@ import {
 } from 'ai';
 
 import { ModelError, toModelError } from './errors';
-import { languageModel, type ModelRef, type ProviderKeys, type ProviderName } from './providers';
+import {
+  languageModel,
+  PROVIDERS,
+  type ModelRef,
+  type ProviderKeys,
+  type ProviderName,
+} from './providers';
 
 /** A tool call as the Model made it, its arguments as JSON text (possibly not valid JSON). */
 export interface AgentToolCall {
@@ -131,6 +137,14 @@ const parsed = (text: string): unknown => {
 export async function runAgent(
   options: RunAgentOptions
 ): Promise<{ text: string; toolCalls: number }> {
+  // Without a key the AI SDK would read the provider's own variable from the environment, the
+  // server owner's; only the keys handed in may be used (docs/adr/0022).
+  const { provider } = options.model;
+  if (!options.keys[provider]) {
+    throw new ModelError(
+      `Sua Organização não tem chave do ${PROVIDERS[provider].label}. Cole-a em Integrações ou escolha outro Modelo.`
+    );
+  }
   const messages = [...options.messages];
   let instructions = options.instructions;
   let tools = options.tools?.length ? options.tools : undefined;

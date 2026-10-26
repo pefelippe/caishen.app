@@ -391,7 +391,7 @@ export function ChatPage({ user }: { user: { name: string } }) {
             unavailable={
               data.aiStatus.configured
                 ? undefined
-                : 'O Caishen ainda não responde: falta a OPENROUTER_API_KEY no .env do servidor.'
+                : 'O Caishen ainda não responde: cole a chave de um provedor de IA em Integrações.'
             }
             variant="page"
           />

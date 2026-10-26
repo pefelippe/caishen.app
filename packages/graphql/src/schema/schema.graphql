@@ -87,6 +87,14 @@ enum JobStatus {
   FAILED
 }
 
+"A company a Model can be called through (docs/adr/0021)."
+enum AiProvider {
+  ANTHROPIC
+  GOOGLE
+  OPENAI
+  OPENROUTER
+}
+
 enum ConnectionKind {
   OPENROUTER
   GOOGLE_DRIVE
@@ -201,8 +209,10 @@ type Query {
   "The Organization's team: every Bot of the catalog."
   bots: [Bot!]!
   bot(key: BotKey!): Bot!
-  "Models available to Bots; empty when the server has no OpenRouter key."
+  "Models the Organization's keys reach; empty while it has none."
   models: [Model!]!
+  "The Organization's keys to Model providers, masked (docs/adr/0022)."
+  aiKeys: [AiKey!]!
   aiStatus: AiStatus!
   "Newest first. Without `botId`, the Conversations with every Bot of the team."
   conversations(botId: ID): [Conversation!]!
@@ -242,6 +252,10 @@ type Mutation {
   syncBankLink(id: ID!): BankSync!
   "Unlinks a bank; its accounts and the Gastos that came from it go."
   unlinkBank(id: ID!): Boolean!
+  "Saves or replaces the Organization's key to a Model provider; owners and admins only."
+  setAiKey(provider: AiProvider!, key: String!): AiKey!
+  "Removes the Organization's key to a Model provider; owners and admins only."
+  removeAiKey(provider: AiProvider!): Boolean!
   "A Stripe Checkout page for the Pro Plan; owners and admins only."
   startCheckout: String!
   "Stripe's portal to manage the Subscription; owners and admins only."
@@ -495,6 +509,15 @@ type Alert {
   href: String
 }
 
+type AiKey {
+  provider: AiProvider!
+  "The provider's name, e.g. Anthropic."
+  label: String!
+  "The key's last four characters; the key itself never leaves the server."
+  last4: String!
+  updatedAt: DateTime!
+}
+
 type Model {
   id: ID!
   name: String!
@@ -503,7 +526,7 @@ type Model {
 }
 
 type AiStatus {
-  "False when OPENROUTER_API_KEY is missing."
+  "False while the Organization has no key to any Model provider."
   configured: Boolean!
   defaultModel: String!
 }

@@ -28,7 +28,7 @@ Os Modelos diretos não têm lista pública, por isso ficam num catálogo no có
 - **PDF:** vai como arquivo nativo do provedor. O `file-parser` do OpenRouter (ADR 0017) só vale lá.
 - **Nota do app no meio da Conversa:** segue como mensagem de sistema só no OpenRouter, como sempre foi. Nos provedores diretos ela vira uma fala do usuário (`forProvider`): o Gemini recusa system depois do começo, e nos outros isso não foi testado com chave de verdade.
 
-Isto substitui a parte do ADR 0009 que dizia "uma única chave no servidor (`OPENROUTER_API_KEY`)". Chave por Organização (o Usuário colando a sua em Integrações) fica para outro ADR: pede guardar segredo criptografado.
+Isto substitui a parte do ADR 0009 que dizia "uma única chave no servidor (`OPENROUTER_API_KEY`)". As variáveis da tabela acima deram lugar às chaves de cada Organização, coladas em Integrações (ADR 0022).
 
 **O Bot ganha ferramentas de leitura e simulação.** São quatro:
 - `period_summary`: o período, por categoria;
