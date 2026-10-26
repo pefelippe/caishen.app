@@ -120,6 +120,7 @@ app.get('/health', (_, res) => {
 
 // Streams a Bot's reply as server-sent events: `delta`, then `done` or `error`.
 // Attachments come inline (images and PDFs as data URLs), so this body may be a few MB.
+// The reply goes on, and is saved, when the browser leaves; only Parar (`stopReply`) ends it.
 app.post('/api/chat/:conversationId', express.json({ limit: '5mb' }), async (req, res) => {
   const viewer = await resolveViewer(req.headers);
   if (!viewer) {
@@ -131,30 +132,36 @@ app.post('/api/chat/:conversationId', express.json({ limit: '5mb' }), async (req
     Connection: 'keep-alive',
     'Content-Type': 'text/event-stream',
   });
-  const send = (event: ChatEvent) => res.write(`data: ${JSON.stringify(event)}\n\n`);
-  const abort = new AbortController();
-  res.on('close', () => abort.abort());
-  try {
-    const body = req.body as { attachments?: unknown; content?: unknown; screen?: unknown };
-    await replyInConversation({
-      attachments: readAttachments(body.attachments),
-      content: typeof body.content === 'string' ? body.content : '',
-      conversationId: req.params.conversationId,
-      screen: typeof body.screen === 'string' ? body.screen.slice(0, 120) : undefined,
-      send,
-      signal: abort.signal,
-      viewer,
-    });
-  } catch (error) {
-    const known =
-      error instanceof AttachmentError || error instanceof ChatError || error instanceof ModelError;
-    if (!known && !abort.signal.aborted) {
-      console.error('chat failed:', error);
-      reportError(error);
+  const send = (event: ChatEvent) => {
+    if (!res.destroyed && !res.writableEnded) res.write(`data: ${JSON.stringify(event)}\n\n`);
+  };
+  const body = req.body as { attachments?: unknown; content?: unknown; screen?: unknown };
+  const reply = (async () => {
+    try {
+      await replyInConversation({
+        attachments: readAttachments(body.attachments),
+        content: typeof body.content === 'string' ? body.content : '',
+        conversationId: req.params.conversationId,
+        screen: typeof body.screen === 'string' ? body.screen.slice(0, 120) : undefined,
+        send,
+        viewer,
+      });
+    } catch (error) {
+      const known =
+        error instanceof AttachmentError ||
+        error instanceof ChatError ||
+        error instanceof ModelError;
+      if (!known) {
+        console.error('chat failed:', error);
+        reportError(error);
+      }
+      send({ message: known ? error.message : 'O Bot não conseguiu responder.', type: 'error' });
     }
-    send({ message: known ? error.message : 'O Bot não conseguiu responder.', type: 'error' });
-  }
-  res.end();
+  })();
+  // On Vercel the function lives until the reply is saved, even with no one listening.
+  waitUntil(reply);
+  await reply;
+  if (!res.destroyed && !res.writableEnded) res.end();
 });
 
 // On Vercel there is no process to keep a clock: a Cron Job calls this once a day (docs/adr/0012).

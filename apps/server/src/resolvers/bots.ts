@@ -7,6 +7,7 @@ import { GraphQLError } from 'graphql';
 import { PlanLimitError, requireWithinLimit } from '../services/billing/billing';
 import { markAlerts, viewerAlerts } from '../services/bots/alerts';
 import { CATALOG, ensureBots, type BotKey } from '../services/bots/catalog';
+import { isReplying, stopReply } from '../services/bots/chat';
 import { cancelJob, failStaleJobs, handOverJob, type JobFile } from '../services/bots/jobs';
 import {
   cancelProposal,
@@ -134,6 +135,7 @@ export const botResolvers: Resolvers = {
         .from(schema.message)
         .where(eq(schema.message.conversationId, conversation.id))
         .orderBy(asc(schema.message.createdAt)),
+    replying: conversation => isReplying(conversation),
   },
   Message: {
     attachments: message => message.attachments ?? [],
@@ -229,6 +231,8 @@ export const botResolvers: Resolvers = {
         .returning({ id: schema.conversation.id });
       return deleted.length > 0;
     },
+    stopReply: (_, { conversationId }, context) =>
+      stopReply(requireViewer(context), conversationId),
     cancelJob: async (_, { id }, context) => {
       const viewer = requireViewer(context);
       const [job] = await db

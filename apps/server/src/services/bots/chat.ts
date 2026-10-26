@@ -1,7 +1,8 @@
 import type { Viewer } from '@zapbots/auth';
 import { db, schema, type MessageRow } from '@zapbots/database';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, lt, or } from 'drizzle-orm';
 
+import { owned } from '../../resolvers/guards';
 import { PlanLimitError, requireWithinLimit } from '../billing/billing';
 import { aiConfigured, botModel, listModels, ModelError, talk, type ModelMessage } from '../models';
 import { attachedNote, userContent, type ChatAttachment } from './attachments';
@@ -25,6 +26,72 @@ const withoutNotes = (reply: string) =>
 /** Tool rounds in one reply before the Model must answer in text: reading takes a few. */
 const TOOL_ROUNDS = 6;
 const DEFAULT_TITLE = 'Nova conversa';
+/**
+ * A reply older than this is taken as dead: past the function's 300 s on Vercel, the process that
+ * wrote it was stopped before it could say it ended.
+ */
+const REPLY_TIMEOUT_MS = 6 * 60_000;
+/** How often a reply looks for Parar, which may have been pressed on another server instance. */
+const STOP_POLL_MS = 1000;
+const STOPPED = 'Você parou a resposta.';
+
+/** Whether the Bot is writing a reply in this Conversation now. */
+export const isReplying = (conversation: { replyingSince: Date | null }) =>
+  conversation.replyingSince !== null &&
+  Date.now() - conversation.replyingSince.getTime() < REPLY_TIMEOUT_MS;
+
+/**
+ * Parar: the reply being written in the Conversation ends with what it has. False when there is
+ * none to stop.
+ */
+export async function stopReply(viewer: Viewer, conversationId: string): Promise<boolean> {
+  const stopped = await db
+    .update(schema.conversation)
+    .set({ stopRequestedAt: new Date() })
+    .where(
+      and(
+        owned(schema.conversation, viewer, conversationId),
+        gt(schema.conversation.replyingSince, new Date(Date.now() - REPLY_TIMEOUT_MS))
+      )
+    )
+    .returning({ id: schema.conversation.id });
+  return stopped.length > 0;
+}
+
+/**
+ * Marks the Conversation as being answered, unless it already is: one reply at a time, as the
+ * Messages are read in order. False when another reply is still being written.
+ */
+async function claimReply(conversationId: string): Promise<boolean> {
+  const claimed = await db
+    .update(schema.conversation)
+    .set({ replyingSince: new Date(), stopRequestedAt: null })
+    .where(
+      and(
+        eq(schema.conversation.id, conversationId),
+        or(
+          isNull(schema.conversation.replyingSince),
+          lt(schema.conversation.replyingSince, new Date(Date.now() - REPLY_TIMEOUT_MS))
+        )
+      )
+    )
+    .returning({ id: schema.conversation.id });
+  return claimed.length > 0;
+}
+
+/** Aborts `controller` once Parar is pressed for the Conversation; returns how to stop looking. */
+function watchForStop(conversationId: string, controller: AbortController): () => void {
+  const timer = setInterval(() => {
+    db.select({ stopRequestedAt: schema.conversation.stopRequestedAt })
+      .from(schema.conversation)
+      .where(eq(schema.conversation.id, conversationId))
+      .then(([row]) => {
+        if (row?.stopRequestedAt) controller.abort();
+      })
+      .catch(() => {});
+  }, STOP_POLL_MS);
+  return () => clearInterval(timer);
+}
 
 export type ChatEvent =
   | { text: string; type: 'delta' }
@@ -115,6 +182,74 @@ export async function replyInConversation(options: {
       `O Modelo de ${CATALOG[bot.key].name} não lê imagens. Escolha um com visão em Integrações, ou mande o texto.`
     );
   }
+  // In the app one reply is written at a time, and Parar can end it; WhatsApp answers each message
+  // as it comes (docs/adr/0019).
+  if (mode === 'chat' && !(await claimReply(conversation.id))) {
+    throw new ChatError('Espere a resposta terminar, ou pare-a.');
+  }
+  const stopper = new AbortController();
+  const stopWatching = mode === 'chat' ? watchForStop(conversation.id, stopper) : () => {};
+  try {
+    await answer({
+      attachments,
+      bot,
+      canUseTools,
+      content,
+      conversation,
+      history,
+      mode,
+      model,
+      proposals,
+      screen: options.screen,
+      send,
+      signal: options.signal ? AbortSignal.any([options.signal, stopper.signal]) : stopper.signal,
+      stopped: stopper.signal,
+      viewer,
+    });
+  } finally {
+    stopWatching();
+    if (mode === 'chat') {
+      await db
+        .update(schema.conversation)
+        .set({ replyingSince: null, stopRequestedAt: null })
+        .where(eq(schema.conversation.id, conversation.id));
+    }
+  }
+}
+
+/** Saves the User's Message, has the Model answer it and saves the reply. */
+async function answer({
+  attachments,
+  bot,
+  canUseTools,
+  content,
+  conversation,
+  history,
+  mode,
+  model,
+  proposals,
+  screen,
+  send,
+  signal,
+  stopped,
+  viewer,
+}: {
+  attachments: ChatAttachment[];
+  bot: typeof schema.bot.$inferSelect;
+  canUseTools: boolean;
+  content: string;
+  conversation: typeof schema.conversation.$inferSelect;
+  history: MessageRow[];
+  mode: 'chat' | 'whatsapp';
+  model: string;
+  proposals: (typeof schema.proposal.$inferSelect)[];
+  screen?: string;
+  send: (event: ChatEvent) => void;
+  signal: AbortSignal;
+  /** Aborted when the User pressed Parar, not when the request went away. */
+  stopped: AbortSignal;
+  viewer: Viewer;
+}): Promise<void> {
   await db.insert(schema.message).values({
     attachments: attachments.length ? attachments.map(({ kind, name }) => ({ kind, name })) : null,
     content,
@@ -135,7 +270,7 @@ export async function replyInConversation(options: {
     canPropose: canUseTools,
     canRead: canUseTools,
     mode,
-    screen: options.screen,
+    screen,
   });
   const messages: ModelMessage[] = [
     ...history.flatMap((message): ModelMessage[] => {
@@ -173,18 +308,24 @@ export async function replyInConversation(options: {
         reply += piece;
         send({ text: piece, type: 'delta' });
       },
-      signal: options.signal,
+      signal,
       toolRounds: TOOL_ROUNDS,
       tools: canUseTools ? [...READ_AGENT_TOOLS, ...PROPOSAL_TOOLS] : undefined,
       // A free router may land on a Model that refuses tools: answer read-only rather than fail.
-      withoutTools: () => botPrompt(viewer, bot, { mode, screen: options.screen }),
+      withoutTools: () => botPrompt(viewer, bot, { mode, screen }),
     });
   } catch (error) {
-    // Keep what was already written visible, and any Proposal already made with it.
-    if (!reply && !proposed) throw error;
-    reply += `
+    // Keep what was already written visible, and any Proposal already made with it. Parar is an
+    // ending, not a failure: it is saved even before the first word.
+    if (!stopped.aborted && !reply && !proposed) throw error;
+    const note = stopped.aborted
+      ? STOPPED
+      : error instanceof ModelError
+        ? error.message
+        : 'A resposta foi interrompida.';
+    reply = `${reply.trimEnd()}
 
-(${error instanceof ModelError ? error.message : 'A resposta foi interrompida.'})`;
+(${note})`;
   }
 
   const [saved] = await db

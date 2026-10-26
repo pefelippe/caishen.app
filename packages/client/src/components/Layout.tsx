@@ -10,6 +10,7 @@ import { isRailPath } from '../lib/nav';
 import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
 import { ChatPanel, ChatPanelProvider } from './ChatPanel';
+import { ChatRepliesProvider } from './ChatReplies';
 import { CommandMenu } from './CommandMenu';
 import { MobileNav } from './MobileNav';
 import { ToasterProvider } from './Toaster';
@@ -59,49 +60,51 @@ export function Layout({ user }: Props) {
   return (
     <TooltipProvider delayDuration={300}>
       <ToasterProvider>
-        <ChatPanelProvider>
-          <SidebarProvider
-            // Clear of the notch, the rounded corners and the home indicator (index.html sets
-            // viewport-fit=cover); the navy frame fills the space they take.
-            className="h-svh flex-col overflow-hidden bg-(image:--header-gradient) pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:pb-[env(safe-area-inset-bottom)] print:h-auto print:overflow-visible print:bg-none"
-            onOpenChange={changeOpen}
-            open={open}
-            style={
-              {
-                '--header-height': 'calc(3.5rem + env(safe-area-inset-top))',
-                '--sidebar-width': '17rem',
-                '--sidebar-width-icon': '4.25rem',
-              } as CSSProperties
-            }
-          >
-            <CommandMenu>
-              <AppHeader user={user} />
-              <div className="flex min-h-0 flex-1">
-                <AppSidebar />
-                {/* The screen and the chat panel, square, against the menu. */}
-                <div className="flex min-w-0 flex-1 overflow-hidden print:overflow-visible">
-                  <main className="relative min-w-0 flex-1 overflow-hidden bg-background print:overflow-visible print:bg-white">
-                    {/* Screens without page margins of their own (the chat, a document) still wait in
+        <ChatRepliesProvider>
+          <ChatPanelProvider>
+            <SidebarProvider
+              // Clear of the notch, the rounded corners and the home indicator (index.html sets
+              // viewport-fit=cover); the navy frame fills the space they take.
+              className="h-svh flex-col overflow-hidden bg-(image:--header-gradient) pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:pb-[env(safe-area-inset-bottom)] print:h-auto print:overflow-visible print:bg-none"
+              onOpenChange={changeOpen}
+              open={open}
+              style={
+                {
+                  '--header-height': 'calc(3.5rem + env(safe-area-inset-top))',
+                  '--sidebar-width': '17rem',
+                  '--sidebar-width-icon': '4.25rem',
+                } as CSSProperties
+              }
+            >
+              <CommandMenu>
+                <AppHeader user={user} />
+                <div className="flex min-h-0 flex-1">
+                  <AppSidebar />
+                  {/* The screen and the chat panel, square, against the menu. */}
+                  <div className="flex min-w-0 flex-1 overflow-hidden print:overflow-visible">
+                    <main className="relative min-w-0 flex-1 overflow-hidden bg-background print:overflow-visible print:bg-white">
+                      {/* Screens without page margins of their own (the chat, a document) still wait in
                     them, as a page does. */}
-                    <Suspense
-                      fallback={
-                        <div className="w-full px-6 pt-12 pb-24 md:px-14">
-                          <PageSkeleton />
-                        </div>
-                      }
-                    >
-                      <Outlet />
-                    </Suspense>
-                  </main>
-                  <div className="contents print:hidden">
-                    <ChatPanel />
+                      <Suspense
+                        fallback={
+                          <div className="w-full px-6 pt-12 pb-24 md:px-14">
+                            <PageSkeleton />
+                          </div>
+                        }
+                      >
+                        <Outlet />
+                      </Suspense>
+                    </main>
+                    <div className="contents print:hidden">
+                      <ChatPanel />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <MobileNav />
-            </CommandMenu>
-          </SidebarProvider>
-        </ChatPanelProvider>
+                <MobileNav />
+              </CommandMenu>
+            </SidebarProvider>
+          </ChatPanelProvider>
+        </ChatRepliesProvider>
       </ToasterProvider>
     </TooltipProvider>
   );

@@ -1,7 +1,6 @@
-import { useApolloClient, useQuery } from '@apollo/client/react';
+import { useQuery } from '@apollo/client/react';
 import {
   ConversationDocument,
-  ConversationsDocument,
   type BotFieldsFragment,
   type MessageFieldsFragment,
 } from '@zapbots/graphql/client';
@@ -14,6 +13,7 @@ import {
   ImageIcon,
   PaperclipIcon,
   PlusIcon,
+  SquareIcon,
   XIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -48,11 +48,14 @@ import {
   pastedFiles,
   type ChatAttachment,
 } from '../lib/attachments';
-import { streamChat } from '../lib/chat';
 import { BotGlyph } from './BotGlyph';
+import { useChatReplies, type PendingReply } from './ChatReplies';
 import { ChatText } from './ChatText';
 import { FormError } from './FormError';
 import { ProposalCard } from './ProposalCard';
+
+/** How often a thread looks for a reply being written elsewhere, in milliseconds. */
+const POLL_WHILE_REPLYING = 2000;
 
 /** A question offered while the Conversation is empty; the page shows each with its icon. */
 export interface Suggestion {
@@ -93,24 +96,31 @@ export function ChatThread({
   unavailable,
   variant = 'panel',
 }: Props) {
-  const apollo = useApolloClient();
   const location = useLocation();
-  const { data } = useQuery(ConversationDocument, {
+  const replies = useChatReplies();
+  const [draft, setDraft] = useState('');
+  // The first Message of a new Conversation, shown while the Conversation is being created.
+  const [starting, setStarting] = useState<PendingReply | null>(null);
+  // The Conversation just created, until `conversationId` catches up with it.
+  const [created, setCreated] = useState<string | null>(null);
+  const pending = replies.pending(conversationId ?? created) ?? starting;
+  const { data, startPolling, stopPolling } = useQuery(ConversationDocument, {
     skip: !conversationId,
     variables: { id: conversationId! },
   });
-  const [draft, setDraft] = useState('');
-  const [pending, setPending] = useState<{
-    /** Files sent with it, by name. */
-    attached: Pick<ChatAttachment, 'kind' | 'name'>[];
-    /** Messages on screen when this one was sent; later ones are the exchange in flight. */
-    before: number;
-    sent: string;
-    text: string;
-  } | null>(null);
+  // A reply started elsewhere (before a reload, in another tab): the dots show and the thread is
+  // read again until it is saved.
+  const replyingElsewhere = !pending && Boolean(data?.conversation?.replying);
+  const replying = Boolean(pending) || replyingElsewhere;
+  useEffect(() => {
+    if (!replyingElsewhere) return;
+    startPolling(POLL_WHILE_REPLYING);
+    return stopPolling;
+  }, [replyingElsewhere, startPolling, stopPolling]);
   const [files, setFiles] = useState<ChatAttachment[]>([]);
   const picker = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setError] = useState<string | null>(null);
+  const error = localError ?? replies.error(conversationId);
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
@@ -159,41 +169,44 @@ export function ChatThread({
 
   const send = async (content: string, extra?: ChatAttachment[]) => {
     const attachments = extra ?? files;
-    if ((!content.trim() && !attachments.length) || pending || unavailable) return;
+    if ((!content.trim() && !attachments.length) || replying || unavailable) return;
     setError(null);
     setDraft('');
     setFiles([]);
-    setPending({
-      attached: attachments.map(({ kind, name }) => ({ kind, name })),
-      before: saved.length,
-      sent: content.trim(),
-      text: '',
-    });
+    const before = saved.length;
+    let id: string;
     try {
-      const id = await ensureConversation();
-      await streamChat({
-        attachments,
-        content,
-        conversationId: id,
-        onEvent: event => {
-          if (event.type === 'delta') {
-            setPending(current => current && { ...current, text: current.text + event.text });
-          } else if (event.type === 'error') setError(event.message);
-        },
-        screen: location.pathname,
-      });
-      // Load the saved exchange before dropping the pending bubbles.
-      await apollo.query({
-        fetchPolicy: 'network-only',
-        query: ConversationDocument,
-        variables: { id },
-      });
-      // The list of Conversations shows the latest Message; bring it up to date.
-      await apollo.refetchQueries({ include: [ConversationsDocument] });
+      if (conversationId) id = conversationId;
+      else {
+        setStarting({
+          attached: attachments.map(({ kind, name }) => ({ kind, name })),
+          before,
+          sent: content.trim(),
+          text: '',
+        });
+        id = await ensureConversation();
+        setCreated(id);
+      }
     } catch {
+      setStarting(null);
       setError('Não foi possível falar com o Caishen.');
+      return;
     }
-    setPending(null);
+    // The reply lives above the screens from here, so it goes on when this thread closes.
+    const sending = replies.send({
+      attachments,
+      before,
+      content,
+      conversationId: id,
+      screen: location.pathname,
+    });
+    setStarting(null);
+    await sending;
+  };
+
+  const stop = () => {
+    const id = conversationId ?? created;
+    if (id) void replies.stop(id);
   };
 
   // Once only, even when StrictMode runs the effect twice.
@@ -217,7 +230,7 @@ export function ChatThread({
     }
   };
 
-  const empty = messages.length === 0 && !pending;
+  const empty = messages.length === 0 && !replying;
   const page = variant === 'page';
   const canSend = Boolean(draft.trim()) || files.length > 0;
   const remove = (index: number) => setFiles(current => current.filter((_, at) => at !== index));
@@ -293,6 +306,9 @@ export function ChatThread({
             <Bubble bot={bot} message={{ attachments: [], content: pending.text, role: 'BOT' }} />
           </>
         )}
+        {replyingElsewhere && (
+          <Bubble bot={bot} message={{ attachments: [], content: '', role: 'BOT' }} />
+        )}
         <div ref={end} />
       </div>
       {error && (
@@ -335,15 +351,19 @@ export function ChatThread({
               <p className="mr-auto text-xs text-muted-foreground">
                 {unavailable ?? 'Enter envia · Shift + Enter quebra a linha'}
               </p>
-              <Button
-                aria-label="Enviar"
-                className="size-10 rounded-full"
-                disabled={Boolean(pending) || Boolean(unavailable) || !canSend}
-                size="icon"
-                type="submit"
-              >
-                <ArrowUpIcon />
-              </Button>
+              {replying ? (
+                <StopButton className="size-10 rounded-full" onStop={stop} />
+              ) : (
+                <Button
+                  aria-label="Enviar"
+                  className="size-10 rounded-full"
+                  disabled={Boolean(unavailable) || !canSend}
+                  size="icon"
+                  type="submit"
+                >
+                  <ArrowUpIcon />
+                </Button>
+              )}
             </div>
           </form>
           <p className="py-2 text-center text-xs text-muted-foreground">
@@ -373,15 +393,19 @@ export function ChatThread({
                 small
               />
             </div>
-            <Button
-              aria-label="Enviar"
-              className="absolute right-2 bottom-2"
-              disabled={Boolean(pending) || !canSend}
-              size="icon-sm"
-              type="submit"
-            >
-              <ArrowUpIcon />
-            </Button>
+            {replying ? (
+              <StopButton className="absolute right-2 bottom-2 size-8" onStop={stop} />
+            ) : (
+              <Button
+                aria-label="Enviar"
+                className="absolute right-2 bottom-2"
+                disabled={!canSend}
+                size="icon-sm"
+                type="submit"
+              >
+                <ArrowUpIcon />
+              </Button>
+            )}
           </form>
           <p className="pt-1.5 text-center text-[11px] text-muted-foreground">
             {bot.name} é uma IA e pode errar.
@@ -389,6 +413,22 @@ export function ChatThread({
         </>
       )}
     </div>
+  );
+}
+
+/** Parar, in place of Enviar while the Bot writes: it keeps what was written so far. */
+function StopButton({ className, onStop }: { className: string; onStop: () => void }) {
+  return (
+    <Button
+      aria-label="Parar"
+      className={className}
+      onClick={onStop}
+      size="icon"
+      title="Parar"
+      type="button"
+    >
+      <SquareIcon className="size-3.5 fill-current" />
+    </Button>
   );
 }
 

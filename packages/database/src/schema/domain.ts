@@ -447,6 +447,10 @@ export const conversation = pgTable(
     title: text('title')
       .notNull()
       .default(sql`'Nova conversa'`),
+    /** When the Bot started the reply it is writing; null once it is saved. */
+    replyingSince: timestamp('replying_since', { withTimezone: true }),
+    /** Parar was pressed: the reply being written ends with what it has. */
+    stopRequestedAt: timestamp('stop_requested_at', { withTimezone: true }),
     ...timestamps,
   },
   table => [

@@ -25,5 +25,8 @@ export default defineConfig({
     fileParallelism: false,
     globalSetup: './test/globalSetup.ts',
     include: ['src/**/*.test.ts'],
+    // MSW's interceptor rejects on its own when a faked response is cancelled mid-stream (Parar);
+    // a real server's closes quietly. Only that abort is ignored.
+    onUnhandledError: error => error.name !== 'AbortError',
   },
 });

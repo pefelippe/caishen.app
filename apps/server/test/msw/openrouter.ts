@@ -55,13 +55,17 @@ export type Completion =
   | { arguments: Record<string, unknown>; tool: string }
   | { status: number };
 
-/** Text sent one piece at a time, `delayMs` apart, like a Model writing a long answer. */
-function slowStream(pieces: string[], delayMs: number): Response {
+/**
+ * Text sent one piece at a time, `delayMs` apart, like a Model writing a long answer. It stops
+ * when the caller cancels the request, as a real server's connection would close.
+ */
+function slowStream(pieces: string[], delayMs: number, signal: AbortSignal): Response {
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       for (const [index, content] of pieces.entries()) {
         if (index > 0) await new Promise(resolve => setTimeout(resolve, delayMs));
+        if (signal.aborted) return;
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`)
         );
@@ -121,7 +125,9 @@ export function completionHandler(completions: Completion[]): {
     if (!completion)
       return HttpResponse.json({ error: { message: 'unscripted' } }, { status: 500 });
     if ('status' in completion) return HttpResponse.json({}, { status: completion.status });
-    if ('pieces' in completion) return slowStream(completion.pieces, completion.delayMs);
+    if ('pieces' in completion) {
+      return slowStream(completion.pieces, completion.delayMs, request.signal);
+    }
     return stream(completion);
   });
   return { handler, keys, log };

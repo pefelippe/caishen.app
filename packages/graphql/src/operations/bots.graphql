@@ -115,6 +115,7 @@ query Conversation($id: ID!) {
   conversation(id: $id) {
     id
     title
+    replying
     messages {
       ...MessageFields
     }
@@ -137,6 +138,10 @@ mutation StartConversation($botId: ID!) {
 
 mutation DeleteConversation($id: ID!) {
   deleteConversation(id: $id)
+}
+
+mutation StopReply($conversationId: ID!) {
+  stopReply(conversationId: $conversationId)
 }
 
 mutation ConfirmProposal($id: ID!) {

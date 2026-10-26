@@ -275,6 +275,8 @@ type Mutation {
   setBotModel(id: ID!, model: String): Bot!
   startConversation(botId: ID!): Conversation!
   deleteConversation(id: ID!): Boolean!
+  "Parar: the reply being written ends with what it has. False when there was none."
+  stopReply(conversationId: ID!): Boolean!
   "Writes a pending Proposal through the same checks as the matching mutation."
   confirmProposal(id: ID!): Proposal!
   "Corrects a pending Proposal; read and checked like the Bot's own call."
@@ -543,6 +545,8 @@ type Conversation {
   messages: [Message!]!
   "The latest Message, for the list of Conversations."
   lastMessage: Message
+  "The Bot is writing a reply; it goes on when the User leaves the page, until Parar."
+  replying: Boolean!
   updatedAt: DateTime!
 }
 
