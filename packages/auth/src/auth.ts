@@ -101,7 +101,14 @@ export const auth = betterAuth({
         },
       }
     : {},
-  trustedOrigins: [clientOrigin],
+  // On Vercel the same deploy also answers on its own URLs (the deploy, the branch, the project's
+  // production alias); signing in from any of them must work, not only from CLIENT_ORIGIN.
+  trustedOrigins: [
+    clientOrigin,
+    ...[process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
+      .filter(Boolean)
+      .map(host => `https://${host}`),
+  ],
   user: {
     // The app's language, kept with the User so it follows them to any browser.
     additionalFields: {
