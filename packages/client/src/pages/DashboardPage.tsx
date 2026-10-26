@@ -16,6 +16,7 @@ import { cn } from '@zapbots/ui/lib/utils';
 import { CHAT_SUGGESTIONS, useChatPanel } from '../components/ChatPanel';
 import { AttachMenu, Waiting } from '../components/ChatThread';
 import { MonthSummary } from '../components/MonthSummary';
+import { Overview } from '../components/Overview';
 import {
   addAttachments,
   ATTACHMENT_ACCEPT,
@@ -315,6 +316,12 @@ export function DashboardPage({ user }: { user: { name: string } }) {
       <Ask name={user.name.split(' ')[0]!} />
 
       <MarketFigures market={home?.indicators} />
+
+      {holder && home && (
+        <motion.div variants={rise}>
+          <Overview holder={holder} links={home.bankLinks} />
+        </motion.div>
+      )}
 
       <motion.div variants={rise}>
         {holder ? (

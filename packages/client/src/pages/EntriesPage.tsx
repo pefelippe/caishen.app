@@ -185,7 +185,6 @@ const SHORT_MONTHS = [
   'dez',
 ];
 
-
 /** Where each kind of line is filed when it has no category of its own. */
 const KIND_CATEGORIES: Record<MonthLineKind, string> = {
   INSTALLMENT: 'Empréstimos',

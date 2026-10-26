@@ -404,6 +404,32 @@ query Home($month: String!) {
       dueDate
       amountCents
     }
+    creditCards {
+      id
+      name
+      issuer
+      limitCents
+      statements {
+        id
+        referenceMonth
+        amountCents
+        dueDate
+      }
+    }
+    months(last: 12) {
+      month
+      balanceCents
+    }
+  }
+  bankLinks {
+    id
+    institution
+    accounts {
+      id
+      kind
+      name
+      balanceCents
+    }
   }
 }
 
