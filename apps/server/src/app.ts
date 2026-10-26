@@ -121,6 +121,7 @@ app.get('/health', (_, res) => {
 // Streams a Bot's reply as server-sent events: `delta`, then `done` or `error`.
 // Attachments come inline (images and PDFs as data URLs), so this body may be a few MB.
 // The reply goes on, and is saved, when the browser leaves; only Parar (`stopReply`) ends it.
+// `redo` answers the User's last Message again (`retry`), or with `content` in its place (`edit`).
 app.post('/api/chat/:conversationId', express.json({ limit: '5mb' }), async (req, res) => {
   const viewer = await resolveViewer(req.headers);
   if (!viewer) {
@@ -135,13 +136,19 @@ app.post('/api/chat/:conversationId', express.json({ limit: '5mb' }), async (req
   const send = (event: ChatEvent) => {
     if (!res.destroyed && !res.writableEnded) res.write(`data: ${JSON.stringify(event)}\n\n`);
   };
-  const body = req.body as { attachments?: unknown; content?: unknown; screen?: unknown };
+  const body = req.body as {
+    attachments?: unknown;
+    content?: unknown;
+    redo?: unknown;
+    screen?: unknown;
+  };
   const reply = (async () => {
     try {
       await replyInConversation({
         attachments: readAttachments(body.attachments),
         content: typeof body.content === 'string' ? body.content : '',
         conversationId: req.params.conversationId,
+        redo: body.redo === 'retry' || body.redo === 'edit' ? body.redo : undefined,
         screen: typeof body.screen === 'string' ? body.screen.slice(0, 120) : undefined,
         send,
         viewer,

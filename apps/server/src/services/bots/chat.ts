@@ -1,6 +1,6 @@
 import type { Viewer } from '@zapbots/auth';
 import { db, schema, type MessageRow } from '@zapbots/database';
-import { and, asc, eq, gt, inArray, isNull, lt, or } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, lt, ne, or } from 'drizzle-orm';
 
 import { owned } from '../../resolvers/guards';
 import { PlanLimitError, requireWithinLimit } from '../billing/billing';
@@ -112,17 +112,25 @@ export async function replyInConversation(options: {
   conversationId: string;
   /** Where the Conversation happens: the app's chat (the default) or WhatsApp (docs/adr/0019). */
   mode?: 'chat' | 'whatsapp';
+  /**
+   * Answers the User's last Message again instead of a new one, in place of the reply after it:
+   * `retry` as it is, `edit` with `content` in its place. Only in the app.
+   */
+  redo?: 'edit' | 'retry';
   /** Where the User is in the app, e.g. "/caishen". */
   screen?: string;
   send: (event: ChatEvent) => void;
   signal?: AbortSignal;
   viewer: Viewer;
 }): Promise<void> {
-  const { send, viewer } = options;
+  const { redo, send, viewer } = options;
   const mode = options.mode ?? 'chat';
   const content = options.content.trim();
-  const attachments = options.attachments ?? [];
-  if (!content && !attachments.length) throw new ChatError('Escreva uma mensagem.');
+  const attachments = redo ? [] : (options.attachments ?? []);
+  if (redo !== 'retry' && !content && !attachments.length) {
+    throw new ChatError('Escreva uma mensagem.');
+  }
+  if (redo && mode !== 'chat') throw new ChatError('Só no app.');
   if (!(await aiConfigured(viewer.organizationId))) {
     throw new ChatError(
       'Os Bots ainda não estão ligados: cole a chave de um provedor de IA em Integrações.'
@@ -153,26 +161,6 @@ export async function replyInConversation(options: {
     throw new ChatError(`Nenhum Modelo disponível. Escolha um para ${CATALOG[bot.key].name}.`);
   }
 
-  const history = (
-    await db
-      .select()
-      .from(schema.message)
-      .where(eq(schema.message.conversationId, conversation.id))
-      .orderBy(asc(schema.message.createdAt))
-  ).slice(-HISTORY);
-  // What became of each Proposal, so the Model does not offer a confirmed one again.
-  const proposals = history.length
-    ? await db
-        .select()
-        .from(schema.proposal)
-        .where(
-          inArray(
-            schema.proposal.messageId,
-            history.map(message => message.id)
-          )
-        )
-    : [];
-
   // Models that cannot call tools still chat; they just cannot read with tools or propose records
   // (docs/adr/0013, 0021).
   const listed = (await listModels(viewer.organizationId)).find(entry => entry.id === model);
@@ -190,11 +178,35 @@ export async function replyInConversation(options: {
   const stopper = new AbortController();
   const stopWatching = mode === 'chat' ? watchForStop(conversation.id, stopper) : () => {};
   try {
+    let saved = await db
+      .select()
+      .from(schema.message)
+      .where(eq(schema.message.conversationId, conversation.id))
+      .orderBy(asc(schema.message.createdAt));
+    let again: MessageRow | undefined;
+    if (redo) {
+      again = await takeBackReply(saved, redo === 'edit' ? content : undefined);
+      saved = saved.slice(0, saved.indexOf(again));
+    }
+    const history = saved.slice(-HISTORY);
+    // What became of each Proposal, so the Model does not offer a confirmed one again.
+    const proposals = history.length
+      ? await db
+          .select()
+          .from(schema.proposal)
+          .where(
+            inArray(
+              schema.proposal.messageId,
+              history.map(message => message.id)
+            )
+          )
+      : [];
     await answer({
+      again,
       attachments,
       bot,
       canUseTools,
-      content,
+      content: again?.content ?? content,
       conversation,
       history,
       mode,
@@ -217,8 +229,41 @@ export async function replyInConversation(options: {
   }
 }
 
-/** Saves the User's Message, has the Model answer it and saves the reply. */
+/**
+ * Takes back what came after the User's last Message (the reply, and the Proposals it left
+ * pending), to answer it again; with `edited`, the Message says that now. A reply whose Proposal
+ * was already confirmed stays: something was written with it.
+ */
+async function takeBackReply(messages: MessageRow[], edited?: string): Promise<MessageRow> {
+  const last = messages.findLastIndex(message => message.role === 'USER');
+  if (last < 0) throw new ChatError('Não há mensagem para responder de novo.');
+  const after = messages.slice(last + 1).map(message => message.id);
+  if (after.length) {
+    const kept = await db
+      .select({ id: schema.proposal.id })
+      .from(schema.proposal)
+      .where(and(inArray(schema.proposal.messageId, after), ne(schema.proposal.status, 'PENDING')));
+    if (kept.length) {
+      throw new ChatError(
+        'Esta resposta já tem uma proposta confirmada ou cancelada. Mande uma nova mensagem.'
+      );
+    }
+    // Their pending Proposals go with them (cascade).
+    await db.delete(schema.message).where(inArray(schema.message.id, after));
+  }
+  const message = messages[last]!;
+  if (edited === undefined) return message;
+  const [updated] = await db
+    .update(schema.message)
+    .set({ content: edited })
+    .where(eq(schema.message.id, message.id))
+    .returning();
+  return updated!;
+}
+
+/** Saves the User's Message (unless it is `again`), has the Model answer it and saves the reply. */
 async function answer({
+  again,
   attachments,
   bot,
   canUseTools,
@@ -234,6 +279,8 @@ async function answer({
   stopped,
   viewer,
 }: {
+  /** The User's Message being answered again, already saved; its files are known by name only. */
+  again?: MessageRow;
   attachments: ChatAttachment[];
   bot: typeof schema.bot.$inferSelect;
   canUseTools: boolean;
@@ -250,12 +297,16 @@ async function answer({
   stopped: AbortSignal;
   viewer: Viewer;
 }): Promise<void> {
-  await db.insert(schema.message).values({
-    attachments: attachments.length ? attachments.map(({ kind, name }) => ({ kind, name })) : null,
-    content,
-    conversationId: conversation.id,
-    role: 'USER',
-  });
+  if (!again) {
+    await db.insert(schema.message).values({
+      attachments: attachments.length
+        ? attachments.map(({ kind, name }) => ({ kind, name }))
+        : null,
+      content,
+      conversationId: conversation.id,
+      role: 'USER',
+    });
+  }
   await db
     .update(schema.conversation)
     .set({
@@ -289,7 +340,10 @@ async function answer({
           : []),
       ];
     }),
-    { content: userContent(content, attachments), role: 'user' },
+    // Files of a Message answered again were not kept (docs/adr/0017): the Model only learns which.
+    again
+      ? { content: content + attachedNote(again.attachments), role: 'user' }
+      : { content: userContent(content, attachments), role: 'user' },
   ];
 
   let reply = '';

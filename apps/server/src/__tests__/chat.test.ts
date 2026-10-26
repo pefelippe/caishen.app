@@ -17,7 +17,7 @@ let base = '';
 let close: () => void;
 
 beforeAll(async () => {
-  mswServer.listen({ onUnhandledRequest: 'bypass' });
+  mswServer.listen();
   const server = app.listen(0);
   await new Promise(resolve => server.once('listening', resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

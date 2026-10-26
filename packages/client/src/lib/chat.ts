@@ -6,12 +6,16 @@ export type ChatEvent =
   | { message: { id: string }; type: 'done' }
   | { message: string; type: 'error' };
 
+/** Answers the User's last Message again: `retry` as it is, `edit` with the new text. */
+export type Redo = 'edit' | 'retry';
+
 /** Sends one Message and reads the Bot's reply as it is written. */
 export async function streamChat(options: {
   attachments?: ChatAttachment[];
   content: string;
   conversationId: string;
   onEvent: (event: ChatEvent) => void;
+  redo?: Redo;
   /** Path of the screen the User is on, so the Bot knows the context. */
   screen: string;
 }): Promise<void> {
@@ -19,6 +23,7 @@ export async function streamChat(options: {
     body: JSON.stringify({
       attachments: options.attachments?.length ? options.attachments : undefined,
       content: options.content,
+      redo: options.redo,
       screen: options.screen,
     }),
     credentials: 'include',

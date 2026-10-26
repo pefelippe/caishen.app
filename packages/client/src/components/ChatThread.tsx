@@ -12,7 +12,9 @@ import {
   HardDriveIcon,
   ImageIcon,
   PaperclipIcon,
+  PencilIcon,
   PlusIcon,
+  RotateCcwIcon,
   SquareIcon,
   XIcon,
   type LucideIcon,
@@ -99,6 +101,8 @@ export function ChatThread({
   const location = useLocation();
   const replies = useChatReplies();
   const [draft, setDraft] = useState('');
+  // The input holds the last Message, to answer it again once edited.
+  const [editing, setEditing] = useState(false);
   // The first Message of a new Conversation, shown while the Conversation is being created.
   const [starting, setStarting] = useState<PendingReply | null>(null);
   // The Conversation just created, until `conversationId` catches up with it.
@@ -139,6 +143,7 @@ export function ChatThread({
   // While a reply is being written, the saved copy of this exchange stays hidden: the pending
   // bubbles show it, and a refetch in the middle would otherwise show the User's Message twice.
   const messages = pending ? saved.slice(0, pending.before) : saved;
+  const lastUserIndex = messages.findLastIndex(message => message.role === 'USER');
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });
@@ -167,20 +172,31 @@ export function ChatThread({
     void attachFiles(pasted);
   };
 
+  const threadId = conversationId ?? created;
+  const queued = replies.queued(threadId);
+
+  // A reply written before a reload has ended: what was written meanwhile goes now.
+  useEffect(() => {
+    if (threadId && !replying && queued.length) replies.sendQueued(threadId);
+  }, [threadId, replying, queued.length, replies]);
+
   const send = async (content: string, extra?: ChatAttachment[]) => {
     const attachments = extra ?? files;
-    if ((!content.trim() && !attachments.length) || replying || unavailable) return;
+    if ((!content.trim() && !attachments.length) || unavailable) return;
+    // The first Message of a new Conversation is still on its way: wait for it.
+    if (replying && !threadId) return;
+    if (editing && replying) return;
     setError(null);
     setDraft('');
     setFiles([]);
-    const before = saved.length;
+    setEditing(false);
     let id: string;
     try {
-      if (conversationId) id = conversationId;
+      if (threadId) id = threadId;
       else {
         setStarting({
           attached: attachments.map(({ kind, name }) => ({ kind, name })),
-          before,
+          before: 0,
           sent: content.trim(),
           text: '',
         });
@@ -192,12 +208,14 @@ export function ChatThread({
       setError('Não foi possível falar com o Caishen.');
       return;
     }
-    // The reply lives above the screens from here, so it goes on when this thread closes.
+    // The reply lives above the screens from here, so it goes on when this thread closes. Written
+    // while the Bot replies, the Message waits in the queue.
     const sending = replies.send({
       attachments,
-      before,
       content,
       conversationId: id,
+      queue: replyingElsewhere,
+      redo: editing ? 'edit' : undefined,
       screen: location.pathname,
     });
     setStarting(null);
@@ -205,8 +223,38 @@ export function ChatThread({
   };
 
   const stop = () => {
-    const id = conversationId ?? created;
-    if (id) void replies.stop(id);
+    if (threadId) void replies.stop(threadId);
+  };
+
+  /** Tentar de novo: the last Message is answered again, in place of its reply. */
+  const retry = () => {
+    if (!threadId || replying) return;
+    setError(null);
+    void replies.send({
+      attachments: [],
+      content: '',
+      conversationId: threadId,
+      redo: 'retry',
+      screen: location.pathname,
+    });
+  };
+
+  /** Editar: the last Message goes into the input; sending it answers it again as edited. */
+  const edit = (message: Pick<MessageFieldsFragment, 'attachments' | 'content'>) => {
+    setEditing(true);
+    setFiles([]);
+    fill(message.content);
+    setError(
+      message.attachments.length
+        ? 'Os anexos dessa mensagem não são enviados de novo. Para o Caishen lê-los, mande-os numa nova mensagem.'
+        : null
+    );
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setDraft('');
+    setError(null);
   };
 
   // Once only, even when StrictMode runs the effect twice.
@@ -289,14 +337,37 @@ export function ChatThread({
             </ul>
           </div>
         )}
-        {messages.map(message => (
-          <Fragment key={message.id}>
-            <Bubble bot={bot} message={message} saved />
-            {message.proposals.map(proposal => (
-              <ProposalCard key={proposal.id} proposal={proposal} />
-            ))}
-          </Fragment>
-        ))}
+        {messages.map((message, index) => {
+          // Only the last exchange can be answered again; never while the Bot is writing.
+          const last = index === messages.length - 1 && !replying;
+          const lastUser = !replying && index === lastUserIndex;
+          return (
+            <Fragment key={message.id}>
+              <Bubble
+                bot={bot}
+                message={message}
+                onEdit={lastUser && !editing ? () => edit(message) : undefined}
+                onRetry={last && message.role === 'BOT' ? retry : undefined}
+                saved
+              />
+              {message.proposals.map(proposal => (
+                <ProposalCard key={proposal.id} proposal={proposal} />
+              ))}
+              {/* The reply never came (an error): ask for it again. */}
+              {last && message.role === 'USER' && (
+                <Button
+                  className="-mt-2 gap-1.5 self-start text-muted-foreground"
+                  onClick={retry}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <RotateCcwIcon className="size-3.5" />
+                  Tentar de novo
+                </Button>
+              )}
+            </Fragment>
+          );
+        })}
         {pending && (
           <>
             <Bubble
@@ -309,11 +380,48 @@ export function ChatThread({
         {replyingElsewhere && (
           <Bubble bot={bot} message={{ attachments: [], content: '', role: 'BOT' }} />
         )}
+        {queued.map((message, index) => (
+          <div
+            className="flex max-w-[85%] flex-col items-end gap-1 self-end opacity-60"
+            key={`${index}-${message.content}`}
+          >
+            <p className="rounded-2xl rounded-br-md bg-primary px-4 py-2.5 whitespace-pre-wrap text-primary-foreground">
+              {message.content || message.attachments.map(file => file.name).join(', ')}
+            </p>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              Na fila, vai depois desta resposta
+              <Button
+                aria-label="Tirar da fila"
+                className="size-6 rounded-md"
+                onClick={() => threadId && replies.unqueue(threadId, index)}
+                size="icon"
+                title="Tirar da fila"
+                variant="ghost"
+              >
+                <XIcon className="size-3" />
+              </Button>
+            </span>
+          </div>
+        ))}
         <div ref={end} />
       </div>
       {error && (
         <div className={cn(page && 'mx-auto w-full max-w-3xl px-1')}>
           <FormError message={error} />
+        </div>
+      )}
+      {editing && (
+        <div
+          className={cn(
+            'mt-2 flex items-center gap-2 text-xs text-muted-foreground',
+            page && 'mx-auto w-full max-w-3xl px-2'
+          )}
+        >
+          <PencilIcon className="size-3.5" />
+          <span className="flex-1">Editando sua última mensagem; a resposta será refeita.</span>
+          <Button className="h-7 px-2 text-xs" onClick={cancelEdit} size="sm" variant="ghost">
+            Cancelar
+          </Button>
         </div>
       )}
       <input
@@ -540,8 +648,37 @@ export function AttachMenu({
 interface BubbleProps {
   bot: BotFieldsFragment;
   message: Pick<MessageFieldsFragment, 'attachments' | 'content' | 'role'>;
+  /** Editar, on the User's last Message. */
+  onEdit?: () => void;
+  /** Tentar de novo, on the Bot's last reply. */
+  onRetry?: () => void;
   /** Saved Messages can be copied; the exchange still being written cannot. */
   saved?: boolean;
+}
+
+/** A small action under a Message, shown on hover (always on a touch screen). */
+function MessageAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      aria-label={label}
+      className="size-7 rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+      onClick={onClick}
+      size="icon"
+      title={label}
+      type="button"
+      variant="ghost"
+    >
+      <Icon className="size-3.5" />
+    </Button>
+  );
 }
 
 /** Copies a Message's text (the Bot's as its markdown) and says so for a moment. */
@@ -586,7 +723,7 @@ function Typing() {
 }
 
 /** The User's Messages sit right in a blue bubble; the Bot's are plain text beside its glyph. */
-function Bubble({ bot, message, saved }: BubbleProps) {
+function Bubble({ bot, message, onEdit, onRetry, saved }: BubbleProps) {
   const copyable = saved && Boolean(message.content);
   if (message.role === 'USER') {
     return (
@@ -603,7 +740,12 @@ function Bubble({ bot, message, saved }: BubbleProps) {
             {message.content}
           </p>
         )}
-        {copyable && <CopyButton text={message.content} />}
+        {(copyable || onEdit) && (
+          <div className="flex">
+            {onEdit && <MessageAction icon={PencilIcon} label="Editar" onClick={onEdit} />}
+            {copyable && <CopyButton text={message.content} />}
+          </div>
+        )}
       </div>
     );
   }
@@ -612,9 +754,12 @@ function Bubble({ bot, message, saved }: BubbleProps) {
       <BotGlyph bot={bot.key} className="mt-0.5 shrink-0" size={24} />
       <div className="min-w-0 flex-1">
         {message.content ? <ChatText text={message.content} /> : <Typing />}
-        {copyable && (
+        {(copyable || onRetry) && (
           <div className="mt-1 -ml-1.5 flex">
-            <CopyButton text={message.content} />
+            {copyable && <CopyButton text={message.content} />}
+            {onRetry && (
+              <MessageAction icon={RotateCcwIcon} label="Tentar de novo" onClick={onRetry} />
+            )}
           </div>
         )}
       </div>
