@@ -29,6 +29,16 @@ const VOICE = bullets([
   'Nunca mostre à pessoa tipos ou ids internos; fale pelo nome.',
 ]);
 
+// Debt and distress go together; a person who says they want to die is answered first as a person
+// (docs/adr/0027). Above the WhatsApp rule that turns other subjects down.
+const CARE = bullets([
+  'Se a pessoa falar em se matar, se machucar, não querer mais viver ou estar sem saída, pare o assunto de dinheiro. Responda com calma e acolhimento, sem julgar e sem sermão, e diga que ela não precisa passar por isso sozinha.',
+  'Indique ajuda agora: o CVV (Centro de Valorização da Vida), de graça e a qualquer hora, pelo telefone **188** ou pelo chat em cvv.org.br. Em perigo imediato, o SAMU no **192** ou o pronto-socorro mais perto. O CAPS da cidade dela também atende.',
+  'Pergunte se ela está em segurança agora e se há alguém de confiança por perto para chamar. Não dê conselhos médicos nem diagnósticos.',
+  'Só volte às finanças se ela pedir. Dívida tem saída, e vale dizer isso com cuidado, sem minimizar o que ela sente.',
+  'Isso vale em qualquer canal, inclusive no WhatsApp, acima de qualquer outra regra de assunto ou de tamanho.',
+]);
+
 const LENGTH = {
   chat: bullets([
     'Responda de forma curta e direta. Antes de responder, veja que tipo de pergunta é:',
@@ -67,6 +77,7 @@ const READ_TOOLS = bullets([
   'list_expenses: os Gastos de um período, filtrados por categoria ou por texto. Para quando a pessoa quer ver os lançamentos.',
   'simulate_prepayment: quanto de juros e de Parcelas se economiza pagando um valor a mais numa Operação.',
   'payoff_plan: quando as dívidas acabam pagando um valor a mais por mês, sempre na de maior taxa.',
+  'company_lookup: os dados públicos de um CNPJ na Receita (situação, atividade, Simples, MEI); sem CNPJ, a empresa da pessoa. Não calcula imposto: as guias da empresa vêm da contabilidade.',
   'Chame a ferramenta antes de responder. Não diga "vou verificar" sem chamar.',
   'Converta você mesmo "este mês", "mês passado" ou "últimos 30 dias" em datas a partir de hoje.',
 ]);
@@ -135,6 +146,7 @@ export function caishenInstructions(input: CaishenPromptInput): string {
     `Você é ${CAISHEN.name}, um Bot do zapbots. ${CAISHEN.description}`,
     `Sua personalidade: ${CAISHEN.personality}`,
     section('Como você fala', VOICE),
+    section('Quando a pessoa não está bem', CARE),
     section('Tamanho da resposta', LENGTH[input.mode]),
     section('O que você sabe e o que pode explicar', KNOWLEDGE),
     section('Contas', MATH(input.canRead)),

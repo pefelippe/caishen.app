@@ -4,6 +4,8 @@ import type { Resolvers } from '@zapbots/graphql/server';
 import { and, asc, eq } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 
+import { AccountError, deleteAccount } from '../services/account';
+import { StripeError } from '../services/billing/stripe';
 import { monthUsage } from '../services/usage';
 import { badInput, notFound, requireViewer } from './guards';
 
@@ -49,6 +51,16 @@ export async function requireAdmin(viewer: Viewer): Promise<void> {
 
 export const settingsResolvers: Resolvers = {
   Mutation: {
+    deleteAccount: async (_, { confirm }, context) => {
+      const viewer = requireViewer(context);
+      try {
+        await deleteAccount(viewer, confirm);
+      } catch (error) {
+        if (error instanceof AccountError || error instanceof StripeError) badInput(error.message);
+        throw error;
+      }
+      return true;
+    },
     renameOrganization: async (_, { name }, context) => {
       const viewer = requireViewer(context);
       const trimmed = name.trim();
