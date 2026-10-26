@@ -10,15 +10,18 @@ import { Button } from '@zapbots/ui/components/button';
 import { Card } from '@zapbots/ui/components/card';
 import { Input } from '@zapbots/ui/components/input';
 
+import { DeleteAccountCard } from '../components/DeleteAccountCard';
 import { FormError } from '../components/FormError';
 import { initials, UserAvatar } from '../components/ProfileMenu';
+import { TwoFactorCard } from '../components/TwoFactorCard';
 import { authClient } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { ROLES } from './OrganizationPage';
 
 /**
  * Perfil: the User's photo, name and e-mail beside the form that changes the name and the photo's
- * URL (the e-mail comes from the sign-in), and the Organization they belong to, with their role.
+ * URL (the e-mail comes from the sign-in), the two-step verification (`TwoFactorCard`), and the
+ * Organization they belong to, with their role, and deleting the account (`DeleteAccountCard`).
  */
 export function ProfilePage() {
   const { t } = useI18n();
@@ -101,6 +104,7 @@ export function ProfilePage() {
           </form>
         </Card>
       </div>
+      <TwoFactorCard />
       {org && (
         <Card>
           <h2 className="text-lg font-semibold">{t('profile.organizations')}</h2>
@@ -124,6 +128,7 @@ export function ProfilePage() {
           </div>
         </Card>
       )}
+      <DeleteAccountCard email={user.email} />
     </div>
   );
 }

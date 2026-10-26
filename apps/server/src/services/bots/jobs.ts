@@ -4,7 +4,7 @@ import { waitUntil } from '@vercel/functions';
 import { and, eq, inArray, lt } from 'drizzle-orm';
 
 import { attachmentText } from '../drive';
-import { defaultModel, listModels, ModelError, talk } from '../models';
+import { botModel, defaultModel, listModels, ModelError, talk } from '../models';
 import { botPrompt } from './prompt';
 import { READ_AGENT_TOOLS, runReadTool } from './tools';
 
@@ -130,9 +130,11 @@ export async function runJob(viewer: Viewer, jobId: string): Promise<void> {
       .returning({ id: schema.job.id });
     if (!started) return;
 
-    const fallback = await defaultModel();
+    const fallback = await defaultModel(viewer.organizationId);
     // A Model chosen for the Bot that fails on its side gets one retry with the server default.
-    const models = [...new Set([bot.model ?? fallback, fallback].filter(Boolean))];
+    const models = [
+      ...new Set([await botModel(viewer.organizationId, bot.model), fallback].filter(Boolean)),
+    ];
     if (!models.length) {
       await finish(jobId, { error: 'Nenhum Modelo disponível para fazer o Workflow.' });
       return;
@@ -154,7 +156,7 @@ export async function runJob(viewer: Viewer, jobId: string): Promise<void> {
         )
         .catch(() => undefined);
     };
-    const listed = await listModels();
+    const listed = await listModels(viewer.organizationId);
     const messages = [
       { content: [job.instructions, ...files].join('\n\n'), role: 'user' as const },
     ];
@@ -165,7 +167,7 @@ export async function runJob(viewer: Viewer, jobId: string): Promise<void> {
         // A Job reads and simulates with tools but proposes nothing: a Proposta needs a Conversa
         // to be confirmed in (docs/adr/0021).
         const canRead = listed.find(entry => entry.id === model)?.supportsTools ?? true;
-        await talk(model, {
+        await talk(viewer.organizationId, model, {
           execute: call => runReadTool(viewer, call),
           instructions: await botPrompt(viewer, bot, { canRead, mode: 'job' }),
           messages,

@@ -345,41 +345,46 @@ export function ChatThread({
             </div>
           </form>
           <p className="py-2 text-center text-xs text-muted-foreground">
-            A IA pode errar. Confira as respostas importantes.
+            {bot.name} é uma IA e pode errar. Confira as respostas importantes.
           </p>
         </div>
       ) : (
-        <form className="relative mt-3 flex shrink-0 flex-col gap-2" onSubmit={onSubmit}>
-          <Waiting files={files} onRemove={remove} />
-          <Textarea
-            aria-label={`Mensagem para ${bot.name}`}
-            data-chat-input
-            className="max-h-40 min-h-[5.25rem] resize-none bg-card pr-11 pb-10"
-            disabled={Boolean(unavailable)}
-            onChange={event => setDraft(event.target.value)}
-            onKeyDown={onKeyDown}
-            onPaste={onPaste}
-            placeholder={`Escreva para ${bot.name}…`}
-            ref={input}
-            value={draft}
-          />
-          <div className="absolute bottom-2 left-2">
-            <AttachMenu
-              disabled={Boolean(unavailable) || files.length >= MAX_ATTACHMENTS}
-              onPick={() => picker.current?.click()}
-              small
+        <>
+          <form className="relative mt-3 flex shrink-0 flex-col gap-2" onSubmit={onSubmit}>
+            <Waiting files={files} onRemove={remove} />
+            <Textarea
+              aria-label={`Mensagem para ${bot.name}`}
+              data-chat-input
+              className="max-h-40 min-h-[5.25rem] resize-none bg-card pr-11 pb-10"
+              disabled={Boolean(unavailable)}
+              onChange={event => setDraft(event.target.value)}
+              onKeyDown={onKeyDown}
+              onPaste={onPaste}
+              placeholder={`Escreva para ${bot.name}…`}
+              ref={input}
+              value={draft}
             />
-          </div>
-          <Button
-            aria-label="Enviar"
-            className="absolute right-2 bottom-2"
-            disabled={Boolean(pending) || !canSend}
-            size="icon-sm"
-            type="submit"
-          >
-            <ArrowUpIcon />
-          </Button>
-        </form>
+            <div className="absolute bottom-2 left-2">
+              <AttachMenu
+                disabled={Boolean(unavailable) || files.length >= MAX_ATTACHMENTS}
+                onPick={() => picker.current?.click()}
+                small
+              />
+            </div>
+            <Button
+              aria-label="Enviar"
+              className="absolute right-2 bottom-2"
+              disabled={Boolean(pending) || !canSend}
+              size="icon-sm"
+              type="submit"
+            >
+              <ArrowUpIcon />
+            </Button>
+          </form>
+          <p className="pt-1.5 text-center text-[11px] text-muted-foreground">
+            {bot.name} é uma IA e pode errar.
+          </p>
+        </>
       )}
     </div>
   );

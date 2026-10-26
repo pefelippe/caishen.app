@@ -1,3 +1,4 @@
+import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { useMutation, useQuery } from '@apollo/client/react';
 import {
   BillingDocument,
@@ -7,8 +8,8 @@ import {
   type BillingQuery,
 } from '@zapbots/graphql/client';
 import { CheckIcon, CreditCardIcon, ExternalLinkIcon } from 'lucide-react';
-import { type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useRef, type ReactNode } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { PageHeading } from '@zapbots/ui/blocks/field';
 import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
@@ -81,6 +82,9 @@ export function PlanSettings() {
   const { data, loading } = useQuery(BillingDocument, { fetchPolicy: 'cache-and-network' });
   const { data: usage } = useQuery(UsageDocument, { fetchPolicy: 'cache-and-network' });
   const [checkout, checkoutState] = useMutation(StartCheckoutDocument);
+  // One key per subscription the User sets out to start, sent again on every retry of it, so
+  // Stripe hands back the same Checkout page instead of opening a second one.
+  const checkoutKey = useRef<string | null>(null);
   const [portal, portalState] = useMutation(OpenBillingPortalDocument);
 
   if (loading && !data) return <PageSkeleton />;
@@ -182,7 +186,22 @@ export function PlanSettings() {
                 <Button
                   className="self-start bg-card text-primary hover:bg-card/90"
                   disabled={!billing.configured || checkoutState.loading}
-                  onClick={() => void goTo(async () => (await checkout()).data?.startCheckout)}
+                  onClick={() => {
+                    checkoutKey.current ??= crypto.randomUUID();
+                    void goTo(async () => {
+                      try {
+                        const result = await checkout({
+                          context: { headers: { 'Idempotency-Key': checkoutKey.current } },
+                        });
+                        return result.data?.startCheckout;
+                      } catch (error) {
+                        // Stripe keeps a refusal under its key too: a new try after one needs a
+                        // new key. Only a lost connection keeps it, as the request may have gone.
+                        if (CombinedGraphQLErrors.is(error)) checkoutKey.current = null;
+                        throw error;
+                      }
+                    });
+                  }}
                   size="lg"
                 >
                   <CreditCardIcon />
@@ -197,6 +216,12 @@ export function PlanSettings() {
           </PlanCard>
         ))}
       </section>
+      <p className="max-w-prose text-sm text-muted-foreground">
+        {t('billing.terms')}{' '}
+        <Link className="text-primary underline-offset-4 hover:underline" to="/terms">
+          {t('legal.terms')}
+        </Link>
+      </p>
     </div>
   );
 }

@@ -29,3 +29,29 @@ export const apolloClient = new ApolloClient({
   }),
   link: ApolloLink.from([retry, new HttpLink({ credentials: 'same-origin', uri: '/graphql' })]),
 });
+
+/** At least this long between two refreshes on coming back, so switching windows stays cheap. */
+const REFRESH_GAP = 30_000;
+let refreshedAt = Date.now();
+
+/**
+ * What is on screen was shown from the cache; when the User comes back to the tab or the network
+ * returns, it is read again in the background and changes in place, without a skeleton.
+ */
+export function refreshOnReturn(): () => void {
+  const refresh = (force: boolean) => {
+    if (!force && Date.now() - refreshedAt < REFRESH_GAP) return;
+    refreshedAt = Date.now();
+    void apolloClient.refetchQueries({ include: 'active' }).catch(() => undefined);
+  };
+  const onVisible = () => document.visibilityState === 'visible' && refresh(false);
+  const onOnline = () => refresh(true);
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('focus', onVisible);
+  window.addEventListener('online', onOnline);
+  return () => {
+    document.removeEventListener('visibilitychange', onVisible);
+    window.removeEventListener('focus', onVisible);
+    window.removeEventListener('online', onOnline);
+  };
+}

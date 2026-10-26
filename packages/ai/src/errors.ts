@@ -20,15 +20,15 @@ export class ModelError extends Error {
 
 /** The ModelError for an HTTP failure of `provider`. */
 export function failure(provider: ProviderName, status: number, detail: string): ModelError {
-  const { envKey, label } = PROVIDERS[provider];
+  const { label } = PROVIDERS[provider];
   if (status === 429) {
     return new ModelError(
-      'O Modelo atingiu o limite de uso por agora. Modelos gratuitos têm limite diário; tente mais tarde ou escolha outro Modelo na página Equipe.',
+      'O Modelo atingiu o limite de uso por agora. Modelos gratuitos têm limite diário; tente mais tarde ou escolha outro Modelo em Integrações.',
       status
     );
   }
   if (status === 401 || status === 403) {
-    return new ModelError(`A chave do ${label} foi recusada. Confira ${envKey}.`, status);
+    return new ModelError(`A chave do ${label} foi recusada. Confira-a em Integrações.`, status);
   }
   if (status === 402) {
     return new ModelError(

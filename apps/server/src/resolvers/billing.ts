@@ -73,6 +73,7 @@ export const billingResolvers: Resolvers = {
         createCheckoutSession({
           customerId: subscription?.stripeCustomerId ?? null,
           email: user!.email,
+          idempotencyKey: context.idempotencyKey,
           organizationId: viewer.organizationId,
           returnUrl: returnUrl(),
         })

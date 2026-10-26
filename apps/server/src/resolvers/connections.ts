@@ -1,5 +1,7 @@
+import type { ProviderName } from '@zapbots/ai';
 import type { Resolvers } from '@zapbots/graphql/server';
 
+import { AiKeyError, aiKeys, removeAiKey, saveAiKey } from '../services/aiKeys';
 import { connections } from '../services/connections';
 import {
   bankAccounts,
@@ -16,6 +18,9 @@ import {
 } from '../services/whatsapp/link';
 import { whatsappConfigured } from '../services/whatsapp/meta';
 import { badInput, requireViewer } from './guards';
+import { requireAdmin } from './settings';
+
+const providerName = (provider: string) => provider.toLowerCase() as ProviderName;
 
 export const connectionResolvers: Resolvers = {
   BankLink: {
@@ -30,12 +35,29 @@ export const connectionResolvers: Resolvers = {
       if (!whatsappConfigured()) badInput('O WhatsApp ainda não está ligado neste servidor');
       return startWhatsappLink(viewer);
     },
+    setAiKey: async (_, { key, provider }, context) => {
+      const viewer = requireViewer(context);
+      await requireAdmin(viewer);
+      try {
+        await saveAiKey(viewer, providerName(provider), key);
+      } catch (error) {
+        if (error instanceof AiKeyError) badInput(error.message);
+        throw error;
+      }
+      return (await aiKeys(viewer)).find(saved => saved.provider === provider)!;
+    },
+    removeAiKey: async (_, { provider }, context) => {
+      const viewer = requireViewer(context);
+      await requireAdmin(viewer);
+      return removeAiKey(viewer, providerName(provider));
+    },
     unlinkWhatsapp: async (_, __, context) => {
       await unlinkWhatsapp(requireViewer(context));
       return true;
     },
   },
   Query: {
+    aiKeys: (_, __, context) => aiKeys(requireViewer(context)),
     bankLinks: (_, __, context) => bankLinks(requireViewer(context)),
     connections: (_, __, context) => connections(requireViewer(context)),
     whatsappLink: async (_, __, context) => {

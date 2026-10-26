@@ -4,11 +4,18 @@ import { db, schema } from '@zapbots/database';
 import { type Context, typeDefs } from '@zapbots/graphql/server';
 
 import { resolvers } from '../src/resolvers';
+import { saveAiKey } from '../src/services/aiKeys';
 
 const apollo = new ApolloServer<Context>({ resolvers, typeDefs });
 
-/** A new User with their own Organization, as the first sign-in leaves them. */
-export async function createViewer(name = 'Ana'): Promise<Viewer> {
+/**
+ * A new User with their own Organization, as the first sign-in leaves them, plus an OpenRouter key
+ * pasted on Integrações (`aiKey: false` leaves it out).
+ */
+export async function createViewer(
+  name = 'Ana',
+  { aiKey = true }: { aiKey?: boolean } = {}
+): Promise<Viewer> {
   const userId = crypto.randomUUID();
   const organizationId = crypto.randomUUID();
   await db
@@ -20,7 +27,9 @@ export async function createViewer(name = 'Ana'): Promise<Viewer> {
   await db
     .insert(schema.member)
     .values({ id: crypto.randomUUID(), organizationId, role: 'owner', userId });
-  return { organizationId, role: 'owner', userId };
+  const viewer: Viewer = { organizationId, role: 'owner', userId };
+  if (aiKey) await saveAiKey(viewer, 'openrouter', 'test-openrouter-key');
+  return viewer;
 }
 
 interface Result {
@@ -31,15 +40,19 @@ interface Result {
   errors: string[];
 }
 
-/** Runs a GraphQL operation as `viewer` through the real schema and resolvers. */
+/**
+ * Runs a GraphQL operation as `viewer` through the real schema and resolvers; `context` adds what
+ * the request's headers would (e.g. `idempotencyKey`).
+ */
 export async function gql(
   viewer: Viewer | null,
   query: string,
-  variables: Record<string, unknown> = {}
+  variables: Record<string, unknown> = {},
+  context: Omit<Context, 'viewer'> = {}
 ): Promise<Result> {
   const response = await apollo.executeOperation(
     { query, variables },
-    { contextValue: { viewer } }
+    { contextValue: { ...context, viewer } }
   );
   if (response.body.kind !== 'single') throw new Error('Unexpected incremental response');
   const { data, errors } = response.body.singleResult;

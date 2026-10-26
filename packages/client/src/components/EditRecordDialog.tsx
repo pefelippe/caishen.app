@@ -39,8 +39,12 @@ export function EditRecordDialog({ id, kind, onClose, title }: Props) {
   const [values, setValues] = useState<Record<string, string> | null>(null);
   const fields = data?.recordFields;
 
+  // Filled once: a refresh in the background (coming back to the tab) keeps what is being typed.
   useEffect(() => {
-    if (fields) setValues(Object.fromEntries(fields.map(field => [field.key, field.value])));
+    if (fields)
+      setValues(
+        current => current ?? Object.fromEntries(fields.map(field => [field.key, field.value]))
+      );
   }, [fields]);
 
   const save = async (event: FormEvent) => {

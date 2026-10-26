@@ -145,7 +145,7 @@ export function AssessmentPanel({ holder }: { holder: Holder }) {
 }
 
 function ReportedScores({ holder, ourScore }: { holder: Holder; ourScore: number | null }) {
-  const [addReported, { error }] = useMutation(AddReportedScoreDocument, {
+  const [addReported, { error, loading }] = useMutation(AddReportedScoreDocument, {
     refetchQueries: [HolderDocument],
   });
 
@@ -229,7 +229,7 @@ function ReportedScores({ holder, ourScore }: { holder: Holder; ourScore: number
             type="number"
           />
           <Input className="w-auto" name="consultedOn" title="Data da consulta" type="date" />
-          <Button type="submit" variant="outline">
+          <Button disabled={loading} type="submit" variant="outline">
             Adicionar
           </Button>
         </form>

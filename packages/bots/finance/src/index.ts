@@ -12,7 +12,7 @@ export * from './payoffPlan';
 export * from './exchange';
 export * from './recurring';
 export * from './taxes';
-export * from './company';
+export * from './cnpj';
 export * from './budget';
 export * from './rentVsBuy';
 export * from './prompt';

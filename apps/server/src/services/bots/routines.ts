@@ -29,14 +29,14 @@ export function nextRunAfter(cadence: RoutineRow['cadence'], from: Date): Date {
  * each Routine to its next run. Returns how many Jobs were handed over.
  */
 export async function runDueRoutines(now = new Date()): Promise<number> {
-  // Without a Model provider the Jobs would only fail; the Routines wait for one.
-  if (!aiConfigured()) return 0;
   const due = await db
     .select()
     .from(schema.routine)
     .where(and(lte(schema.routine.nextRunAt, now), isNull(schema.routine.pausedAt)));
   let handed = 0;
   for (const routine of due) {
+    // Without a key to a Model provider the Job would only fail; the Routine waits for one.
+    if (!(await aiConfigured(routine.organizationId))) continue;
     // Claiming by the old `nextRunAt` keeps two ticks from handing the same run over twice.
     const [claimed] = await db
       .update(schema.routine)

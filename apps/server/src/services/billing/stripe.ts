@@ -26,8 +26,15 @@ export function formEncode(params: Record<string, unknown>, prefix = ''): string
   });
 }
 
-/** POSTs to the Stripe API; throws a StripeError in pt-BR when Stripe refuses. */
-async function post<T>(path: string, params: Record<string, unknown>): Promise<T> {
+/**
+ * POSTs to the Stripe API; throws a StripeError in pt-BR when Stripe refuses. With an
+ * `idempotencyKey`, Stripe answers a repeat of the same request with what it answered first.
+ */
+async function post<T>(
+  path: string,
+  params: Record<string, unknown>,
+  idempotencyKey?: string
+): Promise<T> {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new StripeError('A cobrança não está configurada no servidor.');
   const response = await fetch(`${API}${path}`, {
@@ -35,6 +42,7 @@ async function post<T>(path: string, params: Record<string, unknown>): Promise<T
     headers: {
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/x-www-form-urlencoded',
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
     method: 'POST',
   });
@@ -46,26 +54,51 @@ async function post<T>(path: string, params: Record<string, unknown>): Promise<T
   return body;
 }
 
-/** A Checkout page for the Pro Plan; the Organization rides along to the webhook. */
+/**
+ * A Checkout page for the Pro Plan; the Organization rides along to the webhook. The same
+ * `idempotencyKey` (one per click on Assinar, kept on its retries) gets the same page back.
+ */
 export async function createCheckoutSession(input: {
   customerId: string | null;
   email: string;
+  idempotencyKey?: string;
   organizationId: string;
   returnUrl: string;
 }): Promise<string> {
-  const session = await post<{ url: string }>('/checkout/sessions', {
-    allow_promotion_codes: true,
-    cancel_url: `${input.returnUrl}?checkout=cancelado`,
-    client_reference_id: input.organizationId,
-    customer: input.customerId ?? undefined,
-    customer_email: input.customerId ? undefined : input.email,
-    line_items: [{ price: process.env.STRIPE_PRICE_PRO, quantity: 1 }],
-    metadata: { organizationId: input.organizationId },
-    mode: 'subscription',
-    subscription_data: { metadata: { organizationId: input.organizationId } },
-    success_url: `${input.returnUrl}?checkout=ok`,
-  });
+  const session = await post<{ url: string }>(
+    '/checkout/sessions',
+    {
+      allow_promotion_codes: true,
+      cancel_url: `${input.returnUrl}?checkout=cancelado`,
+      client_reference_id: input.organizationId,
+      customer: input.customerId ?? undefined,
+      customer_email: input.customerId ? undefined : input.email,
+      line_items: [{ price: process.env.STRIPE_PRICE_PRO, quantity: 1 }],
+      metadata: { organizationId: input.organizationId },
+      mode: 'subscription',
+      subscription_data: { metadata: { organizationId: input.organizationId } },
+      success_url: `${input.returnUrl}?checkout=ok`,
+    },
+    // Scoped to the Organization, so no two can ever share one.
+    input.idempotencyKey && `checkout:${input.organizationId}:${input.idempotencyKey}`
+  );
   return session.url;
+}
+
+/**
+ * Ends a subscription now, with no more charges: for an Organization deleted with its account.
+ * One already gone at Stripe counts as ended.
+ */
+export async function cancelSubscriptionNow(subscriptionId: string): Promise<void> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new StripeError('A cobrança não está configurada no servidor.');
+  const response = await fetch(`${API}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    headers: { Authorization: `Bearer ${key}` },
+    method: 'DELETE',
+  });
+  if (response.ok || response.status === 404) return;
+  console.error('stripe refused to cancel:', response.status);
+  throw new StripeError('O Stripe não cancelou a assinatura agora. Tente de novo em instantes.');
 }
 
 /** Stripe's own page to change the card, see invoices or cancel. */

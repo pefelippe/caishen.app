@@ -23,14 +23,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@zapbots/ui/components/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@zapbots/ui/components/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -43,7 +35,7 @@ import { cn } from '@zapbots/ui/lib/utils';
 
 import { CHAT_SUGGESTIONS } from '../components/ChatPanel';
 import { ChatThread, type Suggestion } from '../components/ChatThread';
-import { FormError } from '../components/FormError';
+import { useUndoableDelete } from '../components/Toaster';
 import { localToday } from '../lib/bots';
 
 type Conversation = ConversationsQuery['conversations'][number];
@@ -95,50 +87,6 @@ function PlanBanner() {
         <XIcon />
       </Button>
     </div>
-  );
-}
-
-/** Deletes a Conversation, with its Messages, after asking; it cannot be undone. */
-function ConfirmDeleteConversation({
-  conversation,
-  onClose,
-  onDeleted,
-}: {
-  conversation: { id: string; title: string };
-  onClose: () => void;
-  onDeleted: () => void;
-}) {
-  const [remove, { error, loading }] = useMutation(DeleteConversationDocument, {
-    refetchQueries: [ConversationsDocument],
-  });
-
-  const confirm = async () => {
-    const result = await remove({ variables: { id: conversation.id } }).catch(() => null);
-    if (!result?.data) return;
-    onDeleted();
-    onClose();
-  };
-
-  return (
-    <Dialog onOpenChange={open => !open && onClose()} open>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Excluir “{conversation.title}”?</DialogTitle>
-          <DialogDescription>
-            A conversa sai da lista com todas as mensagens. Não dá para desfazer.
-          </DialogDescription>
-        </DialogHeader>
-        {error && <FormError error={error} />}
-        <DialogFooter>
-          <Button onClick={onClose} variant="ghost">
-            Cancelar
-          </Button>
-          <Button disabled={loading} onClick={() => void confirm()} variant="destructive">
-            {loading ? 'Excluindo…' : 'Excluir'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -234,7 +182,7 @@ function Conversations({
                 <div className="group relative" key={conversation.id}>
                   <Button
                     className={cn(
-                      'h-10 w-full justify-start rounded-xl px-3 pr-9 text-sm font-normal',
+                      'h-10 w-full justify-start rounded-xl px-3 pr-9 text-sm font-normal pointer-coarse:h-11 pointer-coarse:pr-12',
                       conversation.id === chosen
                         ? 'bg-accent font-medium text-primary hover:bg-accent hover:text-primary'
                         : 'hover:bg-muted'
@@ -244,11 +192,12 @@ function Conversations({
                   >
                     <span className="truncate">{conversation.title}</span>
                   </Button>
+                  {/* On a touch screen, with no pointer to hover, the ⋯ always shows, 44px. */}
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button
                         aria-label={`Opções de “${conversation.title}”`}
-                        className="absolute top-1.5 right-1 size-7 rounded-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                        className="absolute top-1.5 right-1 size-7 rounded-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:opacity-100"
                         size="icon"
                         variant="ghost"
                       >
@@ -296,7 +245,11 @@ export function ChatPage({ user }: { user: { name: string } }) {
   // Remounts the thread when the User picks another Conversation, not when the first Message
   // saves a blank one (that would drop the reply being streamed).
   const [thread, setThread] = useState(0);
-  const [deleting, setDeleting] = useState<{ id: string; title: string } | null>(null);
+  const [removeConversation] = useMutation(DeleteConversationDocument, {
+    refetchQueries: [ConversationsDocument],
+  });
+  // A deleted Conversation leaves the list at once; its toast can bring it back for a moment.
+  const { hidden, remove: removeLater } = useUndoableDelete();
   const [drawer, setDrawer] = useState(false);
 
   const open = (id: string | null) => {
@@ -313,14 +266,19 @@ export function ChatPage({ user }: { user: { name: string } }) {
     return id;
   };
 
-  const current = list?.conversations.find(conversation => conversation.id === chosen);
+  const conversations = list?.conversations.filter(conversation => !hidden.has(conversation.id));
+  const remove = (conversation: Conversation) => {
+    if (conversation.id === chosen) open(null);
+    removeLater({
+      commit: () => removeConversation({ variables: { id: conversation.id } }),
+      ids: [conversation.id],
+      message: `Conversa excluída: ${conversation.title}`,
+    });
+  };
+
+  const current = conversations?.find(conversation => conversation.id === chosen);
   const column = (
-    <Conversations
-      chosen={chosen}
-      conversations={list?.conversations}
-      onDelete={setDeleting}
-      onOpen={open}
-    />
+    <Conversations chosen={chosen} conversations={conversations} onDelete={remove} onOpen={open} />
   );
 
   return (
@@ -334,13 +292,6 @@ export function ChatPage({ user }: { user: { name: string } }) {
           {column}
         </SheetContent>
       </Sheet>
-      {deleting && (
-        <ConfirmDeleteConversation
-          conversation={deleting}
-          onClose={() => setDeleting(null)}
-          onDeleted={() => deleting.id === chosen && open(null)}
-        />
-      )}
 
       <section className="page-enter flex min-w-0 flex-1 flex-col" data-bot="FINANCE">
         <header className="mx-auto flex w-full max-w-3xl items-center gap-2 px-1 pb-3">
@@ -391,7 +342,7 @@ export function ChatPage({ user }: { user: { name: string } }) {
             unavailable={
               data.aiStatus.configured
                 ? undefined
-                : 'O Caishen ainda não responde: falta a OPENROUTER_API_KEY no .env do servidor.'
+                : 'O Caishen ainda não responde: cole a chave de um provedor de IA em Integrações.'
             }
             variant="page"
           />

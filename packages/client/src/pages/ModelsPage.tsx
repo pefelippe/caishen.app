@@ -9,7 +9,6 @@ import {
 
 import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
 import { SectionRow } from '@zapbots/ui/blocks/section';
-import { Alert, AlertDescription, AlertTitle } from '@zapbots/ui/components/alert';
 import { Badge } from '@zapbots/ui/components/badge';
 import {
   Select,
@@ -28,8 +27,8 @@ type Model = ModelsQuery['models'][number];
 type Bot = BotsQuery['bots'][number];
 
 /**
- * Which Model each Bot uses, from the ones OpenRouter offers; `search` keeps the Bots whose name
- * or Model matches. Lives on Integrações, under OpenRouter.
+ * Which Model each Bot uses, from the ones the Organization's keys reach; `search` keeps the Bots
+ * whose name or Model matches. Lives on Integrações, under the keys.
  */
 export function ModelsList({ search }: { search: string }) {
   const { t } = useI18n();
@@ -38,30 +37,34 @@ export function ModelsList({ search }: { search: string }) {
 
   if (loading && !data) return <PageSkeleton />;
   if (!data) return <p>{t('common.loadFailed')}</p>;
-  // Only free Models, always; a paid one chosen before stays listed for its Bot.
+  // OpenRouter's free Models (its paid ones are hundreds) and every direct one, `provider:id`
+  // with no slash, reached by the Organization's own key (docs/adr/0022). A paid OpenRouter one
+  // chosen before stays listed for its Bot.
   const models = catalog?.models ?? [];
   const bots = data.bots.filter(bot =>
     matches(search, bot.name, models.find(model => model.id === bot.model)?.name ?? '')
   );
 
+  // Without a key there is nothing to pick: the keys above say what to do.
+  if (!data.aiStatus.configured) return null;
+
   return (
-    <div className="flex flex-col gap-4">
-      {!data.aiStatus.configured && (
-        <Alert>
-          <AlertTitle>{t('models.notConfigured')}</AlertTitle>
-          <AlertDescription>{t('models.notConfiguredText')}</AlertDescription>
-        </Alert>
-      )}
+    <section aria-labelledby="bot-models-title" className="flex flex-col gap-2">
+      <h3 className="font-medium" id="bot-models-title">
+        {t('models.perBot')}
+      </h3>
       <ul className="flex flex-col gap-2">
         {bots.map(bot => (
           <ModelRow
             bot={bot}
             key={bot.id}
-            models={models.filter(model => model.free || model.id === bot.model)}
+            models={models.filter(
+              model => model.free || !model.id.includes('/') || model.id === bot.model
+            )}
           />
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
 

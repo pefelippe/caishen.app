@@ -2,6 +2,7 @@
 import { rootErrorOptions } from './lib/sentry';
 
 import { ApolloProvider } from '@apollo/client/react';
+import { MotionConfig } from 'motion/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -16,7 +17,10 @@ createRoot(document.getElementById('root')!, rootErrorOptions).render(
     <ApolloProvider client={apolloClient}>
       <I18nProvider>
         <BrowserRouter>
-          <App />
+          {/* With reduced motion, `motion` drops what moves and keeps fades, everywhere. */}
+          <MotionConfig reducedMotion="user">
+            <App />
+          </MotionConfig>
         </BrowserRouter>
       </I18nProvider>
     </ApolloProvider>

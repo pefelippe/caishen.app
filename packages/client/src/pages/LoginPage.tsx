@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Logo } from '@zapbots/ui/blocks/logo';
 import { Button } from '@zapbots/ui/components/button';
+import { Checkbox } from '@zapbots/ui/components/checkbox';
 import { Input } from '@zapbots/ui/components/input';
 import { Label } from '@zapbots/ui/components/label';
 import { Separator } from '@zapbots/ui/components/separator';
@@ -27,6 +28,12 @@ const AUTH_ERRORS: Record<string, string> = {
   USER_ALREADY_EXISTS: 'Já existe uma conta com esse e-mail. Entre, ou troque a senha.',
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
     'Já existe uma conta com esse e-mail. Entre, ou troque a senha.',
+  // Two-factor sign-in (docs/adr/0026).
+  ACCOUNT_TEMPORARILY_LOCKED: 'Códigos errados demais. Espere alguns minutos e tente de novo.',
+  INVALID_BACKUP_CODE: 'Esse código de recuperação não vale. Confira ou use outro.',
+  INVALID_CODE: 'Código incorreto. Confira o app autenticador e digite o código atual.',
+  INVALID_TWO_FACTOR_COOKIE: 'A verificação expirou. Entre com a senha de novo.',
+  TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE: 'Tentativas demais. Entre com a senha de novo.',
   // Ours, from packages/auth/src/email.ts.
   EMAIL_REFUSED: 'Não conseguimos enviar o e-mail agora. Tente de novo em instantes.',
   EMAIL_TESTING_ONLY:
@@ -92,13 +99,14 @@ const swap = {
   transition: { duration: 0.35, ease: EASE },
 };
 
-type Step = 'forgot' | 'sent' | 'sign-in' | 'sign-up';
+type Step = 'forgot' | 'sent' | 'sign-in' | 'sign-up' | 'two-factor';
 
 const SUBTITLES: Record<Step, string> = {
   forgot: 'Digite seu e-mail para receber um link e escolher uma nova senha',
   sent: 'Confira sua caixa de entrada',
   'sign-in': 'Entre com seu e-mail e senha',
   'sign-up': 'Crie sua conta com e-mail e senha',
+  'two-factor': 'Digite o código do seu app autenticador',
 };
 
 /**
@@ -106,7 +114,11 @@ const SUBTITLES: Record<Step, string> = {
  * a new password), and Google when the server has its OAuth client.
  */
 export function LoginPage() {
-  const [step, setStep] = useState<Step>('sign-in');
+  const [params] = useSearchParams();
+  // The landing page's "Criar conta" opens straight on the sign-up form (`?step=sign-up`).
+  const [step, setStep] = useState<Step>(() =>
+    params.get('step') === 'sign-up' ? 'sign-up' : 'sign-in'
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [methods, setMethods] = useState<Methods>({
@@ -119,6 +131,10 @@ export function LoginPage() {
   );
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  // A recovery code in place of the app's, for when the phone is not at hand.
+  const [recovery, setRecovery] = useState(false);
+  const [trustDevice, setTrustDevice] = useState(true);
 
   useEffect(() => {
     void authClient
@@ -129,6 +145,8 @@ export function LoginPage() {
   const go = (next: Step) => {
     setError(null);
     setPassword('');
+    setCode('');
+    setRecovery(false);
     setStep(next);
   };
 
@@ -164,6 +182,18 @@ export function LoginPage() {
       return;
     }
 
+    if (step === 'two-factor') {
+      const verified = recovery
+        ? await authClient.twoFactor.verifyBackupCode({ code: code.trim(), trustDevice })
+        : await authClient.twoFactor.verifyTotp({ code: code.replace(/s/g, ''), trustDevice });
+      // On success the session changes and the app takes over.
+      if (verified.error) {
+        setError(authError(verified.error, 'Não foi possível confirmar o código'));
+        setPending(false);
+      }
+      return;
+    }
+
     const result =
       step === 'sign-up'
         ? await authClient.signUp.email({
@@ -172,10 +202,13 @@ export function LoginPage() {
             password,
           })
         : await authClient.signIn.email({ email: address, password });
-    // On success the session changes and the app takes over.
+    // On success the session changes and the app takes over, unless the account asks for a code.
     if (result.error) {
       setError(authError(result.error, 'Não foi possível entrar'));
       setPending(false);
+    } else if (result.data && 'twoFactorRedirect' in result.data && result.data.twoFactorRedirect) {
+      setPending(false);
+      go('two-factor');
     }
   };
 
@@ -218,6 +251,66 @@ export function LoginPage() {
               Voltar para entrar
             </Button>
           </motion.div>
+        ) : step === 'two-factor' ? (
+          <motion.form
+            {...swap}
+            className="mt-8 flex flex-col gap-5"
+            key="two-factor"
+            onSubmit={event => void submit(event)}
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="code">
+                {recovery ? 'Código de recuperação' : 'Código de 6 dígitos'}
+              </Label>
+              <Input
+                autoComplete="one-time-code"
+                autoFocus
+                className="h-11 px-4 text-base tracking-widest shadow-none md:text-base"
+                id="code"
+                inputMode={recovery ? 'text' : 'numeric'}
+                key={recovery ? 'recovery' : 'totp'}
+                maxLength={recovery ? 32 : 7}
+                onChange={event => setCode(event.target.value)}
+                placeholder={recovery ? 'xxxxx-xxxxx' : '000000'}
+                required
+                value={code}
+              />
+            </div>
+            <Label className="flex items-center gap-2.5 font-normal">
+              <Checkbox
+                checked={trustDevice}
+                onCheckedChange={checked => setTrustDevice(checked === true)}
+              />
+              Não pedir de novo neste navegador por 30 dias
+            </Label>
+            <motion.div whileTap={{ scale: 0.98 }}>
+              <Button className="h-11 w-full text-base" disabled={pending} type="submit">
+                {pending ? <LoaderCircle className="size-4 animate-spin" /> : 'Confirmar'}
+              </Button>
+            </motion.div>
+            <div className="flex flex-col items-center gap-1 text-sm">
+              <Button
+                className="h-auto p-0 text-sm"
+                onClick={() => {
+                  setError(null);
+                  setCode('');
+                  setRecovery(!recovery);
+                }}
+                type="button"
+                variant="link"
+              >
+                {recovery ? 'Usar o app autenticador' : 'Usar um código de recuperação'}
+              </Button>
+              <Button
+                className="h-auto p-0 text-sm text-muted-foreground"
+                onClick={() => go('sign-in')}
+                type="button"
+                variant="link"
+              >
+                Voltar para entrar
+              </Button>
+            </div>
+          </motion.form>
         ) : (
           <motion.div {...swap} className="mt-8 flex flex-col gap-6" key={step}>
             {methods.google && step !== 'forgot' && (
@@ -514,7 +607,15 @@ function AuthCard({
               initial={{ opacity: 0 }}
               transition={{ delay: 0.6 }}
             >
-              Ao entrar, você concorda com nossos Termos de Uso.
+              Ao entrar, você concorda com nossos{' '}
+              <Link className="underline underline-offset-4 hover:text-foreground" to="/terms">
+                Termos de Uso
+              </Link>{' '}
+              e com a{' '}
+              <Link className="underline underline-offset-4 hover:text-foreground" to="/privacy">
+                Política de Privacidade
+              </Link>
+              .
             </motion.p>
           </motion.div>
         </main>

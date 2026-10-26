@@ -48,6 +48,8 @@ export const holder = pgTable(
   'holder',
   {
     birthDate: date('birth_date'),
+    /** The CNPJ of the Titular's own company, digits only; looked up at the Receita (docs/adr/0024). */
+    companyCnpj: text('company_cnpj'),
     /** CPF (PF) or CNPJ (PJ), digits only. */
     document: text('document'),
     id: uuid('id').primaryKey().defaultRandom(),
@@ -145,8 +147,8 @@ export const companyActivity = pgEnum('company_activity', [
 ]);
 
 /**
- * A Titular's company (Empresa): its CNPJ, its tax regime and what the Caishen needs to work out
- * its taxes (docs/adr/0016). One per Titular.
+ * A Titular's company (Empresa) as ADR 0016 worked out its taxes. Unused since ADR 0023, which stopped
+ * working out a company's taxes. Kept because migrations stay additive.
  */
 export const company = pgTable(
   'company',
@@ -182,7 +184,7 @@ export const company = pgTable(
   table => [index('company_organization_idx').on(table.organizationId)]
 );
 
-/** A company's revenue (Faturamento) for one competência, as declared, and its RBT12 if typed. */
+/** A company's revenue for one competência (ADR 0016). Unused since ADR 0023, kept like `company`. */
 export const companyRevenue = pgTable(
   'company_revenue',
   {
@@ -199,6 +201,36 @@ export const companyRevenue = pgTable(
     ...timestamps,
   },
   table => [unique('company_revenue_company_month_unique').on(table.companyId, table.month)]
+);
+
+/**
+ * A guide the Titular's company owes (DAS, DARF…), meant to be read from Adaflow (docs/adr/0023).
+ * Unused: Adaflow's API has no way to read guides. Kept because migrations stay additive.
+ */
+export const companyGuide = pgTable(
+  'company_guide',
+  {
+    amountCents: cents('amount_cents').notNull(),
+    /** `YYYY-MM`, the month the guide is for. */
+    competence: text('competence').notNull(),
+    dueDate: date('due_date').notNull(),
+    /** The guide's id at the source, so reading it again updates it. */
+    externalId: text('external_id').notNull(),
+    holderId: uuid('holder_id')
+      .notNull()
+      .references(() => holder.id, { onDelete: 'cascade' }),
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** As the source names it: "DAS - Documento de Arrecadação do Simples Nacional". */
+    name: text('name').notNull(),
+    organizationId: organizationId(),
+    /** As the source says; the Caishen never marks a guide paid (docs/adr/0009). */
+    paid: boolean('paid').notNull().default(false),
+    ...timestamps,
+  },
+  table => [
+    unique('company_guide_holder_external_unique').on(table.holderId, table.externalId),
+    index('company_guide_holder_due_idx').on(table.holderId, table.dueDate),
+  ]
 );
 
 export const importSource = pgEnum('import_source', ['CSV', 'XLSX', 'OFX', 'PDF']);
@@ -877,3 +909,24 @@ export const whatsappUsage = pgTable('whatsapp_usage', {
   month: text('month').primaryKey(),
   sent: integer('sent').notNull().default(0),
 });
+
+/** The companies a Model can be called through (`@zapbots/ai`'s ProviderName, upper case). */
+export const aiProvider = pgEnum('ai_provider', ['ANTHROPIC', 'GOOGLE', 'OPENAI', 'OPENROUTER']);
+
+/**
+ * An Organization's key to a Model provider, pasted on Integrações (docs/adr/0022). Kept sealed
+ * with AES-256-GCM; only its last four characters ever leave the server.
+ */
+export const aiKey = pgTable(
+  'ai_key',
+  {
+    /** `iv.tag.ciphertext`, each in base64url. */
+    ciphertext: text('ciphertext').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    last4: text('last4').notNull(),
+    organizationId: organizationId(),
+    provider: aiProvider('provider').notNull(),
+    ...timestamps,
+  },
+  table => [unique('ai_key_organization_provider_unique').on(table.organizationId, table.provider)]
+);

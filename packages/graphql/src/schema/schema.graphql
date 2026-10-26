@@ -87,6 +87,14 @@ enum JobStatus {
   FAILED
 }
 
+"A company a Model can be called through (docs/adr/0021)."
+enum AiProvider {
+  ANTHROPIC
+  GOOGLE
+  OPENAI
+  OPENROUTER
+}
+
 enum ConnectionKind {
   OPENROUTER
   GOOGLE_DRIVE
@@ -201,9 +209,13 @@ type Query {
   "The Organization's team: every Bot of the catalog."
   bots: [Bot!]!
   bot(key: BotKey!): Bot!
-  "Models available to Bots; empty when the server has no OpenRouter key."
+  "Models the Organization's keys reach; empty while it has none."
   models: [Model!]!
+  "The Organization's keys to Model providers, masked (docs/adr/0022)."
+  aiKeys: [AiKey!]!
   aiStatus: AiStatus!
+  "The dollar, the Selic, the CDI and the IPCA, from the Banco Central, for the Dashboard."
+  indicators: Indicators!
   "Newest first. Without `botId`, the Conversations with every Bot of the team."
   conversations(botId: ID): [Conversation!]!
   conversation(id: ID!): Conversation
@@ -242,6 +254,10 @@ type Mutation {
   syncBankLink(id: ID!): BankSync!
   "Unlinks a bank; its accounts and the Gastos that came from it go."
   unlinkBank(id: ID!): Boolean!
+  "Saves or replaces the Organization's key to a Model provider; owners and admins only."
+  setAiKey(provider: AiProvider!, key: String!): AiKey!
+  "Removes the Organization's key to a Model provider; owners and admins only."
+  removeAiKey(provider: AiProvider!): Boolean!
   "A Stripe Checkout page for the Pro Plan; owners and admins only."
   startCheckout: String!
   "Stripe's portal to manage the Subscription; owners and admins only."
@@ -250,6 +266,11 @@ type Mutation {
   redeemUsageCode(code: String!): Billing!
   "Renames the Viewer's Organization; owners and admins only."
   renameOrganization(name: String!): Organization!
+  """
+  Deletes the signed-in User for good, with every Organization only they belong to and its data
+  (docs/adr/0027). `confirm` is the account's e-mail, typed by the User.
+  """
+  deleteAccount(confirm: String!): Boolean!
   "Picks the Model a Bot uses; null goes back to the server default."
   setBotModel(id: ID!, model: String): Bot!
   startConversation(botId: ID!): Conversation!
@@ -290,13 +311,8 @@ type Mutation {
   "The rate a foreign payment really got on `date`; null goes back to the PTAX."
   setIncomeRate(incomeSourceId: ID!, date: Date!, rate: Float): Boolean!
   deleteTax(id: ID!): Boolean!
-  "Registers or changes the Titular's company (one per Titular)."
-  saveCompany(input: CompanyInput!): Company!
-  deleteCompany(id: ID!): Boolean!
-  "Records what was declared for a competência (`YYYY-MM`), and the RBT12 if typed."
-  setCompanyRevenue(input: CompanyRevenueInput!): CompanyMonth!
-  "Forgets a competência's declared revenue; it goes back to the Fonte de Renda, or none."
-  clearCompanyRevenue(companyId: ID!, month: String!): Boolean!
+  "Registers the CNPJ of the Titular's own company, checked and looked up at the Receita; null forgets it."
+  setCompanyCnpj(holderId: ID!, cnpj: String): Holder!
   addExpense(input: ExpenseInput!): Expense!
   "Adds many Gastos at once, from a spreadsheet or an OFX; lines whose `externalId` is already there are skipped. Returns how many were added."
   importExpenses(holderId: ID!, rows: [ExpenseRowInput!]!, file: ImportFileInput): Int!
@@ -348,8 +364,10 @@ type Holder {
   monthlyIncomeCents: Cents!
   incomeSources: [IncomeSource!]!
   taxes: [Tax!]!
-  "The Titular's company, when a CNPJ was registered; its taxes are worked out (docs/adr/0016)."
-  company: Company
+  "The CNPJ of the Titular's own company, digits only, if registered (docs/adr/0024)."
+  companyCnpj: String
+  "That company as the Receita registers it (BrasilAPI); null without a CNPJ, an error when the lookup fails."
+  company: CompanyRegistry
   "Gastos recorrentes: gym, subscriptions, insurance; cancelled ones included."
   recurringExpenses: [RecurringExpense!]!
   "Gastos, the latest first."
@@ -495,6 +513,15 @@ type Alert {
   href: String
 }
 
+type AiKey {
+  provider: AiProvider!
+  "The provider's name, e.g. Anthropic."
+  label: String!
+  "The key's last four characters; the key itself never leaves the server."
+  last4: String!
+  updatedAt: DateTime!
+}
+
 type Model {
   id: ID!
   name: String!
@@ -503,7 +530,7 @@ type Model {
 }
 
 type AiStatus {
-  "False when OPENROUTER_API_KEY is missing."
+  "False while the Organization has no key to any Model provider."
   configured: Boolean!
   defaultModel: String!
 }
@@ -802,8 +829,6 @@ type Tax {
 }
 
 enum MonthLineKind {
-  "A guide of the Titular's company (DAS, DARF), due the month after its competência."
-  COMPANY_TAX
   SALARY
   ONE_OFF
   INSTALLMENT
@@ -822,6 +847,31 @@ type MonthLine {
   amountCents: Cents!
   "A payment in a foreign currency: its amount there and the rate it was converted at."
   foreign: ForeignAmount
+}
+
+"Market figures from the Banco Central's open data; each null when its source does not answer."
+type Indicators {
+  dollar: DollarRate
+  "The Selic target set by the Copom."
+  selic: Indicator
+  cdi: Indicator
+  "The IPCA over the last 12 months."
+  ipca12m: Indicator
+}
+
+"A rate a year as a fraction (0.1375 = 13,75% a.a.), as published on `date`."
+type Indicator {
+  rate: Float!
+  date: Date!
+}
+
+"The dollar's PTAX de compra on `date`."
+type DollarRate {
+  "Reais per dollar."
+  rate: Float!
+  date: Date!
+  "Since the business day before, as a fraction (0.004 = +0,4%); null when unknown."
+  change: Float
 }
 
 type MonthStatement {
@@ -1212,116 +1262,27 @@ type Billing {
   used: Allowance!
 }
 
-enum TaxRegime {
-  MEI
-  SIMPLES
-  PRESUMIDO
-  REAL
+"Whether a company opted into a regime (Simples, MEI), and when."
+type RegimeOption {
+  opted: Boolean!
+  "When it opted in, if known."
+  since: Date
+  "When it left, if it did."
+  until: Date
 }
 
-enum SimplesAnnex {
-  I
-  II
-  III
-  IV
-  V
-}
-
-enum CompanyActivity {
-  COMMERCE
-  INDUSTRY
-  SERVICES
-  COMMERCE_SERVICES
-}
-
-"Where a competência's revenue comes from."
-enum RevenueOrigin {
-  DECLARED
-  INCOME_SOURCE
-  NONE
-}
-
-"A Titular's company: its CNPJ, tax regime and what its taxes are worked out from."
-type Company {
-  id: ID!
+"A company as the Receita registers it, read from BrasilAPI (docs/adr/0024)."
+type CompanyRegistry {
   cnpj: String!
-  name: String
-  regime: TaxRegime!
-  "Simples Nacional: the Anexo registered."
-  annex: SimplesAnnex
-  "Simples: Anexo III or V by payroll (28% of the RBT12)."
-  fatorR: Boolean!
-  activity: CompanyActivity!
-  "Revenue from abroad: no PIS, Cofins, ISS, ICMS or IPI."
-  exports: Boolean!
-  "Lucro Presumido: the city's ISS rate, as a fraction."
-  issRate: Float
-  proLaboreCents: Cents!
-  "What the monthly pró-labore keeps and pays."
-  proLabore: ProLabore!
-  "The Fonte de Renda the revenue arrives as, if any."
-  revenueSourceId: ID
-  startsOn: Date!
-  "The last `last` competências (up to 24) through `upTo` (`YYYY-MM`), newest first."
-  months(upTo: String!, last: Int!): [CompanyMonth!]!
-}
-
-type ProLabore {
-  grossCents: Cents!
-  "The partner's INSS, 11% up to the ceiling."
-  inssCents: Cents!
-  irrfCents: Cents!
-  netCents: Cents!
-  "The company's 20%, when its regime does not pay it inside the DAS."
-  employerInssCents: Cents!
-}
-
-"One competência of a company: its revenue, RBT12, Simples bracket and the guides it owes."
-type CompanyMonth {
-  month: String!
-  revenueCents: Cents!
-  revenueOrigin: RevenueOrigin!
-  rbt12Cents: Cents!
-  "Whether the RBT12 was typed (as the PGDAS-D shows it) or worked out."
-  rbt12Typed: Boolean!
-  annex: SimplesAnnex
-  bracket: Int
-  nominalRate: Float
-  "The rate on this month's revenue, after the parcela a deduzir and what exports leave out."
-  effectiveRate: Float
-  "The RBT12 is over the Simples limit (R$ 4,8 milhões)."
-  overLimit: Boolean!
-  guides: [TaxGuide!]!
-}
-
-"A guide to pay (DAS, DARF, ISS) for one competência, due the month after."
-type TaxGuide {
-  name: String!
-  detail: String!
-  amountCents: Cents!
-  dueDate: Date!
-  competence: String!
-}
-
-input CompanyInput {
-  holderId: ID!
-  cnpj: String!
-  name: String
-  regime: TaxRegime!
-  annex: SimplesAnnex
-  fatorR: Boolean
-  activity: CompanyActivity
-  exports: Boolean
-  "Percent as typed, e.g. \"2\" for 2%."
-  issRate: String
-  proLaboreCents: Cents
-  revenueSourceId: ID
-  startsOn: Date!
-}
-
-input CompanyRevenueInput {
-  companyId: ID!
-  month: String!
-  amountCents: Cents!
-  rbt12Cents: Cents
+  legalName: String!
+  tradeName: String
+  "As the Receita writes it: ATIVA, BAIXADA, INAPTA…"
+  status: String!
+  openedOn: Date
+  cnaeCode: String
+  cnaeDescription: String
+  "City/UF."
+  city: String
+  simples: RegimeOption
+  mei: RegimeOption
 }

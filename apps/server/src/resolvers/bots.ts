@@ -16,7 +16,7 @@ import {
   proposalFields,
 } from '../services/bots/proposals';
 import { MAX_ROUTINES, nextRunAfter } from '../services/bots/routines';
-import { aiConfigured, defaultModel, listModels } from '../services/models';
+import { aiConfigured, botModel, defaultModel, listModels } from '../services/models';
 import { badInput, notFound, owned, requireViewer } from './guards';
 
 const MAX_INSTRUCTIONS = 4000;
@@ -35,9 +35,9 @@ async function findBot(viewer: Viewer, id: string) {
   return row ?? notFound('Bot');
 }
 
-function requireAi() {
-  if (!aiConfigured()) {
-    badInput('Os Bots ainda não estão ligados: falta OPENROUTER_API_KEY no servidor');
+async function requireAi(viewer: Viewer) {
+  if (!(await aiConfigured(viewer.organizationId))) {
+    badInput('Os Bots ainda não estão ligados: cole a chave de um provedor de IA em Integrações');
   }
 }
 
@@ -80,7 +80,7 @@ async function requireAllowance(viewer: Viewer) {
 
 /** Saves a Job and starts it; refused while the server has no Model provider. */
 async function handOver(viewer: Viewer, botId: string, instructions: string, files: JobFile[]) {
-  requireAi();
+  await requireAi(viewer);
   await requireRoom(viewer);
   await requireAllowance(viewer);
   return handOverJob(viewer, { botId, files, instructions });
@@ -105,7 +105,7 @@ export const botResolvers: Resolvers = {
         id: alert.key,
       })),
     description: bot => CATALOG[bot.key].description,
-    model: async bot => bot.model ?? (await defaultModel()),
+    model: bot => botModel(bot.organizationId, bot.model),
     name: bot => CATALOG[bot.key].name,
     personality: bot => CATALOG[bot.key].personality,
     // The Bot was loaded through the Viewer's Organization, so its Jobs are theirs too.
@@ -185,7 +185,7 @@ export const botResolvers: Resolvers = {
       const viewer = requireViewer(context);
       const bot = await findBot(viewer, input.botId);
       const instructions = validInstructions(input.instructions);
-      requireAi();
+      await requireAi(viewer);
       await requireRoom(viewer);
       const existing = await db
         .select({ id: schema.routine.id })
@@ -301,7 +301,7 @@ export const botResolvers: Resolvers = {
       const viewer = requireViewer(context);
       await findBot(viewer, id);
       if (model) {
-        const models = await listModels();
+        const models = await listModels(viewer.organizationId);
         if (models.length && !models.some(candidate => candidate.id === model)) {
           badInput('Modelo desconhecido');
         }
@@ -324,7 +324,13 @@ export const botResolvers: Resolvers = {
     },
   },
   Query: {
-    aiStatus: async () => ({ configured: aiConfigured(), defaultModel: await defaultModel() }),
+    aiStatus: async (_, __, context) => {
+      const { organizationId } = requireViewer(context);
+      return {
+        configured: await aiConfigured(organizationId),
+        defaultModel: await defaultModel(organizationId),
+      };
+    },
     bot: (_, { key }, context) => viewerBot(requireViewer(context), key),
     bots: (_, __, context) => ensureBots(requireViewer(context).organizationId),
     conversation: async (_, { id }, context) => {
@@ -361,7 +367,7 @@ export const botResolvers: Resolvers = {
         .orderBy(desc(schema.job.createdAt))
         .limit(50);
     },
-    models: () => listModels(),
+    models: (_, __, context) => listModels(requireViewer(context).organizationId),
     routines: async (_, { botId }, context) => {
       const viewer = requireViewer(context);
       await findBot(viewer, botId);

@@ -23,6 +23,10 @@ mutation RenameOrganization($name: String!) {
   }
 }
 
+mutation DeleteAccount($confirm: String!) {
+  deleteAccount(confirm: $confirm)
+}
+
 query Usage {
   usage {
     month

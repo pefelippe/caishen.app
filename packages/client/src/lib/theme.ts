@@ -32,13 +32,24 @@ export function useThemeChoice(): {
     () => current
   );
   const setChoice = useCallback((next: ThemeChoice) => {
-    current = next;
-    try {
-      localStorage.setItem(KEY, next);
-    } catch {
-      // It still changes for this visit.
-    }
-    for (const listener of listeners) listener();
+    const apply = () => {
+      current = next;
+      try {
+        localStorage.setItem(KEY, next);
+      } catch {
+        // It still changes for this visit.
+      }
+      // Painted here too, inside the transition, not only after React's effect.
+      document.documentElement.classList.toggle(
+        'dark',
+        next === 'dark' || (next === 'system' && Boolean(darkQuery()?.matches))
+      );
+      for (const listener of listeners) listener();
+    };
+    // The old theme fades into the new one (200ms), where the browser can and motion is welcome.
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (document.startViewTransition && !still) document.startViewTransition(apply);
+    else apply();
   }, []);
   return { choice, setChoice };
 }

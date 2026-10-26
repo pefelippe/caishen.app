@@ -1,5 +1,6 @@
 import { useQuery } from '@apollo/client/react';
-import { ConversationsDocument, HomeDocument } from '@zapbots/graphql/client';
+import { today } from '@zapbots/finance';
+import { ConversationsDocument, HomeDocument, type HomeQuery } from '@zapbots/graphql/client';
 import { ArrowRightIcon, ArrowUpIcon, MessageSquareIcon } from 'lucide-react';
 import { motion, type Variants } from 'motion/react';
 import { useRef, useState, type ClipboardEvent, type FormEvent, type ReactNode } from 'react';
@@ -14,6 +15,7 @@ import { cn } from '@zapbots/ui/lib/utils';
 
 import { CHAT_SUGGESTIONS, useChatPanel } from '../components/ChatPanel';
 import { AttachMenu, Waiting } from '../components/ChatThread';
+import { MonthSummary } from '../components/MonthSummary';
 import {
   addAttachments,
   ATTACHMENT_ACCEPT,
@@ -21,8 +23,8 @@ import {
   pastedFiles,
   type ChatAttachment,
 } from '../lib/attachments';
-import { formatCents, formatDate } from '../lib/format';
-import { useI18n } from '../lib/i18n';
+import { formatCents, formatDate, formatPercent } from '../lib/format';
+import { useI18n, type Language } from '../lib/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -193,15 +195,110 @@ function Lines({ count }: { count: number }) {
   );
 }
 
+type Market = HomeQuery['indicators'];
+
+const brl = new Intl.NumberFormat('pt-BR', {
+  currency: 'BRL',
+  maximumFractionDigits: 4,
+  minimumFractionDigits: 4,
+  style: 'currency',
+});
+const signed = new Intl.NumberFormat('pt-BR', {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+  signDisplay: 'exceptZero',
+  style: 'percent',
+});
+
+/** "outubro de 2026". */
+const monthName = (month: string, language: Language) =>
+  new Date(`${month}-15T12:00:00`).toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+/** One market figure: its name, the figure in large digits and where or when it is from. */
+function Figure({
+  label,
+  note,
+  noteClassName,
+  value,
+}: {
+  label: string;
+  note: ReactNode;
+  noteClassName?: string;
+  value: string | null;
+}) {
+  return (
+    <motion.div className="min-w-0" variants={rise}>
+      <Card className="h-full gap-1.5 p-5">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        {value === null ? (
+          <Skeleton className="h-8 w-28" />
+        ) : (
+          <strong className="text-2xl font-semibold tracking-tight tabular-nums">{value}</strong>
+        )}
+        <span className={cn('text-xs text-muted-foreground', noteClassName)}>{note}</span>
+      </Card>
+    </motion.div>
+  );
+}
+
+/** The dollar, the Selic, the CDI and the IPCA, from the Banco Central (docs/adr/0025). */
+function MarketFigures({ market }: { market: Market | undefined }) {
+  const { t } = useI18n();
+  const unavailable = t('home.market.unavailable');
+  const rate = (indicator: Market['selic'] | undefined, note: string) => ({
+    note: market ? (indicator ? note : unavailable) : '',
+    value: market ? (indicator ? formatPercent(indicator.rate) : '—') : null,
+  });
+  const dollar = market?.dollar;
+  const change = dollar?.change ?? null;
+  const figures = [
+    {
+      label: t('home.market.dollar'),
+      note: dollar
+        ? change === null
+          ? t('home.market.ptax', { date: formatDate(dollar.date) })
+          : t('home.market.change', { change: signed.format(change) })
+        : market
+          ? unavailable
+          : '',
+      noteClassName: change ? (change > 0 ? 'text-destructive' : 'text-success') : undefined,
+      value: market ? (dollar ? brl.format(dollar.rate) : '—') : null,
+    },
+    { label: t('home.market.selic'), ...rate(market?.selic, t('home.market.selic.note')) },
+    { label: t('home.market.cdi'), ...rate(market?.cdi, t('home.market.cdi.note')) },
+    {
+      label: t('home.market.ipca'),
+      ...rate(
+        market?.ipca12m,
+        market?.ipca12m
+          ? t('home.market.ipca.note', { month: formatDate(market.ipca12m.date).slice(3) })
+          : ''
+      ),
+    },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+      {figures.map(figure => (
+        <Figure key={figure.label} {...figure} />
+      ))}
+    </div>
+  );
+}
+
 /**
  * The Dashboard, like the hPanel's home: the greeting and the line to ask the Caishen on top, then
- * white cards for what falls due and the latest Conversations,
- * each leading to its screen.
+ * the market's figures, the month's cash flow, and white cards for what falls due and the latest
+ * Conversations, each leading to its screen.
  */
 export function DashboardPage({ user }: { user: { name: string } }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
+  const month = today().slice(0, 7);
   const { data: home } = useQuery(HomeDocument, {
     fetchPolicy: 'cache-and-network',
+    variables: { month },
   });
   const { data: chats } = useQuery(ConversationsDocument, { fetchPolicy: 'cache-and-network' });
 
@@ -217,10 +314,38 @@ export function DashboardPage({ user }: { user: { name: string } }) {
     >
       <Ask name={user.name.split(' ')[0]!} />
 
+      <MarketFigures market={home?.indicators} />
+
+      <motion.div variants={rise}>
+        {holder ? (
+          <MonthSummary
+            figures={holder.month}
+            heading={
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-semibold">
+                  {t('home.month', { month: monthName(month, language) })}
+                </h2>
+                <Link
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  to="/caishen/entries"
+                >
+                  {t('home.month.open')}
+                  <ArrowRightIcon className="size-3.5" />
+                </Link>
+              </div>
+            }
+          />
+        ) : (
+          <Card className="gap-4">
+            <Lines count={3} />
+          </Card>
+        )}
+      </motion.div>
+
       <div className="grid gap-5 lg:grid-cols-3">
         <Panel
           className="lg:col-span-2"
-          link={{ label: t('home.month.open'), to: '/caishen/entries' }}
+          link={{ label: t('home.dues.open'), to: '/caishen/fixed' }}
           title={t('home.dues')}
         >
           {!holder ? (

@@ -15,6 +15,7 @@ import { ArrowUpRightIcon, InboxIcon, RepeatIcon, SendIcon } from 'lucide-react'
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { Kbd } from '@zapbots/ui/blocks/kbd';
 import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
 import { Button } from '@zapbots/ui/components/button';
 import { Card } from '@zapbots/ui/components/card';
@@ -31,8 +32,10 @@ import { cn } from '@zapbots/ui/lib/utils';
 import { BotPage } from '../components/BotPage';
 import { DriveFiles } from '../components/DriveFiles';
 import { FormError } from '../components/FormError';
+import { useToast, useUndoableDelete } from '../components/Toaster';
 import type { PickedFile } from '../lib/drive';
 import { JOB_STATUS, ROUTINE_CADENCE } from '../lib/jobs';
+import { isMac, shortcut } from '../lib/shortcuts';
 
 type Cadence = 'ONCE' | RoutineCadence;
 
@@ -97,6 +100,10 @@ export function JobsPage() {
     { refetchQueries: [JobsDocument, RoutinesDocument] }
   );
   const [setPaused] = useMutation(SetRoutinePausedDocument);
+  const toast = useToast();
+  // A stopped Rotina leaves the list at once; its toast can bring it back for a moment.
+  const { hidden, remove: removeLater } = useUndoableDelete();
+  const routineList = routines?.routines.filter(routine => !hidden.has(routine.id)) ?? [];
   const [deleteRoutine] = useMutation(DeleteRoutineDocument, {
     refetchQueries: [RoutinesDocument],
   });
@@ -180,12 +187,16 @@ export function JobsPage() {
                 </Select>
                 {cadence === 'ONCE' && <DriveFiles files={files} onChange={setFiles} />}
                 <Button
+                  aria-keyshortcuts={isMac ? 'Meta+Enter' : 'Control+Enter'}
                   className="ml-auto"
                   disabled={creating || scheduling || full || !instructions.trim()}
                   type="submit"
                 >
                   <SendIcon />
                   Entregar a {bot.name}
+                  <Kbd className="hidden border-white/25 bg-white/15 text-primary-foreground md:inline-flex">
+                    {shortcut('↵')}
+                  </Kbd>
                 </Button>
               </div>
             </form>
@@ -233,14 +244,14 @@ export function JobsPage() {
         )}
       </Card>
 
-      {Boolean(routines?.routines.length) && (
+      {routineList.length > 0 && (
         <Card className="md:p-8">
           <div className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold tracking-tight">Rotinas</h2>
             <p className="text-muted-foreground">Workflows que {bot.name} refaz sozinho.</p>
           </div>
           <ul className="flex flex-col gap-2">
-            {routines!.routines.map(routine => (
+            {routineList.map(routine => (
               <li
                 className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-secondary/60 px-4 py-3"
                 key={routine.id}
@@ -262,7 +273,15 @@ export function JobsPage() {
                 <span className="flex gap-1">
                   <Button
                     onClick={() =>
-                      void setPaused({ variables: { id: routine.id, paused: !routine.paused } })
+                      // Shown paused (or running) at once; back as it was if the server says no.
+                      void setPaused({
+                        optimisticResponse: {
+                          setRoutinePaused: { ...routine, paused: !routine.paused },
+                        },
+                        variables: { id: routine.id, paused: !routine.paused },
+                      }).catch(() =>
+                        toast({ message: 'Não foi possível mudar a Rotina.', tone: 'error' })
+                      )
                     }
                     size="sm"
                     variant="ghost"
@@ -270,7 +289,13 @@ export function JobsPage() {
                     {routine.paused ? 'Retomar' : 'Pausar'}
                   </Button>
                   <Button
-                    onClick={() => void deleteRoutine({ variables: { id: routine.id } })}
+                    onClick={() =>
+                      removeLater({
+                        commit: () => deleteRoutine({ variables: { id: routine.id } }),
+                        ids: [routine.id],
+                        message: 'Rotina parada.',
+                      })
+                    }
                     size="sm"
                     variant="ghost"
                   >

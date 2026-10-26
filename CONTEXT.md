@@ -277,32 +277,12 @@ Uma parte da renda no Orçamento, com nome e porcentagem inteira; as Fatias soma
 categorias com o nome do tipo.
 _Avoid_: bucket, envelope, pote
 
-**Empresa** (`Company`):
-A empresa de um Titular, pelo CNPJ, com o seu Regime tributário, o Anexo (no
-Simples), se exporta e o Pró-labore. Uma por Titular. O Caishen calcula as Guias
-dela (docs/adr/0016).
+**Empresa**:
+A empresa de um Titular, pelo CNPJ. O Caishen não calcula os impostos dela
+(docs/adr/0023) e não tem tela. O Titular pode ter o CNPJ guardado (`companyCnpj`), e o
+cadastro dela na Receita (situação, CNAE, Simples, MEI) é consultado na
+BrasilAPI, sem guardar nada além do CNPJ (docs/adr/0024).
 _Avoid_: PJ (como entidade), negócio, firma
-
-**Regime tributário** (`TaxRegime`):
-Como a Empresa paga impostos: MEI, Simples Nacional, Lucro Presumido ou Lucro
-Real. O Lucro Real não é calculado.
-_Avoid_: enquadramento, tributação
-
-**Faturamento** (`CompanyRevenue`):
-O que a Empresa faturou numa competência (`YYYY-MM`), como declarado; sem ele,
-o que a Fonte de Renda ligada à Empresa pagou no mês. Com o RBT12 (os 12 meses
-anteriores), escolhe a faixa do Simples.
-_Avoid_: receita, renda (são da Fonte de Renda), venda
-
-**Pró-labore** (`proLabore`):
-O que a Empresa paga todo mês ao sócio que trabalha nela, bruto. Dele saem o
-INSS (11%, até o teto) e o IRRF, que vão no DARF.
-_Avoid_: salário (é da Fonte de Renda)
-
-**Guia** (`TaxGuide`, linha `COMPANY_TAX`):
-O que a Empresa paga por uma competência: DAS, DARF ou ISS, com valor e
-vencimento, no mês seguinte. Entra nas Saídas de Lançamentos.
-_Avoid_: boleto, imposto (Imposto é o registrado à mão)
 
 ### Avaliação
 

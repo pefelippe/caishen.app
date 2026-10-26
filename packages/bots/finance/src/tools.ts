@@ -78,9 +78,25 @@ export const PAYOFF_PLAN: ToolSpec = {
   },
 };
 
+export const COMPANY_LOOKUP: ToolSpec = {
+  description:
+    'Consulta um CNPJ na Receita (dados públicos): razão social, situação cadastral, atividade (CNAE), abertura, cidade e se é optante do Simples Nacional ou MEI, com as datas. Sem CNPJ, consulta a empresa da pessoa, se ela tiver cadastrado.',
+  name: 'company_lookup',
+  parameters: {
+    properties: {
+      cnpj: {
+        description: 'O CNPJ, com ou sem pontuação. Vazio para a empresa da pessoa.',
+        type: 'string',
+      },
+    },
+    type: 'object',
+  },
+};
+
 export const READ_TOOLS: ToolSpec[] = [
   PERIOD_SUMMARY,
   LIST_EXPENSES,
   SIMULATE_PREPAYMENT,
   PAYOFF_PLAN,
+  COMPANY_LOOKUP,
 ];

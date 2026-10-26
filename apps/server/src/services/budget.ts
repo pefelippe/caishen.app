@@ -16,7 +16,6 @@ import { monthStatement } from './month';
 
 /** Names for spending that has no category of its own, so it can be put in a slice too. */
 export const PSEUDO_CATEGORIES = {
-  COMPANY_TAX: 'Impostos',
   EXPENSE: 'Sem categoria',
   INSTALLMENT: 'Parcelas',
   RECURRING: 'Gastos recorrentes',

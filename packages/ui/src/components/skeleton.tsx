@@ -1,10 +1,19 @@
 import { cn } from '@zapbots/ui/lib/utils';
 
-function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
+/**
+ * Shown only after 300ms (`.skeleton` in globals.css), so a quick load never flashes grey. `inline`
+ * makes it a <span>, to stand in for text inside a heading or a paragraph.
+ */
+function Skeleton({
+  className,
+  inline = false,
+  ...props
+}: React.ComponentProps<'div'> & { inline?: boolean }) {
+  const Tag = inline ? 'span' : 'div';
   return (
-    <div
+    <Tag
       data-slot="skeleton"
-      className={cn('animate-pulse rounded-md bg-accent', className)}
+      className={cn('skeleton rounded-md bg-accent', className)}
       {...props}
     />
   );

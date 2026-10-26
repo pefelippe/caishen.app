@@ -47,7 +47,7 @@ export function CreditOperationPage() {
   const [remove] = useMutation(DeleteCreditOperationDocument);
   const [editing, setEditing] = useState(false);
 
-  if (loading) return <PageSkeleton />;
+  if (loading && !data) return <PageSkeleton />;
   const operation = data?.creditOperation;
   if (!operation) return <p>Operação não encontrada.</p>;
 
@@ -191,7 +191,7 @@ type Operation = NonNullable<CreditOperationQuery['creditOperation']>;
 /** Payments outside the schedule; each one shortens the table above. */
 function ExtraAmortizations({ operation }: { operation: Operation }) {
   const refetchQueries = [CreditOperationDocument];
-  const [add, { error }] = useMutation(AddExtraAmortizationDocument, { refetchQueries });
+  const [add, { error, loading }] = useMutation(AddExtraAmortizationDocument, { refetchQueries });
   const [remove] = useMutation(RemoveExtraAmortizationDocument, { refetchQueries });
   const [simulate, simulation] = useLazyQuery(PrepaymentSimulationDocument);
   const [amount, setAmount] = useState('');
@@ -280,7 +280,7 @@ function ExtraAmortizations({ operation }: { operation: Operation }) {
           >
             Simular
           </Button>
-          <Button type="submit" variant="outline">
+          <Button disabled={loading} type="submit" variant="outline">
             Amortizar
           </Button>
         </form>

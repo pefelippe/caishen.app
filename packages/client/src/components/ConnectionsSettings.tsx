@@ -17,6 +17,7 @@ import { Card } from '@zapbots/ui/components/card';
 import { cn } from '@zapbots/ui/lib/utils';
 
 import { ModelsList } from '../pages/ModelsPage';
+import { AiKeysEditor } from './AiKeysEditor';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
 
@@ -32,7 +33,7 @@ const CARDS: {
 }[] = [
   {
     description:
-      'O Modelo que cada Bot usa, pelo OpenRouter. Só modelos gratuitos; a chave fica no servidor.',
+      'Cole a chave de um provedor e escolha o Modelo de cada Bot. As chaves são da Organização, ficam criptografadas e só administradores as trocam. Com a do OpenRouter, os Modelos gratuitos dele também aparecem.',
     icon: BrainCircuitIcon,
     id: 'ai',
     kind: 'OPENROUTER',
@@ -122,7 +123,10 @@ export function ConnectionsSettings() {
               </div>
               <div className="flex min-w-0 flex-col gap-3">
                 {card.kind === 'OPENROUTER' ? (
-                  <ModelsList search="" />
+                  <div className="flex flex-col gap-6">
+                    <AiKeysEditor />
+                    <ModelsList search="" />
+                  </div>
                 ) : (
                   connection && <Details connection={connection} />
                 )}

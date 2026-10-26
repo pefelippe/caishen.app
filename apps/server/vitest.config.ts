@@ -11,7 +11,6 @@ export default defineConfig({
       DATABASE_URL: databaseUrl,
       GOOGLE_CLIENT_ID: 'test-client-id',
       GOOGLE_CLIENT_SECRET: 'test-client-secret',
-      OPENROUTER_API_KEY: 'test-key',
       OPENROUTER_DEFAULT_MODEL: 'test/with-tools',
       PLUGGY_CLIENT_ID: 'test-pluggy-id',
       PLUGGY_CLIENT_SECRET: 'test-pluggy-secret',

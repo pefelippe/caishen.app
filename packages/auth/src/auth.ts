@@ -1,7 +1,7 @@
 import { db, schema } from '@zapbots/database';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { organization } from 'better-auth/plugins';
+import { organization, twoFactor } from 'better-auth/plugins';
 import { and, asc, eq } from 'drizzle-orm';
 
 import { sendResetPasswordEmail } from './email';
@@ -82,7 +82,13 @@ export const auth = betterAuth({
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: ({ url, user }) => sendResetPasswordEmail(user.email, url),
   },
-  plugins: [organization(), signInMethods()],
+  plugins: [
+    organization(),
+    signInMethods(),
+    // A code from an authenticator app after the password, once the User turns it on in Perfil
+    // (docs/adr/0026). Google sign-in is left to Google's own verification.
+    twoFactor({ issuer: 'Caishen' }),
+  ],
   secret: process.env.BETTER_AUTH_SECRET,
   socialProviders: googleEnabled
     ? {

@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
 import { AgentIcon } from '@zapbots/ui/blocks/agent-icon';
+import { BottomSheet } from '@zapbots/ui/blocks/bottom-sheet';
 import { Button } from '@zapbots/ui/components/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zapbots/ui/components/sheet';
 import { cn } from '@zapbots/ui/lib/utils';
 
 import { useI18n } from '../lib/i18n';
@@ -37,7 +37,7 @@ export function MobileNav() {
   const { open: chatOpen, toggle } = useChatPanel();
   const [more, setMore] = useState(false);
 
-  const all = [...nav.main, ...nav.groups.flatMap(group => group.items), ...nav.footer];
+  const all = [...nav.main, ...nav.groups.flatMap(group => group.items), ...nav.account];
   const current = activeItem(all, pathname);
   const onTab = TABS.some(tab => tab.to === current?.to);
   const onChat = pathname === '/chat';
@@ -93,33 +93,25 @@ export function MobileNav() {
         </div>
       </nav>
 
-      <Sheet onOpenChange={setMore} open={more}>
-        <SheetContent
-          className="max-h-[85svh] gap-0 overflow-y-auto rounded-t-3xl border-t-0 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] md:hidden"
-          side="bottom"
-        >
-          <SheetHeader className="px-5 pt-5 pb-1">
-            <SheetTitle className="text-lg">{t('tabs.more')}</SheetTitle>
-          </SheetHeader>
-          <div className="flex flex-col gap-6 px-5 pt-2">
-            {nav.groups.map(group => (
-              <MoreGroup
-                active={current}
-                items={group.items}
-                key={group.key}
-                label={group.label}
-                onPick={() => setMore(false)}
-              />
-            ))}
+      <BottomSheet className="md:hidden" onOpenChange={setMore} open={more} title={t('tabs.more')}>
+        <div className="flex flex-col gap-6 px-5 pt-2">
+          {nav.groups.map(group => (
             <MoreGroup
               active={current}
-              items={nav.footer}
-              label={t('tabs.account')}
+              items={group.items}
+              key={group.key}
+              label={group.label}
               onPick={() => setMore(false)}
             />
-          </div>
-        </SheetContent>
-      </Sheet>
+          ))}
+          <MoreGroup
+            active={current}
+            items={nav.account}
+            label={t('tabs.account')}
+            onPick={() => setMore(false)}
+          />
+        </div>
+      </BottomSheet>
     </>
   );
 }

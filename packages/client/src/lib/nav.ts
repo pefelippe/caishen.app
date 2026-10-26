@@ -6,7 +6,6 @@ import {
   FlagIcon,
   HouseIcon,
   PlugIcon,
-  PercentIcon,
   RepeatIcon,
   SettingsIcon,
   SheetIcon,
@@ -18,6 +17,12 @@ import {
 import { AgentIcon } from '@zapbots/ui/blocks/agent-icon';
 
 import { useI18n } from './i18n';
+
+/**
+ * Documentos only in development: imported files and Attachments should land there, but there is
+ * nowhere to store them yet. In production its menu item is "Em breve" and its paths go home.
+ */
+export const DOCUMENTS_ENABLED = import.meta.env.DEV;
 
 export interface NavItem {
   icon: LucideIcon;
@@ -37,8 +42,8 @@ export interface NavGroup {
 }
 
 export interface Nav {
-  /** The account's screens, at the foot of the menu. */
-  footer: NavItem[];
+  /** The account's screens: in the avatar's menu, not on the left; the phone's Mais lists them. */
+  account: NavItem[];
   /** The screens used most, always at the top of the menu. */
   main: NavItem[];
   groups: NavGroup[];
@@ -46,8 +51,8 @@ export interface Nav {
 
 /**
  * Every screen of the app as the menu on the left lists them: the main ones on top (Página inicial,
- * Agente, Documentos), then Finanças,
- * Planejamento and Automação, and at its foot the account's (Perfil, Plano, Configurações) and Integrações.
+ * Agente, Documentos, Workflows, Integrações), then Finanças. The account's (Perfil, Plano,
+ * Configurações) are in the avatar's menu instead.
  */
 export function useNav(): Nav {
   const { t } = useI18n();
@@ -63,39 +68,29 @@ export function useNav(): Nav {
             owns: ['/caishen/operations'],
             to: '/caishen/fixed',
           },
-          { icon: PercentIcon, label: t('nav.taxes'), to: '/caishen/taxes' },
+          { icon: FlagIcon, label: t('nav.payoff'), to: '/caishen/payoff' },
+          { icon: CalculatorIcon, label: t('nav.calculators'), to: '/caishen/calculators' },
         ],
         key: 'finances',
         label: t('nav.finances'),
       },
-      {
-        items: [
-          { icon: FlagIcon, label: t('nav.payoff'), to: '/caishen/payoff' },
-          {
-            icon: CalculatorIcon,
-            label: t('nav.calculators'),
-            to: '/caishen/calculators',
-          },
-        ],
-        key: 'planning',
-        label: t('nav.planning'),
-      },
-      {
-        items: [{ icon: BotIcon, label: t('nav.workflows'), to: '/workflows' }],
-        key: 'automation',
-        label: t('nav.automation'),
-      },
     ],
-    footer: [
+    account: [
       { icon: UserIcon, label: t('nav.profile'), to: '/profile' },
       { icon: CreditCardIcon, label: t('rail.plan'), to: '/plan' },
       { icon: SettingsIcon, label: t('nav.settings'), to: '/settings' },
-      { icon: PlugIcon, label: t('nav.integrations'), to: '/integrations' },
     ],
     main: [
       { icon: HouseIcon, label: t('nav.home'), to: '/' },
       { icon: AgentIcon, label: t('nav.agent'), to: '/chat' },
-      { icon: FileTextIcon, label: t('nav.documents'), to: '/documents' },
+      {
+        icon: FileTextIcon,
+        label: t('nav.documents'),
+        soon: !DOCUMENTS_ENABLED,
+        to: '/documents',
+      },
+      { icon: BotIcon, label: t('nav.workflows'), to: '/workflows' },
+      { icon: PlugIcon, label: t('nav.integrations'), to: '/integrations' },
     ],
   };
 }

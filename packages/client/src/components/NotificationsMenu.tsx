@@ -35,6 +35,7 @@ import { cn } from '@zapbots/ui/lib/utils';
 import { HEADER_ICON } from '../lib/header';
 
 import { useI18n, type StringKey } from '../lib/i18n';
+import { useToast } from './Toaster';
 
 /** Each kind of Aviso: its mark, its short title and how loud it is. */
 const KINDS: Record<AlertKind, { icon: LucideIcon; title: StringKey; tone: string }> = {
@@ -90,14 +91,41 @@ export function NotificationsMenu() {
   const { t } = useI18n();
   const { data } = useQuery(BotsDocument, { fetchPolicy: 'cache-and-network' });
   const [markRead] = useMutation(MarkAlertsReadDocument);
-  const [dismiss] = useMutation(DismissAlertDocument);
+  const [dismissAlert] = useMutation(DismissAlertDocument);
+  const toast = useToast();
 
   const alerts = (data?.bots ?? [])
     .flatMap(bot => bot.alerts.map(alert => ({ ...alert, bot: bot.key })))
     .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
   const unread = alerts.filter(alert => !alert.read);
 
-  const read = (bot: BotKey, ids: string[]) => void markRead({ variables: { bot, ids } });
+  // Reading and removing show at once; if the server says no, the Alerts go back as they were.
+  const failed = () => void toast({ message: t('notifications.failed'), tone: 'error' });
+  const alertsOf = (bot: BotKey) => data?.bots.find(candidate => candidate.key === bot);
+  const read = (bot: BotKey, ids: string[]) => {
+    const owner = alertsOf(bot);
+    void markRead({
+      optimisticResponse: owner && {
+        // Spread from the cache, so the Bot keeps its __typename and lands on itself.
+        markAlertsRead: {
+          ...owner,
+          alerts: owner.alerts.map(alert =>
+            ids.includes(alert.id) ? { ...alert, read: true } : alert
+          ),
+        },
+      },
+      variables: { bot, ids },
+    }).catch(failed);
+  };
+  const dismiss = (bot: BotKey, id: string) => {
+    const owner = alertsOf(bot);
+    void dismissAlert({
+      optimisticResponse: owner && {
+        dismissAlert: { ...owner, alerts: owner.alerts.filter(alert => alert.id !== id) },
+      },
+      variables: { bot, id },
+    }).catch(failed);
+  };
   const readAll = () => {
     for (const bot of new Set(unread.map(alert => alert.bot))) {
       read(
@@ -172,7 +200,7 @@ export function NotificationsMenu() {
                   </span>
                 </>
               );
-              const row = 'flex gap-3 rounded-lg py-2.5 pr-10 pl-2';
+              const row = 'flex gap-3 rounded-lg py-2.5 pr-10 pl-2 pointer-coarse:pr-12';
               return (
                 <li className="group relative" key={alert.id}>
                   {alert.href ? (
@@ -192,14 +220,14 @@ export function NotificationsMenu() {
                   {!alert.read && (
                     <span
                       aria-hidden
-                      className="absolute top-4 right-3.5 size-2 rounded-full bg-primary group-hover:hidden group-has-data-[state=open]:hidden"
+                      className="absolute top-4 right-3.5 size-2 rounded-full bg-primary group-hover:hidden group-has-data-[state=open]:hidden pointer-coarse:hidden"
                     />
                   )}
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button
                         aria-label={t('notifications.options')}
-                        className="absolute top-2 right-1.5 size-7 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                        className="absolute top-2 right-1.5 size-7 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 pointer-coarse:right-0 pointer-coarse:opacity-100"
                         size="icon"
                         variant="ghost"
                       >
@@ -214,9 +242,7 @@ export function NotificationsMenu() {
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
-                        onSelect={() =>
-                          void dismiss({ variables: { bot: alert.bot, id: alert.id } })
-                        }
+                        onSelect={() => dismiss(alert.bot, alert.id)}
                         variant="destructive"
                       >
                         <Trash2Icon />

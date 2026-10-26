@@ -32,6 +32,8 @@ function storedOpen(): boolean {
 interface ChatPanelState {
   close: () => void;
   open: boolean;
+  /** Opens the panel with its input focused (the command menu's "Perguntar ao Agente"). */
+  openToType: () => void;
   /** Opens the panel on a blank Conversation, sending `message` (and `files`) in it when given. */
   startNew: (message?: string, files?: ChatAttachment[]) => void;
   toggle: () => void;
@@ -47,21 +49,11 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
   const [firstMessage, setFirstMessage] = useState<string>();
   const [firstFiles, setFirstFiles] = useState<ChatAttachment[]>();
 
-  // ⌘K (Ctrl+K elsewhere) opens the chat from anywhere, ready to type.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== 'k' || !(event.metaKey || event.ctrlKey)) return;
-      event.preventDefault();
-      setOpen(true);
-      // The panel may still be mounting; focus its input once it is there.
-      setTimeout(
-        () => document.querySelector<HTMLTextAreaElement>('[data-chat-input]')?.focus(),
-        60
-      );
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  // Opens the panel ready to type: the input is focused once the panel has mounted.
+  const openToType = () => {
+    setOpen(true);
+    setTimeout(() => document.querySelector<HTMLTextAreaElement>('[data-chat-input]')?.focus(), 60);
+  };
 
   useEffect(() => {
     try {
@@ -76,6 +68,7 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
       value={{
         close: () => setOpen(false),
         open,
+        openToType,
         startNew: (message, files) => {
           setFirstMessage(message);
           setFirstFiles(files);
@@ -138,8 +131,9 @@ export function ChatPanel() {
           key="chat"
           transition={{ duration: still ? 0.15 : 0.32, ease: EASE }}
         >
-          {/* Fixed width inside, so the text does not reflow while the panel grows. */}
-          <div className="flex h-full min-h-0 w-full flex-col p-4 md:w-[400px]">
+          {/* Fixed width inside, so the text does not reflow while the panel grows. Covering a
+              phone's screen, it keeps clear of the notch and the home indicator. */}
+          <div className="flex h-full min-h-0 w-full flex-col p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] md:w-[400px] md:p-4">
             <BotPanel
               actions={
                 <Button

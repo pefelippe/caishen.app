@@ -171,6 +171,37 @@
   }
 }
 
+/* Titles break into lines of even length; paragraphs avoid a lone word on their last line. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  [data-slot$='-title'] {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  blockquote {
+    text-wrap: pretty;
+  }
+}
+
+/* The larger rounded corners (cards, dialogs, sheets, tiles) curve continuously, as on Apple's
+   screens, where the browser draws it (Chromium); elsewhere they stay plain rounded. */
+@supports (corner-shape: squircle) {
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-t-3xl,
+  [data-slot='card'],
+  [data-slot='dialog-content'],
+  [data-slot='popover-content'],
+  [data-slot='dropdown-menu-content'] {
+    corner-shape: squircle;
+  }
+}
+
 /* Amounts, dates and counts use tabular digits so columns line up like a ledger. */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
@@ -181,6 +212,49 @@
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']) {
     cursor: pointer;
+  }
+}
+
+/* A placeholder keeps its place from the start but shows only after 300ms, so a quick load never
+   flashes grey; then it pulses, unless motion is reduced. */
+@keyframes skeleton-wait {
+  from,
+  to {
+    opacity: 0;
+  }
+}
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+.skeleton {
+  animation: skeleton-wait 300ms;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation:
+      skeleton-wait 300ms,
+      skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) 300ms infinite;
+  }
+}
+
+/* Overlays, menus and dialogs (tw-animate): one going away never holds the pointer while it fades,
+   and with reduced motion they only fade, without sliding or zooming. */
+[class*='data-[state=closed]:animate-out'][data-state='closed'] {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*='animate-in'],
+  [class*='animate-out'] {
+    --tw-enter-rotate: 0 !important;
+    --tw-enter-scale: 1 !important;
+    --tw-enter-translate-x: 0 !important;
+    --tw-enter-translate-y: 0 !important;
+    --tw-exit-rotate: 0 !important;
+    --tw-exit-scale: 1 !important;
+    --tw-exit-translate-x: 0 !important;
+    --tw-exit-translate-y: 0 !important;
   }
 }
 

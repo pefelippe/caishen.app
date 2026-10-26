@@ -28,13 +28,15 @@ Os Modelos diretos não têm lista pública, por isso ficam num catálogo no có
 - **PDF:** vai como arquivo nativo do provedor. O `file-parser` do OpenRouter (ADR 0017) só vale lá.
 - **Nota do app no meio da Conversa:** segue como mensagem de sistema só no OpenRouter, como sempre foi. Nos provedores diretos ela vira uma fala do usuário (`forProvider`): o Gemini recusa system depois do começo, e nos outros isso não foi testado com chave de verdade.
 
-Isto substitui a parte do ADR 0009 que dizia "uma única chave no servidor (`OPENROUTER_API_KEY`)". Chave por Organização (o Usuário colando a sua em Integrações) fica para outro ADR: pede guardar segredo criptografado.
+Isto substitui a parte do ADR 0009 que dizia "uma única chave no servidor (`OPENROUTER_API_KEY`)". As variáveis da tabela acima deram lugar às chaves de cada Organização, coladas em Integrações (ADR 0022).
 
 **O Bot ganha ferramentas de leitura e simulação.** São quatro:
 - `period_summary`: o período, por categoria;
 - `list_expenses`: os Gastos filtrados;
 - `simulate_prepayment`: uma Amortização Extraordinária;
 - `payoff_plan`: o Plano de Quitação.
+
+Depois veio uma quinta, `company_lookup`, o cadastro de um CNPJ na Receita (ADR 0024).
 
 A descrição e os argumentos de cada uma ficam em `@zapbots/finance` (`tools.ts`), sem I/O. O que elas fazem fica no server (`services/bots/tools.ts`). Leem só o Titular da sessão (`viewerHolder`), nunca um id que venha do Modelo, e respondem com o dinheiro já formatado, calculado por `@zapbots/finance`. Continua valendo o ADR 0004: o Modelo cita, não calcula. O ADR 0009 dizia que não há ferramenta de Modelo, e o 0013 abriu só as de propor. As de leitura são a terceira categoria e não gravam nada.
 

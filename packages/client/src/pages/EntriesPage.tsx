@@ -68,6 +68,7 @@ import { ConfirmDelete } from '../components/ConfirmDelete';
 import { ACCOUNT_KINDS, ImportsCard } from '../components/ImportsCard';
 import { MonthSummary } from '../components/MonthSummary';
 import { QueryError } from '../components/QueryError';
+import { useUndoableDelete } from '../components/Toaster';
 import { AddEntryButton } from './FinancePage';
 import { FormError } from '../components/FormError';
 import { localToday } from '../lib/bots';
@@ -148,7 +149,6 @@ function periodOf(params: URLSearchParams) {
 const spanName = (from: string, to: string) => `${formatDate(from)} a ${formatDate(to)}`;
 
 const KIND_LABELS: Record<MonthLineKind, string> = {
-  COMPANY_TAX: 'Guia',
   INSTALLMENT: 'Parcela',
   ONE_OFF: 'Avulsa',
   RECURRING: 'Recorrente',
@@ -198,7 +198,6 @@ function shortDate(iso: string, year: string) {
 
 /** Where each kind of line is filed when it has no category of its own. */
 const KIND_CATEGORIES: Record<MonthLineKind, string> = {
-  COMPANY_TAX: 'Impostos da empresa',
   INSTALLMENT: 'Empréstimos',
   ONE_OFF: 'Receita avulsa',
   RECURRING: 'Recorrentes',
@@ -263,13 +262,11 @@ function entriesOf(statement: Statement): Entry[] {
           ? `/caishen/operations/${line.id}`
           : line.kind === 'TAX'
             ? '/caishen/fixed#taxes'
-            : line.kind === 'COMPANY_TAX'
-              ? '/caishen/taxes'
-              : line.kind === 'RECURRING'
-                ? '/caishen/fixed#recurring'
-                : line.kind === 'STATEMENT'
-                  ? '/caishen/fixed#cards'
-                  : '/caishen/fixed#loans',
+            : line.kind === 'RECURRING'
+              ? '/caishen/fixed#recurring'
+              : line.kind === 'STATEMENT'
+                ? '/caishen/fixed#cards'
+                : '/caishen/fixed#loans',
     })),
     ...statement.onCard.map(line => ({
       amountCents: line.amountCents,
@@ -575,7 +572,10 @@ function ImportButton({
   owner: string;
 }) {
   const file = useRef<HTMLInputElement>(null);
-  const [table, setTable] = useState<{ name: string; source: ImportSource } | null>(null);
+  const [table, setTable] = useState<{
+    name: string;
+    source: ImportSource;
+  } | null>(null);
 
   const read = async (picked: File): Promise<ImportSource | string> => {
     if (/\.pdf$/i.test(picked.name)) {
@@ -708,7 +708,11 @@ function Ledger({ statement }: { statement: Statement }) {
   const [category, setCategory] = useState('ALL');
   const [search, setSearch] = useState('');
 
-  const entries = entriesOf(statement);
+  // Lines just deleted hide at once, while their toast still offers to undo it.
+  const { hidden, remove: removeLater } = useUndoableDelete();
+  const entries = entriesOf(statement).filter(
+    entry => !entry.removable || !hidden.has(entry.removable.id)
+  );
   const categories = [...new Set(entries.map(entry => entry.category))].sort();
   const query = plain(search.trim());
   const filtered = filter !== 'ALL' || category !== 'ALL' || query !== '';
@@ -727,12 +731,21 @@ function Ledger({ statement }: { statement: Statement }) {
       0
     );
 
+  const send = (entry: Entry) => {
+    const variables = { id: entry.removable!.id };
+    return entry.removable!.kind === 'EXPENSE'
+      ? removeExpense({ variables })
+      : removeIncome({ variables });
+  };
+
+  /** Deletes a typed or imported line, with a few seconds to undo it. */
   const remove = (entry: Entry) => {
     if (!entry.removable) return;
-    const variables = { id: entry.removable.id };
-    void (entry.removable.kind === 'EXPENSE'
-      ? removeExpense({ variables })
-      : removeIncome({ variables }));
+    removeLater({
+      commit: () => send(entry),
+      ids: [entry.removable.id],
+      message: `Lançamento apagado: ${entry.description}`,
+    });
   };
 
   /** Saves one cell of a typed or imported line, checked by the server like when it was added. */
@@ -775,15 +788,16 @@ function Ledger({ statement }: { statement: Statement }) {
       return next;
     });
 
-  const removeSelected = async () => {
+  const removeSelected = () => {
     const picked = entries.filter(entry => entry.removable && selected.has(entry.removable.id));
-    await Promise.all(
-      picked.map(entry =>
-        entry.removable!.kind === 'EXPENSE'
-          ? removeExpense({ variables: { id: entry.removable!.id } })
-          : removeIncome({ variables: { id: entry.removable!.id } })
-      )
-    );
+    removeLater({
+      commit: () => Promise.all(picked.map(send)),
+      ids: picked.map(entry => entry.removable!.id),
+      message:
+        picked.length === 1
+          ? `Lançamento apagado: ${picked[0]!.description}`
+          : `${picked.length} lançamentos apagados`,
+    });
     setSelected(new Set());
   };
 
@@ -867,12 +881,7 @@ function Ledger({ statement }: { statement: Statement }) {
             {selected.size}{' '}
             {selected.size === 1 ? 'lançamento selecionado' : 'lançamentos selecionados'}
           </span>
-          <Button
-            className="ml-auto"
-            onClick={() => void removeSelected()}
-            size="sm"
-            variant="destructive"
-          >
+          <Button className="ml-auto" onClick={removeSelected} size="sm" variant="destructive">
             <Trash2Icon />
             Apagar
           </Button>

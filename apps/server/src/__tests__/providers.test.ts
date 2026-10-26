@@ -1,20 +1,17 @@
 import { closeDb, db, schema } from '@zapbots/database';
 import { eq } from 'drizzle-orm';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createViewer, gql } from '../../test/helpers';
 import { anthropicHandler } from '../../test/msw/anthropic';
 import { completionHandler, modelListHandler, mswServer } from '../../test/msw/openrouter';
+import { saveAiKey } from '../services/aiKeys';
 import { ensureBots } from '../services/bots/catalog';
 import { replyInConversation } from '../services/bots/chat';
 import { ModelError } from '../services/models';
 
 beforeAll(() => mswServer.listen());
-beforeEach(() => vi.stubEnv('ANTHROPIC_API_KEY', 'test-anthropic-key'));
-afterEach(() => {
-  mswServer.resetHandlers();
-  vi.unstubAllEnvs();
-});
+afterEach(() => mswServer.resetHandlers());
 afterAll(async () => {
   mswServer.close();
   await closeDb();
@@ -39,6 +36,7 @@ describe('Modelos de outros provedores', () => {
   it('lists the direct Models of a provider whose key is set, and lets a Bot use one', async () => {
     mswServer.use(modelListHandler);
     const viewer = await createViewer();
+    await saveAiKey(viewer, 'anthropic', 'test-anthropic-key');
     const [bot] = await ensureBots(viewer.organizationId);
 
     const { data } = await gql(viewer, MODELS);
@@ -50,9 +48,10 @@ describe('Modelos de outros provedores', () => {
     expect(set.data.setBotModel.model).toBe('anthropic:claude-haiku-5-5');
   });
 
-  it('talks to Anthropic straight, with the server key and the Caishen’s tools', async () => {
+  it('talks to Anthropic straight, with the Organization’s key and the Caishen’s tools', async () => {
     mswServer.use(modelListHandler);
     const viewer = await createViewer();
+    await saveAiKey(viewer, 'anthropic', 'test-anthropic-key');
     const [bot] = await ensureBots(viewer.organizationId);
     await db
       .update(schema.bot)
@@ -84,6 +83,7 @@ describe('Modelos de outros provedores', () => {
   });
   it('sends the app’s note on a Proposal to Anthropic inside a user turn', async () => {
     const viewer = await createViewer();
+    await saveAiKey(viewer, 'anthropic', 'test-anthropic-key');
     const [bot] = await ensureBots(viewer.organizationId);
     const [conversation] = await db
       .insert(schema.conversation)
@@ -130,6 +130,7 @@ describe('Modelos de outros provedores', () => {
 
   it('stops on an abort before the first token, without a second request', async () => {
     const viewer = await createViewer();
+    await saveAiKey(viewer, 'anthropic', 'test-anthropic-key');
     const [bot] = await ensureBots(viewer.organizationId);
     await db
       .update(schema.bot)
