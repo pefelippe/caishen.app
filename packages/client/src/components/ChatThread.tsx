@@ -7,6 +7,8 @@ import {
 } from '@zapbots/graphql/client';
 import {
   ArrowUpIcon,
+  CheckIcon,
+  CopyIcon,
   FileTextIcon,
   HardDriveIcon,
   ImageIcon,
@@ -276,7 +278,7 @@ export function ChatThread({
         )}
         {messages.map(message => (
           <Fragment key={message.id}>
-            <Bubble bot={bot} message={message} />
+            <Bubble bot={bot} message={message} saved />
             {message.proposals.map(proposal => (
               <ProposalCard key={proposal.id} proposal={proposal} />
             ))}
@@ -498,6 +500,34 @@ export function AttachMenu({
 interface BubbleProps {
   bot: BotFieldsFragment;
   message: Pick<MessageFieldsFragment, 'attachments' | 'content' | 'role'>;
+  /** Saved Messages can be copied; the exchange still being written cannot. */
+  saved?: boolean;
+}
+
+/** Copies a Message's text (the Bot's as its markdown) and says so for a moment. */
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 1500);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  const copy = () => {
+    void navigator.clipboard.writeText(text).then(() => setCopied(true));
+  };
+  return (
+    <Button
+      aria-label={copied ? 'Copiado' : 'Copiar'}
+      className="size-7 rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+      onClick={copy}
+      size="icon"
+      title={copied ? 'Copiado' : 'Copiar'}
+      type="button"
+      variant="ghost"
+    >
+      {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+    </Button>
+  );
 }
 
 /** Three dots rising in turn while the Bot has not written anything yet. */
@@ -516,10 +546,11 @@ function Typing() {
 }
 
 /** The User's Messages sit right in a blue bubble; the Bot's are plain text beside its glyph. */
-function Bubble({ bot, message }: BubbleProps) {
+function Bubble({ bot, message, saved }: BubbleProps) {
+  const copyable = saved && Boolean(message.content);
   if (message.role === 'USER') {
     return (
-      <div className="flex max-w-[85%] flex-col items-end gap-1.5 self-end">
+      <div className="group flex max-w-[85%] flex-col items-end gap-1.5 self-end">
         {message.attachments.length > 0 && (
           <div className="flex flex-wrap justify-end gap-1.5">
             {message.attachments.map((file, index) => (
@@ -532,14 +563,20 @@ function Bubble({ bot, message }: BubbleProps) {
             {message.content}
           </p>
         )}
+        {copyable && <CopyButton text={message.content} />}
       </div>
     );
   }
   return (
-    <div className="flex gap-3">
+    <div className="group flex gap-3">
       <BotGlyph bot={bot.key} className="mt-0.5 shrink-0" size={24} />
       <div className="min-w-0 flex-1">
         {message.content ? <ChatText text={message.content} /> : <Typing />}
+        {copyable && (
+          <div className="mt-1 -ml-1.5 flex">
+            <CopyButton text={message.content} />
+          </div>
+        )}
       </div>
     </div>
   );
