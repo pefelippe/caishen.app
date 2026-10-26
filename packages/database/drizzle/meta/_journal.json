@@ -225,6 +225,20 @@
       "when": 1792948932346,
       "tag": "0031_nifty_unicorn",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793015487107,
+      "tag": "0032_adorable_steel_serpent",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793023183824,
+      "tag": "0033_tense_puma",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@
  * Tables owned by Better Auth (core + organization plugin). Field names must match what Better
  * Auth expects; regenerate from `getAuthTables` in `better-auth/db` when upgrading it.
  */
-import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
@@ -20,6 +20,8 @@ export const user = pgTable('user', {
   /** The app's language for this User, `pt` or `en`; chosen on the Profile page. */
   language: text('language').notNull().default('pt'),
   name: text('name').notNull(),
+  /** Whether signing in with a password also asks for a code from an authenticator app. */
+  twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
   updatedAt: updatedAt(),
 });
 
@@ -58,6 +60,30 @@ export const account = pgTable('account', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
 });
+
+/**
+ * A User's authenticator secret and recovery codes (Better Auth's `twoFactor` plugin), both
+ * encrypted by Better Auth under `BETTER_AUTH_SECRET`.
+ */
+export const twoFactor = pgTable(
+  'two_factor',
+  {
+    backupCodes: text('backup_codes').notNull(),
+    failedVerificationCount: integer('failed_verification_count').notNull().default(0),
+    id: text('id').primaryKey(),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+    secret: text('secret').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    /** False between turning it on and typing the first code. */
+    verified: boolean('verified').notNull().default(true),
+  },
+  table => [
+    index('two_factor_user_idx').on(table.userId),
+    index('two_factor_secret_idx').on(table.secret),
+  ]
+);
 
 export const verification = pgTable('verification', {
   createdAt: createdAt(),
