@@ -1,0 +1,1 @@
+ALTER TABLE "holder" ADD COLUMN "company_cnpj" text;

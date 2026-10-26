@@ -2,6 +2,7 @@ import type { Viewer } from '@zapbots/auth';
 import { db, schema } from '@zapbots/database';
 import {
   amortizationSchedule,
+  formatCnpj,
   outstandingBalance,
   parseMoney,
   prepaymentEffect,
@@ -10,6 +11,7 @@ import {
 } from '@zapbots/finance';
 import { eq } from 'drizzle-orm';
 
+import { CnpjError, lookupCnpj, type CompanyRegistry, type RegimeOption } from '../cnpj';
 import type { AgentTool, AgentToolCall } from '../models';
 import { MAX_PERIOD_DAYS, periodStatement } from '../month';
 import { payoffPlanFor, scheduleInputFor } from '../obligations';
@@ -17,8 +19,8 @@ import { viewerHolder } from '../viewerHolder';
 
 /**
  * The tools a Bot reads and simulates with (docs/adr/0021). They only read the Viewer's own
- * Finanças, through its Holder, and answer with money already formatted (docs/adr/0004): the Model
- * cites, it never computes.
+ * Finanças, through its Holder, and public company data at the Receita (docs/adr/0024), and
+ * answer with money already formatted (docs/adr/0004): the Model cites, it never computes.
  */
 export const READ_AGENT_TOOLS: AgentTool[] = READ_TOOLS;
 
@@ -181,7 +183,47 @@ async function payoffPlan(viewer: Viewer, args: Record<string, unknown>): Promis
   ].join('\n');
 }
 
+const regimeLine = (name: string, option: RegimeOption | null) => {
+  if (!option) return `- ${name}: a Receita não informa.`;
+  if (option.opted)
+    return `- ${name}: optante${option.since ? ` desde ${day(option.since)}` : ''}.`;
+  return option.until
+    ? `- ${name}: não optante; saiu em ${day(option.until)}${option.since ? ` (entrou em ${day(option.since)})` : ''}.`
+    : `- ${name}: não optante.`;
+};
+
+/** A CNPJ at the Receita (docs/adr/0024); without one, the Titular's own company. */
+async function companyLookup(viewer: Viewer, args: Record<string, unknown>): Promise<string> {
+  let cnpj = typeof args.cnpj === 'string' ? args.cnpj.trim() : '';
+  if (!cnpj) {
+    const holder = await viewerHolder(viewer);
+    if (!holder.companyCnpj) {
+      return 'A pessoa não cadastrou o CNPJ da empresa. Ela pode informar o CNPJ aqui na conversa.';
+    }
+    cnpj = holder.companyCnpj;
+  }
+  let company: CompanyRegistry;
+  try {
+    company = await lookupCnpj(cnpj);
+  } catch (error) {
+    if (error instanceof CnpjError) return error.message;
+    throw error;
+  }
+  return [
+    `${company.legalName}${company.tradeName ? ` (${company.tradeName})` : ''}, CNPJ ${formatCnpj(company.cnpj)}:`,
+    `- Situação cadastral: ${company.status}`,
+    ...(company.openedOn ? [`- Aberta em ${day(company.openedOn)}`] : []),
+    ...(company.cnae
+      ? [`- Atividade principal: ${company.cnae.code} - ${company.cnae.description}`]
+      : []),
+    ...(company.city ? [`- Cidade: ${company.city}`] : []),
+    regimeLine('Simples Nacional', company.simples),
+    regimeLine('MEI', company.mei),
+  ].join('\n');
+}
+
 const RUN: Record<string, (viewer: Viewer, args: Record<string, unknown>) => Promise<string>> = {
+  company_lookup: companyLookup,
   list_expenses: listExpenses,
   payoff_plan: payoffPlan,
   period_summary: periodSummary,
