@@ -68,3 +68,24 @@ export function ptaxHandler(buyRates: Record<string, number>): {
   });
   return { handler, requests: () => count };
 }
+
+/** The SGS's series by code, matched by a pattern as the code is part of the path. */
+const SGS = /api\.bcb\.gov\.br\/dados\/serie\/bcdata\.sgs\.(\d+)\/dados/;
+
+/**
+ * The Banco Central's SGS: each series code → its rows as published (`dd/mm/yyyy`, the value in %
+ * as text); a code left out answers 500. Counts the requests.
+ */
+export function sgsHandler(series: Record<number, { data: string; valor: string }[]>): {
+  handler: HttpHandler;
+  requests: () => number;
+} {
+  let count = 0;
+  const handler = http.get(SGS, ({ request }) => {
+    count += 1;
+    const code = Number(SGS.exec(request.url)?.[1]);
+    const rows = series[code];
+    return rows ? HttpResponse.json(rows) : HttpResponse.json({}, { status: 500 });
+  });
+  return { handler, requests: () => count };
+}

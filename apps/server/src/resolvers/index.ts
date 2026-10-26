@@ -6,6 +6,7 @@ import { companyResolvers } from './company';
 import { connectionResolvers } from './connections';
 import { documentResolvers } from './documents';
 import { holderResolvers } from './holders';
+import { marketResolvers } from './market';
 import { obligationResolvers } from './obligations';
 import { scalars } from './scalars';
 import { scrResolvers } from './scr';
@@ -21,6 +22,7 @@ const modules: Resolvers[] = [
   documentResolvers,
   settingsResolvers,
   billingResolvers,
+  marketResolvers,
 ];
 
 /** Merges per type, so several modules can each add fields to the same type (e.g. Holder). */

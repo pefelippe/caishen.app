@@ -370,23 +370,35 @@ mutation SetIncomeRate($incomeSourceId: ID!, $date: Date!, $rate: Float) {
   setIncomeRate(incomeSourceId: $incomeSourceId, date: $date, rate: $rate)
 }
 
-query CompanyGuides($holderId: ID!) {
-  holder(id: $holderId) {
-    id
-    companyGuides {
-      id
-      name
-      competence
-      amountCents
-      dueDate
-      paid
+query Home($month: String!) {
+  indicators {
+    dollar {
+      rate
+      date
+      change
+    }
+    selic {
+      rate
+      date
+    }
+    cdi {
+      rate
+      date
+    }
+    ipca12m {
+      rate
+      date
     }
   }
-}
-
-query Home {
   viewerHolder {
     id
+    month(month: $month) {
+      month
+      incomeCents
+      commitmentsCents
+      expensesCents
+      balanceCents
+    }
     upcomingDues {
       label
       dueDate
