@@ -9,9 +9,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * "Painel", after Hostinger's hPanel: a deep navy header, a light grey menu rounded at the top, the
- * screen square beside it on a clean slate white with white cards and soft borders, and one bright
- * blue for what acts. The dark theme keeps the navy header and puts the rest on near black.
+ * After Mercado Pago's: white everywhere (the header, the menu and the screen), white cards drawn by
+ * a soft border, navy text and one bright blue for what acts. The dark theme puts it all on near
+ * black. The navy tokens still paint the landing page and the sign-in.
  */
 :root {
   --radius: 0.5rem;
@@ -20,8 +20,8 @@
   --navy-soft: #1e293b;
   --blue: #2563eb;
 
-  /* The open screen: slate white, with white cards on it. */
-  --background: #f8fafc;
+  /* The open screen: white, with white cards drawn by their border. */
+  --background: #ffffff;
   --foreground: var(--navy);
   --card: #ffffff;
   --card-foreground: var(--navy);
@@ -42,9 +42,8 @@
   --input: #cbd5e1;
   --ring: var(--blue);
 
-  /* The menu on the left: a light grey panel, rounded where it meets the navy frame, with the
-     open entry as a white pill (as in the hPanel). */
-  --sidebar: #eef2f6;
+  /* The menu on the left: white, a border on its right, the open entry in blue. */
+  --sidebar: #ffffff;
   --sidebar-foreground: var(--navy-soft);
   --sidebar-primary: var(--blue);
   --sidebar-primary-foreground: #ffffff;

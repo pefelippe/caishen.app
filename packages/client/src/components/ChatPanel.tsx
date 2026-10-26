@@ -1,4 +1,4 @@
-import { BellIcon, GaugeIcon, ListOrderedIcon, XIcon } from 'lucide-react';
+import { BellIcon, ChevronLeftIcon, GaugeIcon, ListOrderedIcon } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { Button } from '@zapbots/ui/components/button';
 import type { ChatAttachment } from '../lib/attachments';
 import { useI18n } from '../lib/i18n';
 import { useDesktop } from '../lib/media';
-import { BotPanel } from './BotPanel';
+import { BotPanel, PANEL_BUTTON } from './BotPanel';
 import type { Suggestion } from './ChatThread';
 
 const STORAGE_KEY = 'zapbots.chatPanel';
@@ -98,9 +98,9 @@ export function useChatPanel(): ChatPanelState {
 }
 
 /**
- * The chat with the Caishen, docked on the right beside whatever screen is open: his latest
- * Conversation, the earlier ones and a blank one. On a desktop it opens by growing from the
- * right edge as it fades in; on a phone it covers the screen, rising a little as it fades in.
+ * The chat with the Caishen, a card floating over the bottom right corner of whatever screen is
+ * open, as Mercado Pago's: his latest Conversation, the earlier ones and a blank one. On a desktop
+ * it grows from that corner as it fades in; on a phone it covers the screen, rising a little.
  */
 export function ChatPanel() {
   const { close, open } = useChatPanel();
@@ -112,11 +112,11 @@ export function ChatPanel() {
   // The chat page already is the chat; the panel stays closed there.
   const shownHere = open && pathname !== '/chat';
 
-  const shown = desktop ? { opacity: 1, width: WIDTH } : { opacity: 1, y: 0 };
+  const shown = { opacity: 1, scale: 1, y: 0 };
   const hidden = still
     ? { opacity: 0 }
     : desktop
-      ? { opacity: 0, width: 0 }
+      ? { opacity: 0, scale: 0.96, y: 16 }
       : { opacity: 0, y: 24 };
 
   return (
@@ -125,25 +125,26 @@ export function ChatPanel() {
         <motion.aside
           animate={shown}
           aria-label={t('chat.panel')}
-          className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-card md:static md:z-auto md:shrink-0 md:border-l"
+          className="fixed inset-0 z-40 flex origin-bottom-right flex-col overflow-hidden bg-card md:inset-auto md:right-6 md:bottom-6 md:h-[min(46rem,calc(100svh-6rem))] md:rounded-3xl md:border md:shadow-[0_24px_60px_-20px_rgb(15_23_42/0.3)]"
           exit={hidden}
           initial={hidden}
           key="chat"
-          transition={{ duration: still ? 0.15 : 0.32, ease: EASE }}
+          style={desktop ? { width: WIDTH } : undefined}
+          transition={{ duration: still ? 0.15 : 0.25, ease: EASE }}
         >
-          {/* Fixed width inside, so the text does not reflow while the panel grows. Covering a
-              phone's screen, it keeps clear of the notch and the home indicator. */}
-          <div className="flex h-full min-h-0 w-full flex-col p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] md:w-[400px] md:p-4">
+          {/* Covering a phone's screen, it keeps clear of the notch and the home indicator. */}
+          <div className="flex h-full min-h-0 w-full flex-col p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] md:p-5">
             <BotPanel
-              actions={
+              leading={
                 <Button
                   aria-label={t('chat.close')}
+                  className={PANEL_BUTTON}
                   onClick={close}
-                  size="icon-sm"
+                  size="icon"
                   title={t('chat.close')}
                   variant="ghost"
                 >
-                  <XIcon />
+                  <ChevronLeftIcon />
                 </Button>
               }
               bot="FINANCE"

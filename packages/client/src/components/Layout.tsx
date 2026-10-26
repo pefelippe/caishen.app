@@ -4,6 +4,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
 import { SidebarProvider } from '@zapbots/ui/components/sidebar';
 import { TooltipProvider } from '@zapbots/ui/components/tooltip';
+import { cn } from '@zapbots/ui/lib/utils';
 
 import { refreshOnReturn } from '../lib/apollo';
 import { isRailPath } from '../lib/nav';
@@ -22,6 +23,9 @@ interface Props {
 
 const MENU_KEY = 'zapbots.menu.open';
 
+/** A page's margins, as in Mercado Pago's: centered, at most 1420px wide, under the header. */
+const PAGE = 'mx-auto w-full max-w-[1420px] px-4 pt-4 pb-24 sm:px-6 md:px-10 md:pt-6 xl:px-16';
+
 function storedMenuOpen(): boolean {
   try {
     return localStorage.getItem(MENU_KEY) !== 'closed';
@@ -31,10 +35,10 @@ function storedMenuOpen(): boolean {
 }
 
 /**
- * The app: the navy header across the top, the grey menu under it on the left, rounded at the top
- * and collapsing to its icons, and the open screen square beside it, with the chat panel docked on
- * its right when open. On a phone the menu is a bar of tabs along the bottom (`MobileNav`). This
- * browser remembers whether the menu was collapsed; a screen with a
+ * The app, after Mercado Pago's: all white, the menu down the left the full height (the mark and
+ * the button that collapses it on top), and beside it the header and the open screen, with the chat
+ * floating over its bottom right corner when open. On a phone the menu is a bar of tabs along the
+ * bottom (`MobileNav`). This browser remembers whether the menu was collapsed; a screen with a
  * column of its own (`isRailPath`) collapses it while open.
  */
 export function Layout({ user }: Props) {
@@ -64,43 +68,41 @@ export function Layout({ user }: Props) {
           <ChatPanelProvider>
             <SidebarProvider
               // Clear of the notch, the rounded corners and the home indicator (index.html sets
-              // viewport-fit=cover); the navy frame fills the space they take.
-              className="h-svh flex-col overflow-hidden bg-(image:--header-gradient) pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:pb-[env(safe-area-inset-bottom)] print:h-auto print:overflow-visible print:bg-none"
+              // viewport-fit=cover).
+              className="h-svh overflow-hidden bg-background pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:pb-[env(safe-area-inset-bottom)] print:h-auto print:overflow-visible"
               onOpenChange={changeOpen}
               open={open}
               style={
                 {
-                  '--header-height': 'calc(3.5rem + env(safe-area-inset-top))',
-                  '--sidebar-width': '17rem',
-                  '--sidebar-width-icon': '4.25rem',
+                  '--header-height': 'calc(4rem + env(safe-area-inset-top))',
+                  '--sidebar-width': '15.25rem',
+                  '--sidebar-width-icon': '4.5rem',
                 } as CSSProperties
               }
             >
               <CommandMenu>
-                <AppHeader user={user} />
-                <div className="flex min-h-0 flex-1">
-                  <AppSidebar />
-                  {/* The screen and the chat panel, square, against the menu. */}
-                  <div className="flex min-w-0 flex-1 overflow-hidden print:overflow-visible">
-                    <main className="relative min-w-0 flex-1 overflow-hidden bg-background print:overflow-visible print:bg-white">
-                      {/* Screens without page margins of their own (the chat, a document) still wait in
+                <AppSidebar />
+                {/* The header over the screen only; the menu runs the full height beside them. */}
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden print:overflow-visible">
+                  <AppHeader user={user} />
+                  <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden print:overflow-visible">
+                    {/* Screens without page margins of their own (the chat, a document) still wait in
                     them, as a page does. */}
-                      <Suspense
-                        fallback={
-                          <div className="w-full px-6 pt-12 pb-24 md:px-14">
-                            <PageSkeleton />
-                          </div>
-                        }
-                      >
-                        <Outlet />
-                      </Suspense>
-                    </main>
-                    <div className="contents print:hidden">
-                      <ChatPanel />
-                    </div>
-                  </div>
+                    <Suspense
+                      fallback={
+                        <div className={PAGE}>
+                          <PageSkeleton />
+                        </div>
+                      }
+                    >
+                      <Outlet />
+                    </Suspense>
+                  </main>
+                  <MobileNav />
                 </div>
-                <MobileNav />
+                <div className="contents print:hidden">
+                  <ChatPanel />
+                </div>
               </CommandMenu>
             </SidebarProvider>
           </ChatPanelProvider>
@@ -115,7 +117,7 @@ export function Scrolling({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return (
     <div className="relative h-full overflow-y-auto print:h-auto print:overflow-visible">
-      <div className="page-enter w-full px-6 pt-12 pb-24 md:px-14" key={pathname}>
+      <div className={cn('page-enter', PAGE)} key={pathname}>
         <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
       </div>
     </div>

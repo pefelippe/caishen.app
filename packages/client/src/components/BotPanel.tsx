@@ -22,12 +22,17 @@ import { Skeleton } from '@zapbots/ui/components/skeleton';
 import { cn } from '@zapbots/ui/lib/utils';
 
 import type { ChatAttachment } from '../lib/attachments';
-import { BotGlyph } from './BotGlyph';
 import { ChatThread, type Suggestion } from './ChatThread';
 
+/** The square light blue buttons of the panel's header, as in Mercado Pago's chat. */
+export const PANEL_BUTTON =
+  'size-10 rounded-xl bg-accent text-primary hover:bg-accent/70 hover:text-primary [&_svg]:size-5!';
+
 interface Props {
-  /** Extra buttons at the end of the header, e.g. to collapse a floating panel. */
+  /** Extra buttons at the end of the header. */
   actions?: ReactNode;
+  /** A button at the start of the header, e.g. to close a floating panel. */
+  leading?: ReactNode;
   bot: BotKey;
   className?: string;
   /** Sent as soon as the blank Conversation opens. */
@@ -46,6 +51,7 @@ export function BotPanel({
   className,
   firstFiles,
   firstMessage,
+  leading,
   startBlank,
   suggestions,
 }: Props) {
@@ -78,18 +84,18 @@ export function BotPanel({
 
   return (
     <section className={cn('flex min-h-0 flex-col gap-4', className)} data-bot={key}>
-      <header className="flex items-center gap-3">
-        <BotGlyph bot={key} size={32} />
-        <div className="min-w-0 flex-1 leading-tight">
-          <div className="font-semibold">{bot.name}</div>
-          <div className="truncate text-xs text-muted-foreground">Sobre o que está na tela</div>
+      <header className="flex items-center gap-2">
+        {leading}
+        <div className="min-w-0 flex-1 truncate text-center text-base font-semibold">
+          {bot.name}
         </div>
         {Boolean(list?.conversations.length) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 aria-label="Conversas anteriores"
-                size="icon-sm"
+                className={PANEL_BUTTON}
+                size="icon"
                 title="Conversas anteriores"
                 variant="ghost"
               >
@@ -115,11 +121,12 @@ export function BotPanel({
         )}
         <Button
           aria-label="Nova conversa"
+          className={PANEL_BUTTON}
           onClick={() => {
             setChosen(null);
             setThread(current => current + 1);
           }}
-          size="icon-sm"
+          size="icon"
           title="Nova conversa"
           variant="ghost"
         >
@@ -129,11 +136,11 @@ export function BotPanel({
       </header>
       {!data.aiStatus.configured ? (
         <Alert>
-          <AlertTitle>{bot.name} ainda está dormindo</AlertTitle>
+          <AlertTitle>{bot.name} ainda estÃ¡ dormindo</AlertTitle>
           <AlertDescription>
             Falta a chave de um provedor de IA. Cole-a em{' '}
             <Link className="underline underline-offset-4" to="/integrations#ai">
-              Integrações
+              IntegraÃ§Ãµes
             </Link>{' '}
             e o Caishen passa a responder.
           </AlertDescription>

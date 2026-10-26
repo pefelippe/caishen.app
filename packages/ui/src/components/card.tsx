@@ -2,16 +2,16 @@ import * as React from 'react';
 import { cn } from '@zapbots/ui/lib/utils';
 
 /**
- * A ruled section rather than a box: a line of ink on top and the paper showing through. A Card
- * inside another Card becomes a light inset panel.
+ * A white box drawn by a soft border and rounded corners, as Mercado Pago's. A Card inside another
+ * Card becomes a light inset panel.
  */
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card"
       className={cn(
-        'flex flex-col gap-5 rounded-2xl bg-card p-6 text-card-foreground shadow-[0_1px_3px_rgb(15_23_42/0.06)]',
-        '[[data-slot=card]_&]:rounded-xl [[data-slot=card]_&]:bg-muted [[data-slot=card]_&]:px-0 [[data-slot=card]_&]:py-4 [[data-slot=card]_&]:shadow-none',
+        'flex flex-col gap-5 rounded-[20px] border bg-card p-6 text-card-foreground',
+        '[[data-slot=card]_&]:rounded-xl [[data-slot=card]_&]:border-0 [[data-slot=card]_&]:bg-muted [[data-slot=card]_&]:px-0 [[data-slot=card]_&]:py-4',
         className
       )}
       {...props}
