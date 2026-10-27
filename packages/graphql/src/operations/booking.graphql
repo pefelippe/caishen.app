@@ -1,0 +1,87 @@
+# Agendamento por link: the owner's links and bookings, and the public pages guests open.
+
+fragment BookingTypeFields on BookingType {
+  id
+  slug
+  title
+  description
+  durationMinutes
+  minNoticeMinutes
+  daysAhead
+  active
+  windows {
+    weekday
+    start
+    end
+  }
+}
+
+fragment BookingConfirmationFields on BookingConfirmation {
+  title
+  ownerName
+  startsAt
+  endsAt
+  cancelledAt
+  cancelToken
+}
+
+query BookingTypes {
+  bookingTypes {
+    ...BookingTypeFields
+  }
+}
+
+query Bookings($upcoming: Boolean) {
+  bookings(upcoming: $upcoming) {
+    id
+    typeTitle
+    startsAt
+    endsAt
+    guestName
+    guestEmail
+    note
+    cancelledAt
+  }
+}
+
+mutation SaveBookingType($id: ID, $input: BookingTypeInput!) {
+  saveBookingType(id: $id, input: $input) {
+    ...BookingTypeFields
+  }
+}
+
+mutation DeleteBookingType($id: ID!) {
+  deleteBookingType(id: $id)
+}
+
+mutation CancelBooking($id: ID!) {
+  cancelBooking(id: $id)
+}
+
+query PublicBookingType($slug: String!) {
+  publicBookingType(slug: $slug) {
+    slug
+    title
+    description
+    durationMinutes
+    ownerName
+    timeZone
+  }
+  publicBookingSlots(slug: $slug)
+}
+
+mutation Book($input: BookInput!) {
+  book(input: $input) {
+    ...BookingConfirmationFields
+  }
+}
+
+query PublicBooking($token: String!) {
+  publicBooking(token: $token) {
+    ...BookingConfirmationFields
+  }
+}
+
+mutation CancelBookingByToken($token: String!) {
+  cancelBookingByToken(token: $token)
+}

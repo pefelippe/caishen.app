@@ -321,6 +321,12 @@ const PRIVACY: Clause[] = [
           metas e o progresso delas, e como você arrumou os cards da página inicial.
         </li>
         <li>
+          <strong>Links de agendamento:</strong> quando alguém marca um horário pelo seu link,
+          guardamos o nome, o e-mail, o fuso horário e a mensagem dessa pessoa, mostramos esses
+          dados a você e mandamos a ela um e-mail de confirmação com um link para cancelar. Quem tem
+          o link vê seu nome e seus horários livres, nunca o que está na sua agenda.
+        </li>
+        <li>
           <strong>Conversas com o agente:</strong> as mensagens e respostas. Anexos (imagens, PDFs,
           planilhas) são enviados ao modelo de IA para aquela resposta e não ficam guardados;
           guardamos só os nomes.
@@ -399,7 +405,10 @@ const PRIVACY: Clause[] = [
           <li>Provedor do banco de dados PostgreSQL onde ficam os dados.</li>
           <li>OpenRouter, Anthropic, Google e OpenAI: modelos de IA (veja a seção anterior).</li>
           <li>Stripe: pagamentos e assinaturas.</li>
-          <li>Resend: envio de e-mails, como o link para trocar a senha.</li>
+          <li>
+            Resend: envio de e-mails, como o link para trocar a senha e as confirmações de
+            agendamento.
+          </li>
           <li>Google: login com o Google e, se você ligar, o Google Drive.</li>
           <li>Meta (WhatsApp Cloud API): mensagens, se você vincular um número.</li>
           <li>Pluggy: Open Finance, se você vincular um banco.</li>

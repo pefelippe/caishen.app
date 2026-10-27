@@ -36,3 +36,5 @@ export type GoalRow = typeof schema.goal.$inferSelect;
 export type GoalProgressRow = typeof schema.goalProgress.$inferSelect;
 /** A Meta with how far it got: the sum of its Progresso. */
 export type GoalWithProgressRow = GoalRow & { progress: number };
+export type BookingTypeRow = typeof schema.bookingType.$inferSelect;
+export type BookingRow = typeof schema.booking.$inferSelect;

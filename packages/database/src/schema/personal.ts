@@ -1,4 +1,4 @@
-import type { Repeat } from '@zapbots/personal';
+import type { BookingWindow, Repeat } from '@zapbots/personal';
 import {
   type AnyPgColumn,
   bigint,
@@ -158,4 +158,57 @@ export const goalProgress = pgTable(
     organizationId: organizationId(),
   },
   table => [index('goal_progress_goal_idx').on(table.goalId)]
+);
+
+/**
+ * Tipo de agendamento: a link others open to book time with the User, like Cal.com's. Free slots
+ * come from `windows` on the owner's clock, less their timed Eventos; each booking becomes an Evento.
+ */
+export const bookingType = pgTable('booking_type', {
+  active: boolean('active').notNull().default(true),
+  /** How many days ahead it can be booked. */
+  daysAhead: integer('days_ahead').notNull().default(30),
+  description: text('description').notNull().default(''),
+  durationMinutes: integer('duration_minutes').notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** How soon, at the earliest, a slot can be booked. */
+  minNoticeMinutes: integer('min_notice_minutes').notNull().default(240),
+  organizationId: organizationId(),
+  /** The link's own part, `/book/<slug>`; unique across everyone. */
+  slug: text('slug').notNull().unique(),
+  title: text('title').notNull(),
+  /** Whose time it is: their name shows on the link, their clock and Eventos decide the slots. */
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  windows: jsonb('windows').$type<BookingWindow[]>().notNull(),
+  ...timestamps,
+});
+
+/**
+ * Agendamento: time someone booked through a link, with who they are. Its Evento is in the
+ * owner's Agenda; cancelling (by either side) deletes the Evento and keeps this row as cancelled.
+ */
+export const booking = pgTable(
+  'booking',
+  {
+    bookingTypeId: uuid('booking_type_id')
+      .notNull()
+      .references(() => bookingType.id, { onDelete: 'cascade' }),
+    /** The guest's secret to cancel from the link in their e-mail. */
+    cancelToken: text('cancel_token').notNull().unique(),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    eventId: uuid('event_id').references(() => event.id, { onDelete: 'set null' }),
+    guestEmail: text('guest_email').notNull(),
+    guestName: text('guest_name').notNull(),
+    /** The guest's clock, to write the time in their e-mails as they see it. */
+    guestTimeZone: text('guest_time_zone'),
+    id: uuid('id').primaryKey().defaultRandom(),
+    note: text('note').notNull().default(''),
+    organizationId: organizationId(),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+  },
+  table => [index('booking_type_starts_idx').on(table.bookingTypeId, table.startsAt)]
 );

@@ -8,7 +8,7 @@ import {
   type AgendaQuery,
   type EventFieldsFragment,
 } from '@zapbots/graphql/client';
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, LinkIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -312,6 +312,12 @@ export function CalendarPage() {
               <TabsTrigger value="list">{t('personal.calendar.list')}</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button asChild variant="outline">
+            <Link to="/personal/calendar/booking">
+              <LinkIcon />
+              {t('personal.booking.manage')}
+            </Link>
+          </Button>
           <Button onClick={() => setCreating(view === 'month' ? picked : today)}>
             <PlusIcon />
             {t('personal.events.new')}

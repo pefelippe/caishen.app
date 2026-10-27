@@ -1536,3 +1536,115 @@ extend type Mutation {
   "The Viewer's time zone, an IANA name such as America/Manaus."
   setTimeZone(timezone: String!): String!
 }
+
+# Agendamento por link (like Cal.com): a Tipo de agendamento is a link others open to book time
+# with the User; each booking becomes an Evento. The `public` fields work signed out.
+
+"Hours a link takes on one weekday (0 Sunday to 6), on the owner's clock."
+type BookingWindow {
+  weekday: Int!
+  start: String!
+  end: String!
+}
+
+input BookingWindowInput {
+  weekday: Int!
+  start: String!
+  end: String!
+}
+
+type BookingType {
+  id: ID!
+  "The link is /book/<slug>."
+  slug: String!
+  title: String!
+  description: String!
+  durationMinutes: Int!
+  windows: [BookingWindow!]!
+  "How soon, at the earliest, a slot can be booked."
+  minNoticeMinutes: Int!
+  "How many days ahead it can be booked."
+  daysAhead: Int!
+  active: Boolean!
+}
+
+input BookingTypeInput {
+  slug: String!
+  title: String!
+  description: String
+  durationMinutes: Int!
+  windows: [BookingWindowInput!]!
+  minNoticeMinutes: Int
+  daysAhead: Int
+  active: Boolean
+}
+
+"Time someone booked through a link."
+type Booking {
+  id: ID!
+  typeTitle: String!
+  startsAt: DateTime!
+  endsAt: DateTime!
+  guestName: String!
+  guestEmail: String!
+  note: String!
+  cancelledAt: DateTime
+}
+
+"A link as anyone with it sees it."
+type PublicBookingType {
+  slug: String!
+  title: String!
+  description: String!
+  durationMinutes: Int!
+  ownerName: String!
+  "The owner's clock."
+  timeZone: String!
+}
+
+"A booking as its guest sees it."
+type BookingConfirmation {
+  title: String!
+  ownerName: String!
+  startsAt: DateTime!
+  endsAt: DateTime!
+  cancelledAt: DateTime
+  "The guest's secret to cancel it."
+  cancelToken: String!
+}
+
+input BookInput {
+  slug: String!
+  startsAt: DateTime!
+  name: String!
+  email: String!
+  note: String
+  "The guest's clock, to write the time in their e-mail as they see it."
+  timeZone: String
+}
+
+extend type Query {
+  "The Viewer's booking links."
+  bookingTypes: [BookingType!]!
+  "Ahead and not cancelled, soonest first; `upcoming: false` the last 50, cancelled too."
+  bookings(upcoming: Boolean): [Booking!]!
+  "Public: an active link by its slug, or null."
+  publicBookingType(slug: String!): PublicBookingType
+  "Public: the link's free slots, as instants."
+  publicBookingSlots(slug: String!): [DateTime!]!
+  "Public: a booking by its guest's secret, or null."
+  publicBooking(token: String!): BookingConfirmation
+}
+
+extend type Mutation {
+  "Creates a link (no id) or changes one."
+  saveBookingType(id: ID, input: BookingTypeInput!): BookingType!
+  "Its bookings go too; their Eventos stay in the Agenda."
+  deleteBookingType(id: ID!): Boolean!
+  "The owner cancels; the guest gets an e-mail."
+  cancelBooking(id: ID!): Boolean!
+  "Public: books a free slot; it becomes an Evento in the owner's Agenda."
+  book(input: BookInput!): BookingConfirmation!
+  "Public: the guest cancels with their secret; false if it already was."
+  cancelBookingByToken(token: String!): Boolean!
+}

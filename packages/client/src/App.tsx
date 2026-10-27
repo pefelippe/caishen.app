@@ -48,6 +48,12 @@ const TasksPage = page(() => import('./pages/personal/TasksPage'), 'TasksPage');
 const NotesPage = page(() => import('./pages/personal/NotesPage'), 'NotesPage');
 const CalendarPage = page(() => import('./pages/personal/CalendarPage'), 'CalendarPage');
 const GoalsPage = page(() => import('./pages/personal/GoalsPage'), 'GoalsPage');
+const BookingLinksPage = page(
+  () => import('./pages/personal/BookingLinksPage'),
+  'BookingLinksPage'
+);
+const BookingPage = page(() => import('./pages/BookingPage'), 'BookingPage');
+const CancelBookingPage = page(() => import('./pages/BookingPage'), 'CancelBookingPage');
 
 /** Financeiro was split: Salário went to Entradas, the rest (Obrigações too) to Gastos. */
 function LegacyFinances() {
@@ -122,6 +128,8 @@ export function App() {
           <Route element={<ResetPasswordPage />} path="reset-password" />
           <Route element={<TermsPage />} path="terms" />
           <Route element={<PrivacyPage />} path="privacy" />
+          <Route element={<BookingPage />} path="book/:slug" />
+          <Route element={<CancelBookingPage />} path="book/cancel/:token" />
           <Route element={<Navigate replace to="/sign-in" />} path="*" />
         </Routes>
       </Suspense>
@@ -158,6 +166,23 @@ export function App() {
           </Suspense>
         }
         path="privacy"
+      />
+      {/* A booking link reads the same for its owner, outside the app's frame. */}
+      <Route
+        element={
+          <Suspense fallback={null}>
+            <BookingPage />
+          </Suspense>
+        }
+        path="book/:slug"
+      />
+      <Route
+        element={
+          <Suspense fallback={null}>
+            <CancelBookingPage />
+          </Suspense>
+        }
+        path="book/cancel/:token"
       />
       <Route element={<Layout user={session.user} />}>
         <Route
@@ -241,6 +266,14 @@ export function App() {
             </Scrolling>
           }
           path="personal/calendar"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <BookingLinksPage />
+            </Scrolling>
+          }
+          path="personal/calendar/booking"
         />
         <Route
           element={

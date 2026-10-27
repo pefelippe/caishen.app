@@ -1,0 +1,1 @@
+ALTER TABLE "booking" ADD COLUMN "guest_time_zone" text;

@@ -2,6 +2,7 @@ import type { Viewer } from '@zapbots/auth';
 import { db, schema, type EventRow } from '@zapbots/database';
 
 import { badInput, notFound, owned } from '../../resolvers/guards';
+import { cancelBookingsOfEvent } from './booking';
 import { day, repeat, text, time, title } from './clock';
 
 /** An Evento as a form, the chat or a Proposal give it, not checked yet. */
@@ -71,7 +72,12 @@ export async function updateEvent(viewer: Viewer, id: string, input: EventInput)
   return row!;
 }
 
+/** Deletes an Evento; one a guest booked is cancelled for them too. */
 export async function deleteEvent(viewer: Viewer, id: string): Promise<boolean> {
+  await findEvent(viewer, id).then(
+    event => cancelBookingsOfEvent(event.id),
+    () => undefined
+  );
   const deleted = await db
     .delete(schema.event)
     .where(owned(schema.event, viewer, id))

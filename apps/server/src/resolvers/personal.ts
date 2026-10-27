@@ -4,6 +4,18 @@ import { isTimeZone } from '@zapbots/personal';
 import { eq } from 'drizzle-orm';
 
 import { agenda } from '../services/personal/agenda';
+import {
+  book,
+  bookingByToken,
+  cancelBooking,
+  cancelBookingByToken,
+  deleteBookingType,
+  listBookings,
+  listBookingTypes,
+  publicBookingSlots,
+  publicBookingType,
+  saveBookingType,
+} from '../services/personal/booking';
 import { viewerToday } from '../services/personal/clock';
 import { createEvent, deleteEvent, findEvent, updateEvent } from '../services/personal/events';
 import {
@@ -46,6 +58,13 @@ export const personalResolvers: Resolvers = {
     openTasks: (goal, _, context) => listTasks(requireViewer(context), { goalId: goal.id }),
   },
   Mutation: {
+    // Public: a guest with the link, signed in or not.
+    book: (_, { input }) => book(input),
+    cancelBooking: (_, { id }, context) => cancelBooking(requireViewer(context), id),
+    cancelBookingByToken: (_, { token }) => cancelBookingByToken(token),
+    deleteBookingType: (_, { id }, context) => deleteBookingType(requireViewer(context), id),
+    saveBookingType: (_, { id, input }, context) =>
+      saveBookingType(requireViewer(context), id, input),
     addGoalProgress: (_, { amount, goalId, note }, context) =>
       addGoalProgress(requireViewer(context), goalId, amount, note),
     archiveGoal: (_, { archived, id }, context) =>
@@ -75,6 +94,12 @@ export const personalResolvers: Resolvers = {
     updateTask: (_, { id, input }, context) => updateTask(requireViewer(context), id, input),
   },
   Query: {
+    bookingTypes: (_, __, context) => listBookingTypes(requireViewer(context)),
+    bookings: (_, { upcoming }, context) => listBookings(requireViewer(context), upcoming ?? true),
+    // Public: what anyone with the link may see.
+    publicBooking: (_, { token }) => bookingByToken(token),
+    publicBookingSlots: (_, { slug }) => publicBookingSlots(slug),
+    publicBookingType: (_, { slug }) => orNull(publicBookingType(slug)),
     agenda: (_, { from, to }, context) => agenda(requireViewer(context), from, to),
     event: (_, { id }, context) => orNull(findEvent(requireViewer(context), id)),
     goals: (_, { archived }, context) => listGoals(requireViewer(context), archived ?? false),

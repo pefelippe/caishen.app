@@ -267,6 +267,20 @@
       "when": 1793114175148,
       "tag": "0037_lethal_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793115064830,
+      "tag": "0038_tense_aaron_stack",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793115103592,
+      "tag": "0039_ancient_grey_gargoyle",
+      "breakpoints": true
     }
   ]
 }

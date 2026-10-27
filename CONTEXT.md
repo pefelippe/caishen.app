@@ -148,6 +148,19 @@ Os Eventos, os prazos das Tarefas e as contas de Finanças (Parcelas, Faturas,
 Gastos recorrentes) nos seus dias. Não é uma entidade; as contas só levam à tela
 delas.
 
+**Link de agendamento** (`BookingType`):
+Um link (`/book/<slug>`) que o Usuário manda para alguém marcar um horário com
+ele, como no Cal.com: as horas de cada dia da semana no relógio do Usuário, a
+duração, a antecedência e quantos dias à frente. Os horários livres são essas
+horas menos os Eventos com hora. Desativado, ninguém marca.
+_Avoid_: tipo de evento, calendly
+
+**Agendamento** (`Booking`):
+Um horário marcado por um link, com o nome, o e-mail e a mensagem de quem
+marcou. Vira um Evento na Agenda do Usuário; cancelado por qualquer lado (o
+convidado pelo link do e-mail, o Usuário na tela dos links, ou apagando o
+Evento), o Evento sai e o Agendamento fica como cancelado.
+
 **Meta** (`Goal`):
 Aonde o Usuário quer chegar: juntar um valor (MONEY, em centavos), chegar a uma
 contagem (COUNT, com unidade) ou fazer algo uma vez (CHECK). Pode agrupar
