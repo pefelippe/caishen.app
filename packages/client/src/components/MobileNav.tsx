@@ -95,15 +95,18 @@ export function MobileNav() {
 
       <BottomSheet className="md:hidden" onOpenChange={setMore} open={more} title={t('tabs.more')}>
         <div className="flex flex-col gap-6 px-5 pt-2">
-          {nav.groups.map(group => (
-            <MoreGroup
-              active={current}
-              items={group.items}
-              key={group.key}
-              label={group.label}
-              onPick={() => setMore(false)}
-            />
-          ))}
+          {/* A group whose entries are all still to come has nothing to open here. */}
+          {nav.groups
+            .filter(group => group.items.some(item => !item.soon))
+            .map(group => (
+              <MoreGroup
+                active={current}
+                items={group.items}
+                key={group.key}
+                label={group.label}
+                onPick={() => setMore(false)}
+              />
+            ))}
           <MoreGroup
             active={current}
             items={nav.account}

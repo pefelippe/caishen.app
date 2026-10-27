@@ -1,4 +1,5 @@
 import {
+  ChevronDownIcon,
   CreditCardIcon,
   LanguagesIcon,
   LogOutIcon,
@@ -48,6 +49,13 @@ export const initials = (name: string) =>
     .map(part => part[0]!.toUpperCase())
     .join('');
 
+/** The first two names, as the header shows them. */
+const firstNames = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).join(' ');
+
+/** The avatar's initials in white on blue. */
+const BLUE =
+  '*:data-[slot=avatar-fallback]:bg-primary *:data-[slot=avatar-fallback]:text-primary-foreground';
+
 /** The account's screens, in the order the menu lists them. */
 const ACCOUNT: { icon: LucideIcon; label: StringKey; to: string }[] = [
   { icon: UserIcon, label: 'menu.profile', to: '/profile' },
@@ -74,7 +82,7 @@ export function UserAvatar({ className, user }: { className?: string; user: Prof
 }
 
 /**
- * Who is signed in, as their round avatar at the right of the header, its menu after Hostinger's:
+ * Who is signed in, as their round avatar and first names at the right of the header, its menu after Hostinger's:
  * the name and e-mail, the account's screens, the language (saved on the User), the theme (per
  * browser) and signing out.
  */
@@ -96,20 +104,23 @@ export function ProfileMenu({ user }: { user: ProfileUser }) {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={t('profile.label')}
-          className={cn(HEADER_ICON, 'p-0')}
-          size="icon"
+          className={cn(HEADER_ICON, 'group/profile w-auto gap-2 p-0 md:pr-3 md:pl-1')}
           variant="ghost"
         >
-          <UserAvatar
-            className="size-full *:data-[slot=avatar-fallback]:bg-primary *:data-[slot=avatar-fallback]:text-primary-foreground"
-            user={user}
-          />
+          <UserAvatar className={cn(BLUE, 'size-10 md:size-8')} user={user} />
+          <span className="hidden max-w-32 truncate text-sm font-semibold md:inline">
+            {firstNames(user.name)}
+          </span>
+          <ChevronDownIcon className="hidden size-4 transition-transform group-data-[state=open]/profile:rotate-180 md:block" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 rounded-2xl p-1.5" sideOffset={10}>
-        <DropdownMenuLabel className="px-3 py-2.5 font-normal">
-          <div className="truncate text-base font-semibold">{user.name}</div>
-          <div className="truncate text-sm text-muted-foreground">{user.email}</div>
+        <DropdownMenuLabel className="flex items-center gap-3 px-3 py-2.5 font-normal">
+          <UserAvatar className={cn(BLUE, 'size-12 text-base')} user={user} />
+          <div className="min-w-0">
+            <div className="truncate text-base font-semibold">{user.name}</div>
+            <div className="truncate text-sm text-muted-foreground">{user.email}</div>
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

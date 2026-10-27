@@ -1,5 +1,14 @@
 import {
+  BedIcon,
   BotIcon,
+  CalendarIcon,
+  DumbbellIcon,
+  ListTodoIcon,
+  NotebookPenIcon,
+  PieChartIcon,
+  RulerIcon,
+  SaladIcon,
+  TargetIcon,
   CalculatorIcon,
   CreditCardIcon,
   FileTextIcon,
@@ -34,7 +43,7 @@ export interface NavItem {
   to: string;
 }
 
-/** A titled part of the menu that opens and closes. */
+/** A titled part of the menu. */
 export interface NavGroup {
   items: NavItem[];
   key: string;
@@ -51,7 +60,8 @@ export interface Nav {
 
 /**
  * Every screen of the app as the menu on the left lists them: the main ones on top (Página inicial,
- * Agente, Documentos, Workflows, Integrações), then Finanças. The account's (Perfil, Plano,
+ * Agente, Documentos, Workflows, Integrações), then Finanças, Pessoal and
+ * Fitness (the last two only "Em breve" for now). The account's (Perfil, Plano,
  * Configurações) are in the avatar's menu instead.
  */
 export function useNav(): Nav {
@@ -73,6 +83,28 @@ export function useNav(): Nav {
         ],
         key: 'finances',
         label: t('nav.finances'),
+      },
+      // Pessoal and Fitness are still to come: their entries show "Em breve" and lead nowhere.
+      {
+        items: [
+          { icon: CalendarIcon, label: t('nav.calendar'), soon: true, to: '/personal/calendar' },
+          { icon: ListTodoIcon, label: t('nav.tasks'), soon: true, to: '/personal/tasks' },
+          { icon: NotebookPenIcon, label: t('nav.notes'), soon: true, to: '/personal/notes' },
+          { icon: TargetIcon, label: t('nav.goals'), soon: true, to: '/personal/goals' },
+        ],
+        key: 'personal',
+        label: t('nav.personal'),
+      },
+      {
+        items: [
+          { icon: DumbbellIcon, label: t('nav.workouts'), soon: true, to: '/fitness/workouts' },
+          { icon: SaladIcon, label: t('nav.meals'), soon: true, to: '/fitness/diet' },
+          { icon: PieChartIcon, label: t('nav.macros'), soon: true, to: '/fitness/macros' },
+          { icon: BedIcon, label: t('nav.sleep'), soon: true, to: '/fitness/sleep' },
+          { icon: RulerIcon, label: t('nav.measures'), soon: true, to: '/fitness/measures' },
+        ],
+        key: 'fitness',
+        label: t('nav.fitness'),
       },
     ],
     account: [
