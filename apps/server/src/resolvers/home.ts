@@ -9,6 +9,7 @@ const CARD_KEYS = {
   AGENDA: true,
   CHATS: true,
   DUES: true,
+  FINANCE: true,
   FITNESS: true,
   GOALS: true,
   MEASURES: true,

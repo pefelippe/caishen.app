@@ -355,6 +355,7 @@ type Mutation {
 
 "A card of the Página inicial. Each area adds its own: Finanças now, Pessoal and Fitness later."
 enum HomeCardKey {
+  FINANCE
   MARKET
   OVERVIEW
   MONTH

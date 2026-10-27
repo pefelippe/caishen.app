@@ -2,7 +2,6 @@ import { ArrowUpIcon, SlidersHorizontalIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRef, useState, type ClipboardEvent, type FormEvent } from 'react';
 
-import { Logo } from '@zapbots/ui/blocks/logo';
 import { Button } from '@zapbots/ui/components/button';
 import { Input } from '@zapbots/ui/components/input';
 import { cn } from '@zapbots/ui/lib/utils';
@@ -21,12 +20,17 @@ import { CustomizeHome, useHomeLayout } from '../home/CustomizeHome';
 import { useI18n } from '../lib/i18n';
 
 /**
- * The greeting and the line to ask the Caishen, centered on a light blue panel, as the Dashboard
- * opened before; sending, or a suggestion, opens the chat panel with it.
+ * The day's date, the greeting and the line to ask the Caishen, straight on the paper; sending, or
+ * a suggestion, opens the chat panel with it.
  */
 function Ask({ name }: { name: string }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const { startNew } = useChatPanel();
+  const date = new Date().toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', {
+    day: 'numeric',
+    month: 'long',
+    weekday: 'long',
+  });
   const [draft, setDraft] = useState('');
   const [files, setFiles] = useState<ChatAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -59,18 +63,13 @@ function Ask({ name }: { name: string }) {
   };
 
   return (
-    <motion.section
-      className="flex flex-col items-center gap-6 rounded-3xl bg-accent px-5 py-12 text-center md:py-14"
-      variants={rise}
-    >
-      <span className="grid size-12 place-items-center rounded-2xl bg-foreground text-background">
-        <Logo size={24} />
-      </span>
-      <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-        {t('welcome.hello', { name })}
-      </h1>
+    <motion.section className="flex flex-col gap-5 pt-2 pb-3 md:pt-6" variants={rise}>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm text-muted-foreground first-letter:uppercase">{date}</p>
+        <h1 className="text-4xl md:text-5xl">{t('welcome.hello', { name })}</h1>
+      </div>
       <form
-        className="flex h-16 w-full max-w-2xl items-center gap-2 rounded-full bg-card pr-2 pl-3 shadow-[0_12px_40px_-16px_rgb(37_99_235/0.35)] transition-shadow focus-within:shadow-[0_12px_40px_-12px_rgb(37_99_235/0.5)]"
+        className="flex h-14 w-full items-center gap-2 rounded-full bg-card pr-2 pl-3 ring-seal/40 transition-shadow focus-within:ring-2"
         onSubmit={onSubmit}
       >
         <AttachMenu
@@ -88,7 +87,7 @@ function Ask({ name }: { name: string }) {
         />
         <Button
           aria-label={t('welcome.send')}
-          className="size-12 rounded-full"
+          className="size-10 rounded-full"
           disabled={!draft.trim() && !files.length}
           size="icon"
           type="submit"
@@ -109,7 +108,7 @@ function Ask({ name }: { name: string }) {
         type="file"
       />
       {(files.length > 0 || error) && (
-        <div className="-mt-2 flex w-full max-w-2xl flex-col items-center gap-2">
+        <div className="-mt-2 flex w-full flex-col gap-2">
           <Waiting
             files={files}
             onRemove={index => setFiles(current => current.filter((_, at) => at !== index))}
@@ -117,10 +116,10 @@ function Ask({ name }: { name: string }) {
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       )}
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="-mt-1 flex flex-wrap gap-2">
         {CHAT_SUGGESTIONS.map(suggestion => (
           <Button
-            className="h-9 rounded-full bg-card px-4 font-normal hover:bg-card/70"
+            className="h-8 rounded-full px-3 font-normal text-muted-foreground hover:text-foreground"
             key={suggestion.text}
             onClick={() => startNew(suggestion.text)}
             variant="ghost"
@@ -147,7 +146,7 @@ export function DashboardPage({ user }: { user: { name: string } }) {
   return (
     <motion.div
       animate="shown"
-      className="mx-auto flex w-full max-w-6xl flex-col gap-5"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-5"
       initial="hidden"
       variants={stagger}
     >

@@ -234,6 +234,66 @@ function DuesCard() {
   );
 }
 
+/**
+ * Finanças at a glance: what is left (or missing) this month in large type, what came in and went
+ * out under it, and the next three dues. The whole picture is on Lançamentos.
+ */
+function FinanceCard() {
+  const { language, t } = useI18n();
+  const month = today().slice(0, 7);
+  const { data } = useQuery(HomeMonthDocument, {
+    fetchPolicy: 'cache-and-network',
+    variables: { month },
+  });
+  const { data: dues } = useQuery(HomeDuesDocument, { fetchPolicy: 'cache-and-network' });
+  const figures = data?.viewerHolder.month;
+  const next = dues?.viewerHolder.upcomingDues.slice(0, 3) ?? [];
+  const name = new Date(`${month}-15T12:00:00`).toLocaleDateString(
+    language === 'pt' ? 'pt-BR' : 'en-US',
+    { month: 'long' }
+  );
+  return (
+    <Panel link={{ label: t('home.month.open'), to: '/caishen/entries' }} title={t('home.finance')}>
+      {!figures ? (
+        <Lines count={3} />
+      ) : (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-muted-foreground">
+            {t(figures.balanceCents < 0 ? 'home.finance.missing' : 'home.finance.left', {
+              month: name,
+            })}
+          </span>
+          <strong
+            className={cn(
+              'font-display text-4xl font-light tracking-[-0.022em] tabular-nums',
+              figures.balanceCents < 0 && 'text-destructive'
+            )}
+          >
+            {formatCents(Math.abs(figures.balanceCents))}
+          </strong>
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {t('home.finance.in')} {formatCents(figures.incomeCents)} · {t('home.finance.out')}{' '}
+            {formatCents(figures.commitmentsCents + figures.expensesCents)}
+          </span>
+        </div>
+      )}
+      {next.length > 0 && (
+        <ul className="flex flex-col gap-2 border-t pt-4">
+          {next.map(due => (
+            <li className="flex items-center gap-3 text-sm" key={`${due.label}-${due.dueDate}`}>
+              <span className="w-11 shrink-0 text-muted-foreground tabular-nums">
+                {formatDate(due.dueDate).slice(0, 5)}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{due.label}</span>
+              <span className="tabular-nums">{formatCents(due.amountCents)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
 /** The latest Conversations, each opening on the Agente page. */
 function ChatsCard() {
   const { t } = useI18n();
@@ -289,6 +349,7 @@ export const HOME_CARDS: Record<HomeCardKey, HomeCard> = {
     title: 'home.card.measures',
   },
   CHATS: { Component: ChatsCard, area: 'general', size: 'third', title: 'home.chats' },
+  FINANCE: { Component: FinanceCard, area: 'finance', size: 'third', title: 'home.card.finance' },
   DUES: { Component: DuesCard, area: 'finance', size: 'twoThirds', title: 'home.dues' },
   MARKET: { Component: MarketCard, area: 'finance', size: 'full', title: 'home.card.market' },
   MONTH: { Component: MonthCard, area: 'finance', size: 'full', title: 'home.card.month' },
@@ -300,17 +361,21 @@ export const HOME_CARDS: Record<HomeCardKey, HomeCard> = {
   },
 };
 
-/** The Página inicial of a User who never arranged it. */
+/**
+ * The Página inicial of a User who never arranged it: kept clean, what the day needs (Hoje, the
+ * Agenda, the finances at a glance, Notas, the Conversations); the rest waits in Personalizar.
+ */
 export const DEFAULT_LAYOUT: CardSetting<HomeCardKey>[] = [
-  { hidden: false, key: 'MARKET' },
   { hidden: false, key: 'TODAY' },
   { hidden: false, key: 'AGENDA' },
-  { hidden: false, key: 'OVERVIEW' },
-  { hidden: false, key: 'MONTH' },
-  { hidden: false, key: 'DUES' },
-  { hidden: false, key: 'CHATS' },
-  { hidden: false, key: 'GOALS' },
+  { hidden: false, key: 'FINANCE' },
   { hidden: false, key: 'NOTES' },
-  { hidden: false, key: 'FITNESS' },
-  { hidden: false, key: 'MEASURES' },
+  { hidden: false, key: 'CHATS' },
+  { hidden: true, key: 'GOALS' },
+  { hidden: true, key: 'FITNESS' },
+  { hidden: true, key: 'MEASURES' },
+  { hidden: true, key: 'MONTH' },
+  { hidden: true, key: 'DUES' },
+  { hidden: true, key: 'OVERVIEW' },
+  { hidden: true, key: 'MARKET' },
 ];
