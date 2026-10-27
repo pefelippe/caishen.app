@@ -71,8 +71,12 @@ function NavItems({ active, items }: { active: NavItem | undefined; items: NavIt
 
 /** A titled part of the menu. Collapsed to icons, the menu has no titles, only the entries. */
 function Group({ active, group }: { active: NavItem | undefined; group: NavGroup }) {
+  // Each group's icons take its area's colour (`data-area` in styles.css).
   return (
-    <SidebarGroup className="p-0">
+    <SidebarGroup
+      className="p-0 [&_[data-sidebar=menu-button]>svg]:text-(--area,currentColor)"
+      data-area={group.area}
+    >
       <SidebarGroupLabel className="mt-4 h-10 px-0 text-[0.9375rem] font-semibold text-sidebar-foreground">
         {group.label}
       </SidebarGroupLabel>

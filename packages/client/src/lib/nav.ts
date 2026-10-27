@@ -45,6 +45,8 @@ export interface NavItem {
 
 /** A titled part of the menu. */
 export interface NavGroup {
+  /** Paints its icons in the area's colour. */
+  area: 'finance' | 'fitness' | 'personal';
   items: NavItem[];
   key: string;
   label: string;
@@ -81,6 +83,7 @@ export function useNav(): Nav {
           { icon: FlagIcon, label: t('nav.payoff'), to: '/caishen/payoff' },
           { icon: CalculatorIcon, label: t('nav.calculators'), to: '/caishen/calculators' },
         ],
+        area: 'finance',
         key: 'finances',
         label: t('nav.finances'),
       },
@@ -91,6 +94,7 @@ export function useNav(): Nav {
           { icon: NotebookPenIcon, label: t('nav.notes'), to: '/personal/notes' },
           { icon: TargetIcon, label: t('nav.goals'), to: '/personal/goals' },
         ],
+        area: 'personal',
         key: 'personal',
         label: t('nav.personal'),
       },
@@ -103,6 +107,7 @@ export function useNav(): Nav {
           { icon: BedIcon, label: t('nav.sleep'), soon: true, to: '/fitness/sleep' },
           { icon: RulerIcon, label: t('nav.measures'), soon: true, to: '/fitness/measures' },
         ],
+        area: 'fitness',
         key: 'fitness',
         label: t('nav.fitness'),
       },

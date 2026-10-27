@@ -50,7 +50,7 @@ export function BottomSheet({
               <motion.div
                 animate={still ? { opacity: 1 } : { y: 0 }}
                 className={cn(
-                  'fixed inset-x-0 bottom-0 z-50 flex max-h-[85svh] flex-col rounded-t-3xl bg-background pb-[calc(env(safe-area-inset-bottom)+1.5rem)] shadow-lg',
+                  'fixed inset-x-0 bottom-0 z-50 flex max-h-[85svh] flex-col rounded-t-3xl bg-popover pb-[calc(env(safe-area-inset-bottom)+1.5rem)] shadow-lg',
                   className
                 )}
                 drag={still ? false : 'y'}

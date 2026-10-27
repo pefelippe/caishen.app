@@ -9,9 +9,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * After Mercado Pago's: white everywhere (the header, the menu and the screen), white cards drawn by
- * a soft border, navy text and one bright blue for what acts. The dark theme puts it all on near
- * black. The navy tokens still paint the landing page and the sign-in.
+ * After Mercado Pago's: the screen and the header on a cool grey canvas, the menu and the cards white
+ * and raised from it by a soft border and shadow, navy text and one bright blue for what acts. Each
+ * area keeps a colour of its own (`--area-*`). The dark theme puts it all on near black. The navy
+ * tokens still paint the landing page and the sign-in.
  */
 :root {
   --radius: 0.5rem;
@@ -20,8 +21,8 @@
   --navy-soft: #1e293b;
   --blue: #2563eb;
 
-  /* The open screen: white, with white cards drawn by their border. */
-  --background: #ffffff;
+  /* The open screen: a cool grey canvas, with white cards raised from it. */
+  --background: #f3f5f9;
   --foreground: var(--navy);
   --card: #ffffff;
   --card-foreground: var(--navy);
@@ -29,16 +30,18 @@
   --popover-foreground: var(--navy);
   --primary: var(--blue);
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
+  --secondary: #eef2f7;
   --secondary-foreground: var(--navy);
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #eff6ff;
+  --accent: #e8f0fe;
   --accent-foreground: #1e40af;
   --destructive: oklch(0.55 0.2 27);
   --success: oklch(0.52 0.13 155);
   --warning: oklch(0.6 0.14 65);
-  --border: #e2e8f0;
+  --border: #dfe4ec;
+  /* What lifts a white card off the canvas; none in the dark. */
+  --card-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 2px 8px -2px rgb(15 23 42 / 0.06);
   --input: #cbd5e1;
   --ring: var(--blue);
 
@@ -47,9 +50,9 @@
   --sidebar-foreground: var(--navy-soft);
   --sidebar-primary: var(--blue);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ffffff;
+  --sidebar-accent: #f1f5f9;
   --sidebar-accent-foreground: var(--navy);
-  --sidebar-border: #e2e8f0;
+  --sidebar-border: #dfe4ec;
   --sidebar-ring: var(--blue);
 
   /* The bar across the top. `--header-gradient` paints the bar and the send buttons. */
@@ -70,6 +73,12 @@
   /* One ink per Bot, and a neutral one outside them. */
   --ink-neutral: var(--navy);
   --bot-finance: var(--blue);
+
+  /* One colour per area of the app, for its icons, dots and bars. */
+  --area-finance: var(--blue);
+  --area-personal: #7c3aed;
+  --area-fitness: #059669;
+  --area-general: #0891b2;
 }
 
 .dark {
@@ -90,6 +99,7 @@
   --success: oklch(0.68 0.14 155);
   --warning: oklch(0.75 0.14 70);
   --border: #27272a;
+  --card-shadow: none;
   --input: #3f3f46;
   --ring: #3b82f6;
 
@@ -101,6 +111,10 @@
 
   --ink-neutral: #fafafa;
   --bot-finance: #3b82f6;
+  --area-finance: #3b82f6;
+  --area-personal: #a78bfa;
+  --area-fitness: #34d399;
+  --area-general: #22d3ee;
   color-scheme: dark;
 }
 
@@ -130,6 +144,11 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-area-finance: var(--area-finance);
+  --color-area-personal: var(--area-personal);
+  --color-area-fitness: var(--area-fitness);
+  --color-area-general: var(--area-general);
+  --shadow-card: var(--card-shadow);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

@@ -18,7 +18,11 @@ export function Panel({
   return (
     <Card className="h-full gap-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold">{title}</h2>
+        <h2 className="flex items-center gap-2 font-semibold">
+          {/* The area's colour, from the `data-area` the Dashboard puts around each card. */}
+          <span aria-hidden className="h-4 w-1 rounded-full bg-(--area,var(--primary))" />
+          {title}
+        </h2>
         {link && (
           <Link
             className="inline-flex items-center gap-1 text-sm text-primary hover:underline"

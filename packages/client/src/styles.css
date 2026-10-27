@@ -1,5 +1,19 @@
 @import '@zapbots/ui/globals.css';
 
+/* Each area of the app paints its marks in its own colour (`--area-*` in the theme). */
+[data-area='finance'] {
+  --area: var(--area-finance);
+}
+[data-area='personal'] {
+  --area: var(--area-personal);
+}
+[data-area='fitness'] {
+  --area: var(--area-fitness);
+}
+[data-area='general'] {
+  --area: var(--area-general);
+}
+
 /* Each page opens with a light fade, sliding down a little. */
 @keyframes page-enter {
   from {

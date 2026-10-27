@@ -169,9 +169,14 @@ export function DashboardPage({ user }: { user: { name: string } }) {
           ) : (
             <div className="grid gap-5 lg:grid-cols-3">
               {shown.map(({ key }) => {
-                const { Component, size } = HOME_CARDS[key];
+                const { Component, area, size } = HOME_CARDS[key];
                 return (
-                  <motion.div className={cn('min-w-0', SIZE_CLASS[size])} key={key} variants={rise}>
+                  <motion.div
+                    className={cn('min-w-0', SIZE_CLASS[size])}
+                    data-area={area}
+                    key={key}
+                    variants={rise}
+                  >
                     <Component />
                   </motion.div>
                 );
