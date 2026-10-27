@@ -1,0 +1,21 @@
+{
+  "name": "@zapbots/personal",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pessoal (Tarefas, Notas, Agenda, Metas): pure logic, such as repeating dates, and the specs of its tools.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint:tsc": "tsc",
+    "test:unit": "vitest --run",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "@zapbots/finance": "workspace:*"
+  },
+  "devDependencies": {
+    "@zapbots/typescript-config": "workspace:*",
+    "vitest": "4.1.10"
+  }
+}

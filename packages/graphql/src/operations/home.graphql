@@ -1,0 +1,94 @@
+# The Página inicial: each card reads only what it shows, so a hidden card reads nothing.
+
+query HomeLayout {
+  homeLayout {
+    key
+    hidden
+  }
+}
+
+mutation SaveHomeLayout($cards: [HomeCardSettingInput!]) {
+  saveHomeLayout(cards: $cards) {
+    key
+    hidden
+  }
+}
+
+query HomeMarket {
+  indicators {
+    dollar {
+      rate
+      date
+      change
+    }
+    selic {
+      rate
+      date
+    }
+    cdi {
+      rate
+      date
+    }
+    ipca12m {
+      rate
+      date
+    }
+  }
+}
+
+query HomeOverview {
+  viewerHolder {
+    id
+    creditCards {
+      id
+      name
+      issuer
+      limitCents
+      usedCents
+      statements {
+        id
+        referenceMonth
+        amountCents
+        dueDate
+      }
+    }
+    months(last: 12) {
+      month
+      balanceCents
+    }
+  }
+  bankLinks {
+    id
+    institution
+    accounts {
+      id
+      kind
+      name
+      balanceCents
+    }
+  }
+}
+
+query HomeMonth($month: String!) {
+  viewerHolder {
+    id
+    month(month: $month) {
+      month
+      incomeCents
+      commitmentsCents
+      expensesCents
+      balanceCents
+    }
+  }
+}
+
+query HomeDues {
+  viewerHolder {
+    id
+    upcomingDues {
+      label
+      dueDate
+      amountCents
+    }
+  }
+}

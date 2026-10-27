@@ -117,6 +117,12 @@ juntas. Uma Entrega abre na sua própria página; um Anexo abre na Integração 
 onde veio.
 _Avoid_: arquivos, biblioteca (como nome da tela)
 
+**Card da Página inicial** (`HomeCard`, chave `HomeCardKey`):
+Um quadro da Página inicial vindo de uma área (Finanças, Pessoal, Geral). Cada
+Usuário escolhe quais aparecem e em que ordem (Personalizar); sem escolha, vale o
+padrão, e um Card novo entra no lugar dele no padrão.
+_Avoid_: widget, bloco
+
 ### Acesso
 
 **Organização** (`Organization`):

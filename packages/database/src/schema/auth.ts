@@ -20,6 +20,8 @@ export const user = pgTable('user', {
   /** The app's language for this User, `pt` or `en`; chosen on the Profile page. */
   language: text('language').notNull().default('pt'),
   name: text('name').notNull(),
+  /** Where "today" is for this User's Tasks and Events, an IANA time zone; chosen in Perfil. */
+  timezone: text('timezone').notNull().default('America/Sao_Paulo'),
   /** Whether signing in with a password also asks for a code from an authenticator app. */
   twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
   updatedAt: updatedAt(),

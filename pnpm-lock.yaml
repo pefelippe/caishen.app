@@ -153,6 +153,19 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@opentelemetry/api@1.10.0)(@types/node@24.13.0)(vite@8.3.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1))
 
+  packages/bots/personal:
+    dependencies:
+      '@zapbots/finance':
+        specifier: workspace:*
+        version: link:../finance
+    devDependencies:
+      '@zapbots/typescript-config':
+        specifier: workspace:*
+        version: link:../../../configs/typescript-config
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@opentelemetry/api@1.10.0)(@types/node@24.13.0)(vite@8.3.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1))
+
   packages/client:
     dependencies:
       '@apollo/client':

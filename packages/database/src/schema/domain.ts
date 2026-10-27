@@ -2,7 +2,6 @@ import { MODALITY_KEYS } from '@zapbots/finance';
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
-  bigint,
   boolean,
   date,
   index,
@@ -18,23 +17,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { organization, user } from './auth';
-
-/** Money columns: integer cents (docs/adr/0004). `number` mode is exact up to R$ 90 trilhões. */
-const cents = (name: string) => bigint(name, { mode: 'number' });
-
-const timestamps = {
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-};
-
-const organizationId = () =>
-  text('organization_id')
-    .notNull()
-    .references(() => organization.id, { onDelete: 'cascade' });
+import { user } from './auth';
+import { cents, organizationId, timestamps } from './columns';
 
 export const holderKind = pgEnum('holder_kind', ['PF', 'PJ']);
 export const modality = pgEnum('modality', MODALITY_KEYS);

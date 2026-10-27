@@ -1,4 +1,4 @@
-import type { HomeQuery } from '@zapbots/graphql/client';
+import type { HomeOverviewQuery } from '@zapbots/graphql/client';
 import { CreditCardIcon, LandmarkIcon, WalletIcon, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -9,8 +9,8 @@ import { cn } from '@zapbots/ui/lib/utils';
 import { localToday } from '../lib/bots';
 import { formatCents } from '../lib/format';
 
-type Holder = NonNullable<HomeQuery['viewerHolder']>;
-type BankLink = HomeQuery['bankLinks'][number];
+type Holder = HomeOverviewQuery['viewerHolder'];
+type BankLink = HomeOverviewQuery['bankLinks'][number];
 type CreditCard = Holder['creditCards'][number];
 
 /** "out/26". */

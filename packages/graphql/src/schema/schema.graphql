@@ -233,6 +233,8 @@ type Query {
   bankLinks: [BankLink!]!
   "The Viewer's Organization, with its Members."
   organization: Organization!
+  "The cards of the Viewer's Página inicial in their order; null while they keep the default."
+  homeLayout: [HomeCardSetting!]
   "What the Organization used this month (São Paulo calendar)."
   usage: Usage!
   "The Organization's Plan, Limits and what it used this month (docs/adr/0011)."
@@ -264,6 +266,8 @@ type Mutation {
   openBillingPortal: String!
   "Adds a Usage code's Jobs and Messages to this month's Limit; owners and admins only."
   redeemUsageCode(code: String!): Billing!
+  "Saves which cards the Viewer's Página inicial shows and in what order; null restores the default."
+  saveHomeLayout(cards: [HomeCardSettingInput!]): [HomeCardSetting!]
   "Renames the Viewer's Organization; owners and admins only."
   renameOrganization(name: String!): Organization!
   """
@@ -347,6 +351,25 @@ type Mutation {
   deleteScrSnapshot(id: ID!): Boolean!
   grantConsent(holderId: ID!, source: DataSource!): Consent!
   revokeConsent(id: ID!): Consent!
+}
+
+"A card of the Página inicial. Each area adds its own: Finanças now, Pessoal and Fitness later."
+enum HomeCardKey {
+  MARKET
+  OVERVIEW
+  MONTH
+  DUES
+  CHATS
+}
+
+type HomeCardSetting {
+  key: HomeCardKey!
+  hidden: Boolean!
+}
+
+input HomeCardSettingInput {
+  key: HomeCardKey!
+  hidden: Boolean!
 }
 
 "The signed-in User inside their active Organization."
