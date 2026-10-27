@@ -123,6 +123,39 @@ Usuário escolhe quais aparecem e em que ordem (Personalizar); sem escolha, vale
 padrão, e um Card novo entra no lugar dele no padrão.
 _Avoid_: widget, bloco
 
+### Pessoal
+
+**Tarefa** (`Task`):
+Algo a fazer, talvez com dia e hora, prioridade e uma Lista. Uma Tarefa que se
+repete, quando feita, fica feita e dá lugar a uma nova na próxima data da série.
+_Avoid_: to-do, pendência
+
+**Lista** (`TaskList`):
+Um grupo de Tarefas com nome (Casa, Trabalho, Mercado). Apagar uma Lista deixa
+as Tarefas dela sem Lista.
+
+**Nota** (`Note`):
+Texto livre em Markdown, salvo enquanto se digita; as fixadas vêm primeiro e
+aparecem na Página inicial.
+
+**Evento** (`Event`):
+Um compromisso na Agenda: o dia todo ou numa hora, talvez por vários dias,
+talvez se repetindo. Mudar um Evento que se repete muda a série inteira.
+_Avoid_: compromisso (que em Finanças é outra coisa)
+
+**Agenda**:
+Os Eventos, os prazos das Tarefas e as contas de Finanças (Parcelas, Faturas,
+Gastos recorrentes) nos seus dias. Não é uma entidade; as contas só levam à tela
+delas.
+
+**Meta** (`Goal`):
+Aonde o Usuário quer chegar: juntar um valor (MONEY, em centavos), chegar a uma
+contagem (COUNT, com unidade) ou fazer algo uma vez (CHECK). Pode agrupar
+Tarefas. Arquivada, sai da lista sem ser apagada.
+
+**Progresso** (`GoalProgress`):
+Um passo rumo a uma Meta, na unidade dela; negativo desconta.
+
 ### Acesso
 
 **Organização** (`Organization`):

@@ -53,6 +53,9 @@ importers:
       '@zapbots/graphql':
         specifier: workspace:*
         version: link:../../packages/graphql
+      '@zapbots/personal':
+        specifier: workspace:*
+        version: link:../../packages/bots/personal
       better-auth:
         specifier: 1.7.6
         version: 1.7.6(@opentelemetry/api@1.10.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.2(@opentelemetry/api@1.10.0)(@types/pg@8.20.0)(kysely@0.29.6)(pg@8.16.0))(pg@8.16.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@4.1.10(@opentelemetry/api@1.10.0)(@types/node@24.13.0)(msw@3.0.3(@types/node@24.13.0)(graphql@16.12.0)(typescript@7.0.2)(vite@8.3.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1)))(vite@8.3.1(@types/node@24.13.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.1)))
@@ -195,6 +198,9 @@ importers:
       '@zapbots/graphql':
         specifier: workspace:*
         version: link:../graphql
+      '@zapbots/personal':
+        specifier: workspace:*
+        version: link:../bots/personal
       '@zapbots/ui':
         specifier: workspace:*
         version: link:../ui
@@ -262,6 +268,9 @@ importers:
       '@zapbots/finance':
         specifier: workspace:*
         version: link:../bots/finance
+      '@zapbots/personal':
+        specifier: workspace:*
+        version: link:../bots/personal
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@opentelemetry/api@1.10.0)(@types/pg@8.20.0)(kysely@0.29.6)(pg@8.16.0)

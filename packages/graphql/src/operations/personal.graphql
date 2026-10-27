@@ -1,0 +1,254 @@
+# Pessoal: Tarefas, Notas, Agenda and Metas.
+
+fragment TaskFields on Task {
+  id
+  title
+  notes
+  dueOn
+  dueTime
+  priority
+  doneAt
+  listId
+  goalId
+  repeat {
+    every
+    interval
+    weekdays
+  }
+}
+
+fragment NoteFields on Note {
+  id
+  title
+  body
+  pinned
+  updatedAt
+}
+
+fragment EventFields on Event {
+  id
+  title
+  startsOn
+  startTime
+  endsOn
+  endTime
+  location
+  notes
+  repeat {
+    every
+    interval
+    weekdays
+  }
+}
+
+fragment GoalFields on Goal {
+  id
+  title
+  area
+  kind
+  target
+  unit
+  dueOn
+  archivedAt
+  progress
+}
+
+query PersonalToday {
+  personalToday
+}
+
+query Tasks($listId: ID, $done: Boolean) {
+  personalToday
+  tasks(listId: $listId, done: $done) {
+    ...TaskFields
+  }
+  taskLists {
+    id
+    name
+    openCount
+  }
+}
+
+mutation CreateTask($input: TaskInput!) {
+  createTask(input: $input) {
+    ...TaskFields
+  }
+}
+
+mutation UpdateTask($id: ID!, $input: TaskInput!) {
+  updateTask(id: $id, input: $input) {
+    ...TaskFields
+  }
+}
+
+mutation SetTaskDone($id: ID!, $done: Boolean!) {
+  setTaskDone(id: $id, done: $done) {
+    ...TaskFields
+  }
+}
+
+mutation DeleteTask($id: ID!) {
+  deleteTask(id: $id)
+}
+
+mutation CreateTaskList($name: String!) {
+  createTaskList(name: $name) {
+    id
+    name
+    openCount
+  }
+}
+
+mutation RenameTaskList($id: ID!, $name: String!) {
+  renameTaskList(id: $id, name: $name) {
+    id
+    name
+    openCount
+  }
+}
+
+mutation DeleteTaskList($id: ID!) {
+  deleteTaskList(id: $id)
+}
+
+query Notes($search: String, $pinned: Boolean) {
+  notes(search: $search, pinned: $pinned) {
+    ...NoteFields
+  }
+}
+
+mutation CreateNote($input: NoteInput!) {
+  createNote(input: $input) {
+    ...NoteFields
+  }
+}
+
+mutation UpdateNote($id: ID!, $input: NoteInput!) {
+  updateNote(id: $id, input: $input) {
+    ...NoteFields
+  }
+}
+
+mutation DeleteNote($id: ID!) {
+  deleteNote(id: $id)
+}
+
+query Agenda($from: Date!, $to: Date!) {
+  personalToday
+  agenda(from: $from, to: $to) {
+    kind
+    id
+    date
+    startTime
+    endTime
+    title
+    amountCents
+    done
+    link
+  }
+}
+
+query Event($id: ID!) {
+  event(id: $id) {
+    ...EventFields
+  }
+}
+
+mutation CreateEvent($input: EventInput!) {
+  createEvent(input: $input) {
+    ...EventFields
+  }
+}
+
+mutation UpdateEvent($id: ID!, $input: EventInput!) {
+  updateEvent(id: $id, input: $input) {
+    ...EventFields
+  }
+}
+
+mutation DeleteEvent($id: ID!) {
+  deleteEvent(id: $id)
+}
+
+query Goals($archived: Boolean) {
+  goals(archived: $archived) {
+    ...GoalFields
+    entries {
+      id
+      amount
+      note
+      createdAt
+    }
+    openTasks {
+      id
+      title
+      dueOn
+    }
+  }
+}
+
+mutation CreateGoal($input: GoalInput!) {
+  createGoal(input: $input) {
+    ...GoalFields
+  }
+}
+
+mutation UpdateGoal($id: ID!, $input: GoalInput!) {
+  updateGoal(id: $id, input: $input) {
+    ...GoalFields
+  }
+}
+
+mutation ArchiveGoal($id: ID!, $archived: Boolean!) {
+  archiveGoal(id: $id, archived: $archived) {
+    ...GoalFields
+  }
+}
+
+mutation DeleteGoal($id: ID!) {
+  deleteGoal(id: $id)
+}
+
+mutation AddGoalProgress($goalId: ID!, $amount: Cents!, $note: String) {
+  addGoalProgress(goalId: $goalId, amount: $amount, note: $note) {
+    ...GoalFields
+  }
+}
+
+mutation DeleteGoalProgress($id: ID!) {
+  deleteGoalProgress(id: $id) {
+    ...GoalFields
+  }
+}
+
+mutation SetTimeZone($timezone: String!) {
+  setTimeZone(timezone: $timezone)
+}
+
+query HomeToday($today: Date!) {
+  tasks {
+    ...TaskFields
+  }
+  agenda(from: $today, to: $today) {
+    kind
+    id
+    date
+    startTime
+    title
+    done
+    link
+  }
+}
+
+query HomeAgenda($from: Date!, $to: Date!) {
+  agenda(from: $from, to: $to) {
+    kind
+    id
+    date
+    startTime
+    title
+    amountCents
+    done
+    link
+  }
+}

@@ -6,11 +6,15 @@ import { badInput, requireViewer } from './guards';
 
 /** Every card the Página inicial knows; a saved key that is no longer here is left out. */
 const CARD_KEYS = {
+  AGENDA: true,
   CHATS: true,
   DUES: true,
+  GOALS: true,
   MARKET: true,
   MONTH: true,
+  NOTES: true,
   OVERVIEW: true,
+  TODAY: true,
 } satisfies Record<HomeCardKey, true>;
 
 const isCardKey = (key: string): key is HomeCardKey => Object.hasOwn(CARD_KEYS, key);

@@ -20,6 +20,7 @@
     "@tiptap/react": "3.31.0",
     "@tiptap/starter-kit": "3.31.0",
     "@zapbots/finance": "workspace:*",
+    "@zapbots/personal": "workspace:*",
     "@zapbots/graphql": "workspace:*",
     "@zapbots/ui": "workspace:*",
     "better-auth": "1.7.6",

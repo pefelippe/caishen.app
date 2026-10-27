@@ -360,6 +360,10 @@ enum HomeCardKey {
   MONTH
   DUES
   CHATS
+  TODAY
+  AGENDA
+  GOALS
+  NOTES
 }
 
 type HomeCardSetting {
@@ -1314,4 +1318,221 @@ type CompanyRegistry {
   city: String
   simples: RegimeOption
   mei: RegimeOption
+}
+
+# Pessoal: Tarefas, Notas, Agenda and Metas. Days and times are the User's wall clock
+# (`timezone`): a Date is a plain day, a time is "HH:MM".
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum RepeatEvery {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+"Every `interval` days, weeks, months or years; weekly on `weekdays` (0 Sunday to 6) if given."
+type Repeat {
+  every: RepeatEvery!
+  interval: Int!
+  weekdays: [Int!]
+}
+
+input RepeatInput {
+  every: RepeatEvery!
+  interval: Int!
+  weekdays: [Int!]
+}
+
+"Lista: a named group of Tarefas."
+type TaskList {
+  id: ID!
+  name: String!
+  color: String
+  "Its Tarefas not done yet."
+  openCount: Int!
+}
+
+"Tarefa: something to do, maybe by a day and hour; a repeating one moves on once done."
+type Task {
+  id: ID!
+  title: String!
+  notes: String!
+  dueOn: Date
+  dueTime: String
+  priority: TaskPriority!
+  repeat: Repeat
+  doneAt: DateTime
+  listId: ID
+  goalId: ID
+  createdAt: DateTime!
+}
+
+input TaskInput {
+  title: String!
+  notes: String
+  dueOn: Date
+  dueTime: String
+  priority: TaskPriority
+  repeat: RepeatInput
+  listId: ID
+  goalId: ID
+}
+
+"Nota: free text in Markdown."
+type Note {
+  id: ID!
+  title: String!
+  body: String!
+  pinned: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"Only the fields given change."
+input NoteInput {
+  title: String
+  body: String
+  pinned: Boolean
+}
+
+"Evento: all day (no `startTime`) or at an hour, maybe over days (`endsOn`), maybe repeating."
+type Event {
+  id: ID!
+  title: String!
+  startsOn: Date!
+  startTime: String
+  endsOn: Date
+  endTime: String
+  location: String!
+  notes: String!
+  repeat: Repeat
+}
+
+input EventInput {
+  title: String!
+  startsOn: Date!
+  startTime: String
+  endsOn: Date
+  endTime: String
+  location: String
+  notes: String
+  repeat: RepeatInput
+}
+
+enum AgendaKind {
+  EVENT
+  TASK
+  "A bill from Finanças: Parcela, Fatura or Gasto recorrente."
+  DUE
+}
+
+"One line of the Agenda on one day."
+type AgendaItem {
+  kind: AgendaKind!
+  "The Evento's or Tarefa's id; for a bill, a key of its own."
+  id: ID!
+  date: Date!
+  startTime: String
+  endTime: String
+  title: String!
+  amountCents: Cents
+  "For a Tarefa, whether it is done."
+  done: Boolean
+  "The path it opens."
+  link: String!
+}
+
+enum GoalArea {
+  PERSONAL
+  FINANCE
+  FITNESS
+}
+
+"MONEY counts cents, COUNT counts units (livros, km), CHECK is done once."
+enum GoalKind {
+  MONEY
+  COUNT
+  CHECK
+}
+
+"Meta: where the User wants to get. `target` and `progress` are cents for MONEY, units otherwise."
+type Goal {
+  id: ID!
+  title: String!
+  area: GoalArea!
+  kind: GoalKind!
+  target: Cents!
+  unit: String
+  dueOn: Date
+  archivedAt: DateTime
+  progress: Cents!
+  "Newest first."
+  entries: [GoalProgress!]!
+  "Its Tarefas not done yet."
+  openTasks: [Task!]!
+}
+
+type GoalProgress {
+  id: ID!
+  amount: Cents!
+  note: String!
+  createdAt: DateTime!
+}
+
+input GoalInput {
+  title: String!
+  area: GoalArea
+  kind: GoalKind!
+  target: Cents
+  unit: String
+  dueOn: Date
+}
+
+extend type Query {
+  "Today on the Viewer's clock (their `timezone`)."
+  personalToday: Date!
+  "Open Tarefas with a day first, soonest first; `done` gives the last 100 done instead."
+  tasks(listId: ID, done: Boolean): [Task!]!
+  taskLists: [TaskList!]!
+  "Pinned first, then the last changed; `search` looks in titles and text."
+  notes(search: String, pinned: Boolean): [Note!]!
+  note(id: ID!): Note
+  event(id: ID!): Event
+  "Eventos, Tarefas due and bills from `from` to `to`, at most three months."
+  agenda(from: Date!, to: Date!): [AgendaItem!]!
+  goals(archived: Boolean): [Goal!]!
+}
+
+extend type Mutation {
+  createTask(input: TaskInput!): Task!
+  updateTask(id: ID!, input: TaskInput!): Task!
+  "Done or open again; a repeating Tarefa done gives way to the next one."
+  setTaskDone(id: ID!, done: Boolean!): Task!
+  deleteTask(id: ID!): Boolean!
+  createTaskList(name: String!): TaskList!
+  renameTaskList(id: ID!, name: String!): TaskList!
+  "Its Tarefas stay, without a List."
+  deleteTaskList(id: ID!): Boolean!
+  createNote(input: NoteInput!): Note!
+  updateNote(id: ID!, input: NoteInput!): Note!
+  deleteNote(id: ID!): Boolean!
+  createEvent(input: EventInput!): Event!
+  "For a repeating Evento, the whole series."
+  updateEvent(id: ID!, input: EventInput!): Event!
+  deleteEvent(id: ID!): Boolean!
+  createGoal(input: GoalInput!): Goal!
+  updateGoal(id: ID!, input: GoalInput!): Goal!
+  archiveGoal(id: ID!, archived: Boolean!): Goal!
+  deleteGoal(id: ID!): Boolean!
+  "One step towards a Meta in its unit; negative takes back."
+  addGoalProgress(goalId: ID!, amount: Cents!, note: String): Goal!
+  deleteGoalProgress(id: ID!): Goal!
+  "The Viewer's time zone, an IANA name such as America/Manaus."
+  setTimeZone(timezone: String!): String!
 }

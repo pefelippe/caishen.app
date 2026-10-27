@@ -44,6 +44,10 @@ const IntegrationsPage = page(() => import('./pages/IntegrationsPage'), 'Integra
 const SettingsPage = page(() => import('./pages/SettingsPage'), 'SettingsPage');
 const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage');
 const PlanPage = page(() => import('./pages/PlanPage'), 'PlanPage');
+const TasksPage = page(() => import('./pages/personal/TasksPage'), 'TasksPage');
+const NotesPage = page(() => import('./pages/personal/NotesPage'), 'NotesPage');
+const CalendarPage = page(() => import('./pages/personal/CalendarPage'), 'CalendarPage');
+const GoalsPage = page(() => import('./pages/personal/GoalsPage'), 'GoalsPage');
 
 /** Financeiro was split: Salário went to Entradas, the rest (Obrigações too) to Gastos. */
 function LegacyFinances() {
@@ -230,6 +234,39 @@ export function App() {
           <Route element={<CreditOperationPage />} path="operations/:id" />
           <Route element={<Navigate replace to="/" />} path="jobs/*" />
         </Route>
+        <Route
+          element={
+            <Scrolling>
+              <CalendarPage />
+            </Scrolling>
+          }
+          path="personal/calendar"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <TasksPage />
+            </Scrolling>
+          }
+          path="personal/tasks"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <NotesPage />
+            </Scrolling>
+          }
+          path="personal/notes"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <GoalsPage />
+            </Scrolling>
+          }
+          path="personal/goals"
+        />
+        <Route element={<Navigate replace to="/personal/tasks" />} path="personal" />
         <Route element={<IntegrationsPage />} path="integrations" />
         <Route element={<Navigate replace to="/integrations#ai" />} path="integrations/models" />
         <Route element={<LegacyIntegration />} path="integrations/:group" />

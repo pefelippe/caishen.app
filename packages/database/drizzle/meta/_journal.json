@@ -260,6 +260,13 @@
       "when": 1793113168216,
       "tag": "0036_lame_groot",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793114175148,
+      "tag": "0037_lethal_vivisector",
+      "breakpoints": true
     }
   ]
 }

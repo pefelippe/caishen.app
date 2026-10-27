@@ -151,9 +151,16 @@ export async function declaredObligations(holderId: string, asOf = today()) {
 }
 
 /** Installments and Statements due from `asOf` through the next 30 days, soonest first. */
-export async function upcomingDues(holderId: string, asOf = today()) {
-  const until = addDays(asOf, 30);
-  const inWindow = (dueDate: string) => dueDate >= asOf && dueDate <= until;
+export function upcomingDues(holderId: string, asOf = today()) {
+  return duesBetween(holderId, asOf, addDays(asOf, 30));
+}
+
+/**
+ * Installments, Statements and Gastos recorrentes due from `from` to `to`, both included, soonest
+ * first; one on a Cartão comes as a reminder, its Fatura counts it.
+ */
+export async function duesBetween(holderId: string, from: string, to: string) {
+  const inWindow = (dueDate: string) => dueDate >= from && dueDate <= to;
   const dues: { amountCents: number; dueDate: string; label: string }[] = [];
 
   const operations = await db
@@ -189,16 +196,17 @@ export async function upcomingDues(holderId: string, asOf = today()) {
     }
   }
 
-  // Gastos recorrentes, this month's and next month's charges; one on a Cartão as a reminder.
+  // Gastos recorrentes, each month the window touches; one on a Cartão as a reminder.
+  const months: string[] = [];
+  for (let month = `${from.slice(0, 7)}-01`; month <= to; month = addMonths(month, 1)) {
+    months.push(month.slice(0, 7));
+  }
   const recurring = await db
     .select()
     .from(schema.recurringExpense)
     .where(eq(schema.recurringExpense.holderId, holderId));
   for (const item of recurring) {
-    for (const yearMonth of [
-      asOf.slice(0, 7),
-      addMonths(`${asOf.slice(0, 7)}-01`, 1).slice(0, 7),
-    ]) {
+    for (const yearMonth of months) {
       const dueDate = recurringDueInMonth(item, yearMonth);
       if (dueDate && inWindow(dueDate)) {
         dues.push({

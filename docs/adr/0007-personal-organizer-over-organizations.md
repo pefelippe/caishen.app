@@ -7,3 +7,5 @@ A alternativa era migrar tudo para pertencer direto ao Usuário. Descartamos por
 **Atualização (outubro de 2026):** a Organização passou a aparecer nas Configurações (nome, Usuários, Plano), porque o Plano e a Assinatura pertencem a ela (ADR 0011). Fora das Configurações ela continua invisível, e convidar Membros segue fora do escopo.
 
 **Atualização (outubro de 2026, 2):** as Configurações deixaram de existir. A Organização ganhou página própria no menu (nome e Usuários), e o Plano também. Convidar Membros continua fora do escopo: a página só mostra quem já está na Organização.
+
+**Atualização (outubro de 2026, 3):** Pessoal (Tarefas, Notas, Agenda e Metas) chegou assim: cada linha tem `organization_id`, filtrado por `owned()` como em Finanças, e um `created_by_id` que só diz quem escreveu. Dias e horas são os do relógio do Usuário (`user.timezone`, escolhido em Perfil): a data é um dia simples e a hora um "HH:MM", sem fuso guardado. Só a arrumação da Página inicial (`home_layout`) é de cada Usuário.

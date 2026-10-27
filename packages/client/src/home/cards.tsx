@@ -23,6 +23,8 @@ import { Overview } from '../components/Overview';
 import { formatCents, formatDate, formatPercent } from '../lib/format';
 import { useI18n, type Language, type StringKey } from '../lib/i18n';
 import type { CardSetting } from './layout';
+import { Empty, Lines, Panel } from './panel';
+import { AgendaCard, GoalsCard, NotesCard, TodayCard } from './personalCards';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -50,49 +52,6 @@ export const SIZE_CLASS: Record<CardSize, string> = {
   third: 'lg:col-span-1',
   twoThirds: 'lg:col-span-2',
 };
-
-/** One card of the Dashboard: a title, a link to its screen, and what it shows. */
-function Panel({
-  children,
-  link,
-  title,
-}: {
-  children: ReactNode;
-  link?: { label: string; to: string };
-  title: string;
-}) {
-  return (
-    <Card className="h-full gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold">{title}</h2>
-        {link && (
-          <Link
-            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-            to={link.to}
-          >
-            {link.label}
-            <ArrowRightIcon className="size-3.5" />
-          </Link>
-        )}
-      </div>
-      {children}
-    </Card>
-  );
-}
-
-function Empty({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
-}
-
-function Lines({ count }: { count: number }) {
-  return (
-    <div className="flex flex-col gap-2">
-      {Array.from({ length: count }, (_, index) => (
-        <Skeleton className="h-5" key={index} />
-      ))}
-    </div>
-  );
-}
 
 type Market = HomeMarketQuery['indicators'];
 
@@ -312,6 +271,10 @@ function ChatsCard() {
  * in `DEFAULT_LAYOUT`; Users who arranged their page get it in its default place.
  */
 export const HOME_CARDS: Record<HomeCardKey, HomeCard> = {
+  AGENDA: { Component: AgendaCard, area: 'personal', size: 'third', title: 'home.card.agenda' },
+  GOALS: { Component: GoalsCard, area: 'personal', size: 'twoThirds', title: 'nav.goals' },
+  NOTES: { Component: NotesCard, area: 'personal', size: 'third', title: 'home.card.notes' },
+  TODAY: { Component: TodayCard, area: 'personal', size: 'twoThirds', title: 'home.card.today' },
   CHATS: { Component: ChatsCard, area: 'general', size: 'third', title: 'home.chats' },
   DUES: { Component: DuesCard, area: 'finance', size: 'twoThirds', title: 'home.dues' },
   MARKET: { Component: MarketCard, area: 'finance', size: 'full', title: 'home.card.market' },
@@ -327,8 +290,12 @@ export const HOME_CARDS: Record<HomeCardKey, HomeCard> = {
 /** The Página inicial of a User who never arranged it. */
 export const DEFAULT_LAYOUT: CardSetting<HomeCardKey>[] = [
   { hidden: false, key: 'MARKET' },
+  { hidden: false, key: 'TODAY' },
+  { hidden: false, key: 'AGENDA' },
   { hidden: false, key: 'OVERVIEW' },
   { hidden: false, key: 'MONTH' },
   { hidden: false, key: 'DUES' },
   { hidden: false, key: 'CHATS' },
+  { hidden: false, key: 'GOALS' },
+  { hidden: false, key: 'NOTES' },
 ];

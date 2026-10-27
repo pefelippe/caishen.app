@@ -304,8 +304,8 @@ const PRIVACY: Clause[] = [
       <ul>
         <li>
           <strong>Conta:</strong> nome, e-mail, senha (guardada só como hash), foto (o endereço que
-          você informar ou a do Google), idioma, e o segredo e os códigos da verificação em duas
-          etapas, se você ligar.
+          você informar ou a do Google), idioma, fuso horário, e o segredo e os códigos da
+          verificação em duas etapas, se você ligar.
         </li>
         <li>
           <strong>Login com o Google:</strong> nome, e-mail e foto do seu perfil Google.
@@ -315,6 +315,10 @@ const PRIVACY: Clause[] = [
           financiamentos, cartões, faturas, impostos, orçamentos e categorias. De arquivos
           importados (.csv, .xlsx, .ofx, .pdf) guardamos as linhas lidas e o nome do arquivo, não o
           arquivo.
+        </li>
+        <li>
+          <strong>Pessoal:</strong> o que você anota: tarefas e listas, notas, eventos da agenda,
+          metas e o progresso delas, e como você arrumou os cards da página inicial.
         </li>
         <li>
           <strong>Conversas com o agente:</strong> as mensagens e respostas. Anexos (imagens, PDFs,

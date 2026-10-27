@@ -12,6 +12,11 @@ export const authClient = createAuthClient({
     // The sign-in page reads `twoFactorRedirect` itself and asks for the code in place.
     twoFactorClient(),
     // Mirrors `user.additionalFields` in packages/auth.
-    inferAdditionalFields({ user: { language: { required: false, type: 'string' } } }),
+    inferAdditionalFields({
+      user: {
+        language: { required: false, type: 'string' },
+        timezone: { required: false, type: 'string' },
+      },
+    }),
   ],
 });

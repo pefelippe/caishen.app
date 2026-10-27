@@ -13,6 +13,7 @@ import { Input } from '@zapbots/ui/components/input';
 import { DeleteAccountCard } from '../components/DeleteAccountCard';
 import { FormError } from '../components/FormError';
 import { initials, UserAvatar } from '../components/ProfileMenu';
+import { TimeZoneCard } from '../components/TimeZoneCard';
 import { TwoFactorCard } from '../components/TwoFactorCard';
 import { authClient } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
@@ -20,7 +21,7 @@ import { ROLES } from './OrganizationPage';
 
 /**
  * Perfil: the User's photo, name and e-mail beside the form that changes the name and the photo's
- * URL (the e-mail comes from the sign-in), the two-step verification (`TwoFactorCard`), and the
+ * URL (the e-mail comes from the sign-in), the time zone (`TimeZoneCard`), the two-step verification (`TwoFactorCard`), and the
  * Organization they belong to, with their role, and deleting the account (`DeleteAccountCard`).
  */
 export function ProfilePage() {
@@ -104,6 +105,7 @@ export function ProfilePage() {
           </form>
         </Card>
       </div>
+      <TimeZoneCard timezone={user.timezone ?? 'America/Sao_Paulo'} />
       <TwoFactorCard />
       {org && (
         <Card>

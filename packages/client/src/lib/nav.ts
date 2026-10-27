@@ -61,7 +61,7 @@ export interface Nav {
 /**
  * Every screen of the app as the menu on the left lists them: the main ones on top (Página inicial,
  * Agente, Documentos, Workflows, Integrações), then Finanças, Pessoal and
- * Fitness (the last two only "Em breve" for now). The account's (Perfil, Plano,
+ * Fitness (only "Em breve" for now). The account's (Perfil, Plano,
  * Configurações) are in the avatar's menu instead.
  */
 export function useNav(): Nav {
@@ -84,17 +84,17 @@ export function useNav(): Nav {
         key: 'finances',
         label: t('nav.finances'),
       },
-      // Pessoal and Fitness are still to come: their entries show "Em breve" and lead nowhere.
       {
         items: [
-          { icon: CalendarIcon, label: t('nav.calendar'), soon: true, to: '/personal/calendar' },
-          { icon: ListTodoIcon, label: t('nav.tasks'), soon: true, to: '/personal/tasks' },
-          { icon: NotebookPenIcon, label: t('nav.notes'), soon: true, to: '/personal/notes' },
-          { icon: TargetIcon, label: t('nav.goals'), soon: true, to: '/personal/goals' },
+          { icon: CalendarIcon, label: t('nav.calendar'), to: '/personal/calendar' },
+          { icon: ListTodoIcon, label: t('nav.tasks'), to: '/personal/tasks' },
+          { icon: NotebookPenIcon, label: t('nav.notes'), to: '/personal/notes' },
+          { icon: TargetIcon, label: t('nav.goals'), to: '/personal/goals' },
         ],
         key: 'personal',
         label: t('nav.personal'),
       },
+      // Fitness is still to come: its entries show "Em breve" and lead nowhere.
       {
         items: [
           { icon: DumbbellIcon, label: t('nav.workouts'), soon: true, to: '/fitness/workouts' },

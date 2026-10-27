@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
+import { PERSONAL_STRINGS } from './i18n-personal';
+
 export type Language = 'en' | 'pt';
 
 export const isLanguage = (value: unknown): value is Language => value === 'en' || value === 'pt';
@@ -476,6 +478,7 @@ const STRINGS = {
   'models.none': { en: 'No Model available', pt: 'Nenhum Modelo disponível' },
   'toast.close': { en: 'Close', pt: 'Fechar' },
   'models.perBot': { en: 'Model of each Bot', pt: 'Modelo de cada Bot' },
+  ...PERSONAL_STRINGS,
 } satisfies Record<string, Record<Language, string>>;
 
 export type StringKey = keyof typeof STRINGS;

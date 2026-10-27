@@ -28,3 +28,11 @@ export type RoutineRow = typeof schema.routine.$inferSelect;
 export type SubscriptionRow = typeof schema.subscription.$inferSelect;
 export type UsageCodeRow = typeof schema.usageCode.$inferSelect;
 export type WhatsappLinkRow = typeof schema.whatsappLink.$inferSelect;
+export type TaskRow = typeof schema.task.$inferSelect;
+export type TaskListRow = typeof schema.taskList.$inferSelect;
+export type NoteRow = typeof schema.note.$inferSelect;
+export type EventRow = typeof schema.event.$inferSelect;
+export type GoalRow = typeof schema.goal.$inferSelect;
+export type GoalProgressRow = typeof schema.goalProgress.$inferSelect;
+/** A Meta with how far it got: the sum of its Progresso. */
+export type GoalWithProgressRow = GoalRow & { progress: number };
