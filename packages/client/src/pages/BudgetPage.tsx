@@ -317,7 +317,7 @@ export function BudgetPage() {
                 <span className="text-sm text-muted-foreground">{figure.label}</span>
                 <strong
                   className={cn(
-                    'text-3xl font-semibold tracking-tight tabular-nums',
+                    'font-display text-4xl font-light tracking-[-0.022em] tabular-nums',
                     figure.signed && (figure.value < 0 ? 'text-destructive' : 'text-success')
                   )}
                 >

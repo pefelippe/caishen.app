@@ -87,7 +87,7 @@ export function MeasuresCard() {
         <Empty>{t('home.measures.empty')}</Empty>
       ) : (
         <div className="flex flex-col gap-1">
-          <p className="text-3xl font-semibold tabular-nums">
+          <p className="font-display text-4xl font-light tracking-[-0.022em] tabular-nums">
             {formatMeasure('WEIGHT', trend.latest.value, locale)}
           </p>
           <p className="text-sm text-muted-foreground capitalize">

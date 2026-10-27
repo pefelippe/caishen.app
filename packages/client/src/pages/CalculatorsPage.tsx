@@ -237,7 +237,7 @@ function FinancingCalculator() {
                 <dl className="grid gap-3 text-sm">
                   <div>
                     <dt className="text-muted-foreground">Primeira parcela</dt>
-                    <dd className="text-2xl font-semibold tabular-nums">
+                    <dd className="font-display text-3xl font-light tracking-[-0.022em] tabular-nums">
                       {formatCents(result.first)}
                     </dd>
                   </div>

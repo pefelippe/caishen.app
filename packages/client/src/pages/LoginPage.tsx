@@ -548,7 +548,6 @@ function AuthCard({
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative flex min-h-svh flex-col overflow-hidden bg-[var(--paper)]">
-        <Backdrop />
         <motion.header
           animate={{ opacity: 1, y: 0 }}
           className="relative mx-auto flex w-full max-w-6xl items-center px-4 py-5 sm:px-6"
@@ -635,24 +634,6 @@ function SentMark() {
     >
       <MailCheck className="size-7" />
     </motion.span>
-  );
-}
-
-/** Two warm lights drifting slowly behind the card. */
-function Backdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0">
-      <motion.div
-        animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
-        className="absolute -top-40 -left-40 size-[520px] rounded-full bg-[radial-gradient(closest-side,#f3dcae,transparent)] opacity-70 blur-3xl"
-        transition={{ duration: 14, ease: 'easeInOut', repeat: Infinity }}
-      />
-      <motion.div
-        animate={{ x: [0, -30, 0], y: [0, -40, 0] }}
-        className="absolute -right-40 -bottom-40 size-[560px] rounded-full bg-[radial-gradient(closest-side,#e9e1d4,transparent)] opacity-80 blur-3xl"
-        transition={{ duration: 16, ease: 'easeInOut', repeat: Infinity }}
-      />
-    </div>
   );
 }
 

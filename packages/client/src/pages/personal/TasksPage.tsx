@@ -496,7 +496,7 @@ export function TasksPage() {
                 <section className="flex flex-col gap-1" key={group.key}>
                   <h2
                     className={cn(
-                      'px-2 text-xs font-medium text-muted-foreground uppercase',
+                      'px-2 text-sm font-medium text-muted-foreground first-letter:uppercase',
                       group.key === 'overdue' && 'text-destructive'
                     )}
                   >

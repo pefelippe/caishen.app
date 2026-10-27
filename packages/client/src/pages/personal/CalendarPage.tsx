@@ -454,7 +454,7 @@ export function CalendarPage() {
           ) : (
             [...byDay].map(([date, dayItems]) => (
               <section className="flex flex-col gap-1" key={date}>
-                <h2 className="px-2 text-xs font-medium text-muted-foreground uppercase">
+                <h2 className="px-2 text-sm font-medium text-muted-foreground first-letter:uppercase">
                   {dayLabel(date, today)}
                 </h2>
                 <ul className="flex flex-col">

@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '@fontsource-variable/inter';
+@import '@fontsource/stack-sans-text/400.css';
+@import '@fontsource/stack-sans-text/500.css';
+@import '@fontsource/stack-sans-text/600.css';
+@import '@fontsource/stack-sans-headline/300.css';
+@import '@fontsource/stack-sans-headline/400.css';
 
 /* The classes used in this package, wherever the app that imports it lives. */
 @source '..';
@@ -9,120 +13,123 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * After Mercado Pago's: the screen and the header on a cool grey canvas, the menu and the cards white
- * and raised from it by a soft border and shadow, navy text and one bright blue for what acts. Each
- * area keeps a colour of its own (`--area-*`). The dark theme puts it all on near black. The navy
- * tokens still paint the landing page and the sign-in.
+ * After the name: Caishen (財神) is the god of wealth, so the app is paper and ink with the red of a
+ * seal (朱, cinnabar) as its mark. Surfaces part by tone, not by shadow: the screen and the menu on a
+ * paper grey, cards white on it, nested panels one step down. Ink is what acts (buttons); the
+ * seal marks the brand, the open menu entry and focus. The areas take the old pigments: cinnabar for
+ * Finanças, ink blue for Pessoal, jade for Fitness, the gold of the ingot for the rest.
  */
 :root {
   --radius: 0.5rem;
-  /* The two navies of the frame and the blue that acts. */
-  --navy: #0f172a;
-  --navy-soft: #1e293b;
-  --blue: #2563eb;
+  --ink-black: #141413;
+  --ink-soft: #2a2a27;
+  --seal: #c0262d;
 
-  /* The open screen: a cool grey canvas, with white cards raised from it. */
-  --background: #f3f5f9;
-  --foreground: var(--navy);
+  --background: #f2f2f0;
+  --foreground: var(--ink-black);
   --card: #ffffff;
-  --card-foreground: var(--navy);
+  --card-foreground: var(--ink-black);
   --popover: #ffffff;
-  --popover-foreground: var(--navy);
-  --primary: var(--blue);
-  --primary-foreground: #ffffff;
-  --secondary: #eef2f7;
-  --secondary-foreground: var(--navy);
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #e8f0fe;
-  --accent-foreground: #1e40af;
-  --destructive: oklch(0.55 0.2 27);
-  --success: oklch(0.52 0.13 155);
-  --warning: oklch(0.6 0.14 65);
-  --border: #dfe4ec;
-  /* What lifts a white card off the canvas; none in the dark. */
-  --card-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 2px 8px -2px rgb(15 23 42 / 0.06);
-  --input: #cbd5e1;
-  --ring: var(--blue);
+  --popover-foreground: var(--ink-black);
+  --primary: var(--ink-black);
+  --primary-foreground: #fafaf8;
+  --secondary: #e8e8e4;
+  --secondary-foreground: var(--ink-black);
+  --muted: #f4f4f2;
+  --muted-foreground: #64645d;
+  --accent: #ebebe7;
+  --accent-foreground: var(--ink-black);
+  --destructive: oklch(0.52 0.19 25);
+  --success: oklch(0.5 0.11 155);
+  --warning: oklch(0.6 0.13 70);
+  --border: #e2e2dd;
+  /* Nothing at rest casts a shadow; only what opens over the page (menus, dialogs) does. */
+  --card-shadow: none;
+  --input: #d3d3cd;
+  --ring: var(--seal);
 
-  /* The menu on the left: white, a border on its right, the open entry in blue. */
-  --sidebar: #ffffff;
-  --sidebar-foreground: var(--navy-soft);
-  --sidebar-primary: var(--blue);
+  /* The menu on the left sits on the same paper as the screen; the open entry takes the seal. */
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--ink-soft);
+  --sidebar-primary: var(--seal);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: var(--navy);
-  --sidebar-border: #dfe4ec;
-  --sidebar-ring: var(--blue);
+  --sidebar-accent: #e6e6e1;
+  --sidebar-accent-foreground: var(--ink-black);
+  --sidebar-border: transparent;
+  --sidebar-ring: var(--seal);
 
-  /* The bar across the top. `--header-gradient` paints the bar and the send buttons. */
-  --header: var(--navy);
-  --header-foreground: #f1f5f9;
-  --header-muted: var(--navy-soft);
-  --header-gradient: linear-gradient(var(--navy), var(--navy));
-  /* The highlight on navy: the open chat button, the active Bot. */
-  --gold: #60a5fa;
+  /* The dark bar of the sign-in and the send buttons: plain ink. */
+  --header: var(--ink-black);
+  --header-foreground: #f3f3f0;
+  --header-muted: var(--ink-soft);
+  /* The highlight on ink: the gold of the ingot. */
+  --gold: #d9a63e;
 
   /* Kept for the places that still paint with them: the landing page and the sign-in. */
-  --paper: #f8fafc;
-  --ink-black: var(--navy);
-  --rail: var(--navy);
-  --frame: #e2e8f0;
-  --rail-foreground: #cbd5e1;
+  --navy: var(--ink-black);
+  --navy-soft: var(--ink-soft);
+  --blue: var(--seal);
+  --paper: #fafaf8;
+  --rail: var(--ink-black);
+  --frame: #e2e2dd;
+  --rail-foreground: #d3d3cd;
 
   /* One ink per Bot, and a neutral one outside them. */
-  --ink-neutral: var(--navy);
-  --bot-finance: var(--blue);
+  --ink-neutral: var(--ink-black);
+  --bot-finance: var(--seal);
 
   /* One colour per area of the app, for its icons, dots and bars. */
-  --area-finance: var(--blue);
-  --area-personal: #7c3aed;
-  --area-fitness: #059669;
-  --area-general: #0891b2;
+  --area-finance: var(--seal);
+  --area-personal: #2e5b84;
+  --area-fitness: #3d7a50;
+  --area-general: #9a7419;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --card: #141416;
-  --card-foreground: #fafafa;
-  --popover: #141416;
-  --popover-foreground: #fafafa;
-  --primary: #3b82f6;
-  --secondary: #1c1c1f;
-  --secondary-foreground: #fafafa;
-  --muted: #1c1c1f;
-  --muted-foreground: #a1a1aa;
-  --accent: #172554;
-  --accent-foreground: #bfdbfe;
-  --destructive: oklch(0.65 0.2 25);
-  --success: oklch(0.68 0.14 155);
-  --warning: oklch(0.75 0.14 70);
-  --border: #27272a;
-  --card-shadow: none;
-  --input: #3f3f46;
-  --ring: #3b82f6;
+  --seal: #ef5a5e;
+  --background: #0c0c0b;
+  --foreground: #f3f3f0;
+  --card: #161615;
+  --card-foreground: #f3f3f0;
+  --popover: #1c1c1a;
+  --popover-foreground: #f3f3f0;
+  --primary: #f3f3f0;
+  --primary-foreground: #141413;
+  --secondary: #222220;
+  --secondary-foreground: #f3f3f0;
+  --muted: #20201e;
+  --muted-foreground: #a3a39b;
+  --accent: #292927;
+  --accent-foreground: #f3f3f0;
+  --destructive: oklch(0.65 0.19 25);
+  --success: oklch(0.7 0.12 155);
+  --warning: oklch(0.76 0.13 75);
+  --border: #2c2c29;
+  --input: #3a3a36;
+  --ring: var(--seal);
 
-  --sidebar: #111113;
-  --sidebar-foreground: #e4e4e7;
-  --sidebar-accent: #1f1f23;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #27272a;
+  --sidebar: var(--background);
+  --sidebar-foreground: #e4e4df;
+  --sidebar-primary: var(--seal);
+  --sidebar-accent: #21211f;
+  --sidebar-accent-foreground: #f3f3f0;
+  --sidebar-border: transparent;
+  --sidebar-ring: var(--seal);
 
-  --ink-neutral: #fafafa;
-  --bot-finance: #3b82f6;
-  --area-finance: #3b82f6;
-  --area-personal: #a78bfa;
-  --area-fitness: #34d399;
-  --area-general: #22d3ee;
+  --ink-neutral: #f3f3f0;
+  --bot-finance: var(--seal);
+  --area-finance: var(--seal);
+  --area-personal: #82a8cf;
+  --area-fitness: #78b98c;
+  --area-general: #d9ad52;
   color-scheme: dark;
 }
 
 @theme inline {
-  /* One face for everything; titles stand out by weight, figures by tabular digits. */
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  /* Stack Sans: its Text cut for everything, its light Headline cut for titles and big figures. */
+  --font-sans: 'Stack Sans Text', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Stack Sans Headline', 'Stack Sans Text', ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-sans);
-  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
@@ -170,6 +177,7 @@
   --color-frame: var(--frame);
   --color-navy: var(--navy);
   --color-navy-soft: var(--navy-soft);
+  --color-seal: var(--seal);
   /* The ink of the Bot on screen; set by `data-bot` on a wrapper. */
   --color-ink: var(--ink, var(--ink-neutral));
 }
@@ -182,7 +190,7 @@
     @apply bg-background font-sans text-sm text-foreground antialiased;
   }
   h1 {
-    @apply text-3xl leading-tight font-semibold tracking-tight;
+    @apply font-display text-3xl leading-tight font-light tracking-[-0.022em];
   }
   [data-bot='FINANCE'] {
     --ink: var(--bot-finance);
@@ -291,7 +299,7 @@
   inset: 0 auto 0 0;
   width: 40%;
   border-radius: 3px;
-  background: var(--header-gradient);
+  background: var(--header);
   animation: splash-bar 1.1s ease-in-out infinite;
 }
 @keyframes splash-bar {

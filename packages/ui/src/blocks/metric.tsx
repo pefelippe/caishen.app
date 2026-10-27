@@ -24,7 +24,9 @@ export function Metric({ label, note, noteClassName, value, valueClassName }: Pr
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <strong className={cn('text-lg font-medium tabular-nums', valueClassName)}>{value}</strong>
+      <strong className={cn('font-display text-2xl font-light tabular-nums', valueClassName)}>
+        {value}
+      </strong>
       {note && <span className={cn('text-sm text-muted-foreground', noteClassName)}>{note}</span>}
     </div>
   );

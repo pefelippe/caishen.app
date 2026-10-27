@@ -72,7 +72,7 @@ function CardList({ layout, onChange }: { layout: Layout; onChange: (cards: Layo
         return (
           <Fragment key={card.key}>
             {areaChanged && AREAS.includes(area) && (
-              <li className="pt-3 pb-1 text-xs font-medium text-muted-foreground uppercase first:pt-0">
+              <li className="pt-3 pb-1 text-sm font-medium text-muted-foreground first:pt-0">
                 {t(`home.area.${area}`)}
               </li>
             )}

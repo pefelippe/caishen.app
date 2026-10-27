@@ -147,7 +147,7 @@ export function SleepPage() {
             {averages.map(average => (
               <Card className="gap-1" key={average.label}>
                 <p className="text-sm text-muted-foreground">{average.label}</p>
-                <p className="text-3xl font-semibold tabular-nums">
+                <p className="font-display text-4xl font-light tracking-[-0.022em] tabular-nums">
                   {average.value === null ? '—' : hoursLabel(average.value)}
                 </p>
               </Card>

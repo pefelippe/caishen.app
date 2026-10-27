@@ -42,7 +42,7 @@ function Meter({
   return (
     <div className="flex flex-col gap-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-3xl font-semibold tracking-tight tabular-nums">
+      <span className="font-display text-4xl font-light tracking-[-0.022em] tabular-nums">
         {used}
         <span className="text-lg font-normal text-muted-foreground"> / {limit}</span>
       </span>
@@ -162,7 +162,7 @@ export function PlanSettings() {
           {usage && (
             <div className="flex flex-col gap-2">
               <span className="text-muted-foreground">{t('usage.conversations')}</span>
-              <span className="text-3xl font-semibold tracking-tight tabular-nums">
+              <span className="font-display text-4xl font-light tracking-[-0.022em] tabular-nums">
                 {usage.usage.conversations}
               </span>
             </div>

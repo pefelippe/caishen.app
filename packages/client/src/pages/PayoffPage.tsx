@@ -62,7 +62,7 @@ export function PayoffPage() {
             <div className="flex items-center gap-2 rounded-2xl bg-muted px-4">
               <span className="text-muted-foreground">R$</span>
               <Input
-                className="h-14 border-0 bg-transparent px-0 text-2xl font-semibold tabular-nums shadow-none focus-visible:ring-0 md:text-2xl"
+                className="h-14 border-0 bg-transparent px-0 font-display text-3xl font-light tracking-[-0.022em] tabular-nums shadow-none focus-visible:ring-0 md:text-2xl"
                 id="payoff-extra"
                 inputMode="decimal"
                 onChange={event => setTyped(event.target.value)}

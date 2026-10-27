@@ -336,11 +336,11 @@ function CategoryCard({
   return (
     <Card className="gap-0 p-0">
       <div className="flex flex-col gap-1 px-6 pt-6 pb-5">
-        <p className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+        <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Icon className="size-4 text-primary" />
           {title}
         </p>
-        <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+        <p className="mt-1 font-display text-4xl font-light tracking-[-0.022em] tabular-nums">
           {formatCents(total)}
         </p>
         <p className="text-sm text-muted-foreground">{note}</p>

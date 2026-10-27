@@ -41,11 +41,13 @@ function OverviewCard({
   return (
     <Card className={cn('gap-0 overflow-hidden p-0', className)}>
       <div className="flex flex-col gap-1 px-6 pt-6 pb-5">
-        <p className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+        <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Icon className="size-4 text-primary" />
           {title}
         </p>
-        <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{figure}</p>
+        <p className="mt-1 font-display text-4xl font-light tracking-[-0.022em] tabular-nums">
+          {figure}
+        </p>
       </div>
       <div className="flex-1 border-t">{children}</div>
     </Card>

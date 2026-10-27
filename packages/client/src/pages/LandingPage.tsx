@@ -1,101 +1,89 @@
-import '@fontsource/poppins/400.css';
-import '@fontsource/poppins/500.css';
-import '@fontsource/poppins/600.css';
-import '@fontsource/poppins/700.css';
-
-import { priceInstallment } from '@zapbots/finance';
 import {
-  ArrowRightIcon,
-  ArrowUpIcon,
-  BotIcon,
-  CalculatorIcon,
-  CheckIcon,
-  FileSpreadsheetIcon,
-  FileTextIcon,
-  FlagIcon,
-  LandmarkIcon,
-  MessageSquareIcon,
-  ReceiptIcon,
-  SheetIcon,
-  type LucideIcon,
-} from 'lucide-react';
-import {
-  AnimatePresence,
-  MotionConfig,
-  motion,
-  useReducedMotion,
-  type Variants,
-} from 'motion/react';
-import { useEffect, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+  addMonths,
+  avalanchePlan,
+  priceInstallment,
+  type IsoDate,
+  type PlanDebt,
+} from '@zapbots/finance';
+import { MotionConfig, motion, type Variants } from 'motion/react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { Logo } from '@zapbots/ui/blocks/logo';
 import { Button } from '@zapbots/ui/components/button';
+import { Input } from '@zapbots/ui/components/input';
 import { Slider } from '@zapbots/ui/components/slider';
+import { Switch } from '@zapbots/ui/components/switch';
 import { cn } from '@zapbots/ui/lib/utils';
 
 import { formatCents } from '../lib/format';
 import { COMPANY } from '../lib/legal';
 
+/*
+ * On this page, the carnê de parcelas (the Brazilian booklet of installment stubs) becomes the live
+ * control: set the loan and the page reads back the installment, the interest and the month the
+ * last stub falls. Around it, the name: Caishen, the god of wealth, in museum porcelain, and the
+ * red of a seal as the one accent.
+ */
+
 // ---------------------------------------------------------------- motion
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-/** A block that rises into place the first time it scrolls into view. */
+/** A part of a section that rises into place the first time it scrolls into view. */
 const rise: Variants = {
   hidden: { opacity: 0, y: 24 },
   shown: { opacity: 1, transition: { duration: 0.6, ease: EASE }, y: 0 },
 };
 
-/** A parent whose children rise one after another. */
+/** A section whose parts rise one after another. */
 const stagger: Variants = {
   hidden: {},
   shown: { transition: { staggerChildren: 0.08 } },
 };
 
-/** Props for a block that animates once, when it is a little inside the screen. */
 const onView = {
   initial: 'hidden',
-  viewport: { amount: 0.05, once: true },
+  viewport: { amount: 0.15, once: true },
   whileInView: 'shown',
 } as const;
 
 // ---------------------------------------------------------------- content
 
-const NAV = [
-  { href: '#como-funciona', label: 'Como funciona' },
-  { href: '#produtos', label: 'Produtos' },
-  { href: '#simulador', label: 'Simulador' },
-  { href: '#seguranca', label: 'Segurança' },
-];
-
 const SIGN_UP = '/sign-in?step=sign-up';
 
-/**
- * The Caishen's profiles elsewhere. Empty until the accounts exist; the footer shows the list only
- * when there is something in it.
- */
-const SOCIAL: { href: string; label: string }[] = [];
+const today = (): IsoDate => new Date().toISOString().slice(0, 10);
 
-/** The page for visitors who are not signed in, after Pluggy's. "Entrar" leads to /sign-in. */
+const MONTH = new Intl.DateTimeFormat('pt-BR', {
+  month: 'short',
+  timeZone: 'UTC',
+  year: 'numeric',
+});
+/** "ago. de 2027" → "ago. 2027". */
+const monthLabel = (date: IsoDate) =>
+  MONTH.format(new Date(`${date}T12:00:00Z`)).replace(' de ', ' ');
+
+const percent = (value: number) =>
+  `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%`;
+
+/** The page for visitors who are not signed in. "Entrar" leads to /sign-in. */
 export function LandingPage() {
   return (
     <MotionConfig reducedMotion="user">
-      <div className="landing min-h-svh overflow-x-clip bg-white text-navy">
+      <div className="landing min-h-svh overflow-x-clip bg-(--l-bg) text-(--l-ink)">
         <a
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-(--l-ink) focus:px-4 focus:py-2 focus:text-white"
           href="#conteudo"
         >
           Pular para o conteúdo
         </a>
-        <Header />
         <main id="conteudo">
           <Hero />
           <HowItWorks />
-          <Products />
-          <Simulator />
-          <Safety />
-          <FinalCta />
+          <Showcase />
+          <Reads />
+          <Letter />
+          <Start />
         </main>
         <Footer />
       </div>
@@ -103,858 +91,160 @@ export function LandingPage() {
   );
 }
 
-function Brand({ light }: { light?: boolean }) {
-  return (
-    <Link className="flex items-center gap-2" to="/">
-      <span className={cn('text-primary', light && 'text-white')}>
-        <Logo size={26} />
-      </span>
-      <span className="text-xl font-semibold tracking-tight">caishen</span>
-    </Link>
-  );
-}
-
-/** A pill, as every button on this page is. */
-const PILL = 'h-11 rounded-full px-6 text-[15px] font-medium';
-
-/** The white bar: the wordmark, the sections, Entrar and the way in. */
-function Header() {
-  return (
-    <header className="sticky top-0 z-40 bg-white/95 px-[max(1rem,env(safe-area-inset-left))] pt-[env(safe-area-inset-top)] sm:px-6">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-8">
-        <Brand />
-        <nav aria-label="Seções" className="hidden items-center gap-7 lg:flex">
-          {NAV.map(link => (
-            <a
-              className="text-sm text-navy/70 transition-colors hover:text-navy"
-              href={link.href}
-              key={link.href}
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <Button asChild className="rounded-full text-sm text-navy" variant="ghost">
-            <Link to="/sign-in">Entrar</Link>
-          </Button>
-          <Button asChild className="group h-10 rounded-full px-4 text-sm sm:px-5">
-            <Link to={SIGN_UP}>
-              <span className="sm:hidden">Criar conta</span>
-              <span className="hidden sm:inline">Começar grátis</span>
-              <ArrowRightIcon className="hidden transition-transform group-hover:translate-x-0.5 sm:block" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 // ---------------------------------------------------------------- hero
 
-/** What the headline ends with, typed and erased in turn. */
-const SOURCES_TYPED = ['banco', 'planilha', 'extrato', 'cartão', 'fatura'];
-
-/** The last word of the headline, typed letter by letter, held, erased, and the next one typed. */
-function TypedWord() {
-  const reduced = useReducedMotion();
-  const [index, setIndex] = useState(0);
-  const [length, setLength] = useState(SOURCES_TYPED[0]!.length);
-  const [erasing, setErasing] = useState(false);
-  const word = SOURCES_TYPED[index]!;
-
-  useEffect(() => {
-    if (reduced) return;
-    const full = length === word.length;
-    const delay = erasing ? 55 : full ? 1800 : 95;
-    const timer = setTimeout(() => {
-      if (!erasing && full) setErasing(true);
-      else if (erasing && length === 0) {
-        setErasing(false);
-        setIndex(current => (current + 1) % SOURCES_TYPED.length);
-      } else setLength(current => current + (erasing ? -1 : 1));
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [erasing, length, reduced, word.length]);
-
+/** One line of the headline, rising from behind its own baseline. */
+function MaskedLine({ children, delay }: { children: ReactNode; delay: number }) {
   return (
-    <span aria-hidden className="whitespace-nowrap">
-      {reduced ? word : word.slice(0, length)}
-      <span className="caret ml-1 inline-block h-[0.85em] w-[0.08em] translate-y-[0.08em] -skew-x-12 bg-primary" />
+    <span className="block overflow-hidden pb-[0.08em]">
+      <motion.span
+        animate={{ y: 0 }}
+        className="block"
+        initial={{ y: '105%' }}
+        transition={{ delay, duration: 0.9, ease: EASE }}
+      >
+        {children}
+      </motion.span>
     </span>
   );
 }
 
 function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="px-4 pt-16 pb-10 sm:px-6 sm:pt-24">
-      <div className="mx-auto max-w-6xl text-center">
-        <motion.h1
-          animate="shown"
-          aria-label="Suas finanças em dia, de qualquer banco, planilha ou cartão"
-          className="mx-auto text-[1.8rem] leading-[1.05] font-bold tracking-[-0.045em] sm:text-6xl lg:text-[5rem]"
-          id="hero-title"
-          initial="hidden"
-          variants={rise}
+    <section className="relative grid bg-(--l-dark) text-(--l-paper) lg:min-h-svh lg:grid-cols-2">
+      <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-6 sm:px-10 lg:pt-10">
+        <Link className="flex items-center gap-2.5" to="/">
+          <Logo className="text-(--l-seal-light)" size={26} />
+          <span className="text-(length:--step-body) font-medium">Caishen</span>
+        </Link>
+        <Link className="text-[15px] underline-offset-4 hover:underline" to="/sign-in">
+          Entrar
+        </Link>
+      </header>
+      <div className="relative flex flex-col justify-end px-5 pt-36 pb-12 sm:px-10 lg:pt-0 lg:pb-10">
+        <h1 className="font-display text-(length:--step-head) leading-[1.05] font-light tracking-[-0.022em]">
+          <MaskedLine delay={0.1}>Quanto falta</MaskedLine>
+          <MaskedLine delay={0.21}>para quitar tudo?</MaskedLine>
+        </h1>
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 16 }}
+          transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
         >
-          <span aria-hidden className="block">
-            Suas finanças em dia,
-          </span>
-          <span aria-hidden className="block">
-            de qualquer <TypedWord />
-          </span>
-        </motion.h1>
-        <motion.div animate="shown" initial="hidden" variants={stagger}>
-          <motion.p
-            className="mx-auto mt-6 max-w-xl text-lg text-pretty text-navy/80"
-            variants={rise}
+          <p className="mt-5 max-w-[44ch] text-(length:--step-body) text-(--l-paper-soft)">
+            O Caishen lê seus extratos e faturas, junta as dívidas e diz a parcela, os juros e o mês
+            em que você fica livre. Sem senha de banco.
+          </p>
+          <Button
+            asChild
+            className="mt-8 h-12 rounded-md bg-(--l-seal) px-6 text-(length:--step-body) text-white transition-transform hover:bg-(--l-seal-dark) active:scale-[0.98]"
           >
-            Junte extratos, planilhas e faturas num lugar só. O Caishen soma o mês, calcula os juros
-            de cada dívida e monta o plano para você quitar tudo.
-          </motion.p>
-          <motion.div
-            className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"
-            variants={rise}
-          >
-            <Button asChild className={cn(PILL, 'group')}>
-              <Link to={SIGN_UP}>
-                Criar conta grátis
-                <ArrowRightIcon className="transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              className={cn(PILL, 'bg-slate-100 text-navy hover:bg-slate-200')}
-              variant="ghost"
-            >
-              <a href="#simulador">Simular uma dívida</a>
-            </Button>
-          </motion.div>
+            <Link to={SIGN_UP}>Criar conta grátis</Link>
+          </Button>
         </motion.div>
       </div>
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className="mx-auto mt-14 max-w-6xl sm:mt-16"
-        initial={{ opacity: 0, y: 32 }}
-        transition={{ delay: 0.35, duration: 0.9, ease: EASE }}
-      >
-        <Flow />
-      </motion.div>
+
+      <div className="relative flex items-center justify-center bg-(--l-dark-step) px-4 py-12 sm:py-16">
+        <Carne />
+      </div>
     </section>
-  );
-}
-
-interface Node {
-  icon: LucideIcon;
-  label: string;
-  soon?: boolean;
-}
-
-/** Where the money's records come from. */
-const INPUTS: Node[] = [
-  { icon: LandmarkIcon, label: 'Extrato .ofx' },
-  { icon: FileSpreadsheetIcon, label: 'Planilha .xlsx' },
-  { icon: SheetIcon, label: 'Planilha .csv' },
-  { icon: FileTextIcon, label: 'Fatura em PDF' },
-  { icon: MessageSquareIcon, label: 'Conversa' },
-  { icon: LandmarkIcon, label: 'Open Finance', soon: true },
-];
-
-/** What the Caishen makes of them: its screens. */
-const OUTPUTS: Node[] = [
-  { icon: SheetIcon, label: 'Fluxo de caixa' },
-  { icon: FlagIcon, label: 'Sair das dívidas' },
-  { icon: BotIcon, label: 'Agente' },
-  { icon: CalculatorIcon, label: 'Calculadoras' },
-];
-
-// The drawing's own units: 1000 wide, 440 high; the mark sits in the middle.
-const W = 1000;
-const H = 440;
-const CENTER = { x: W / 2, y: H / 2 };
-const IN_X = 170;
-const OUT_X = 830;
-const spread = (count: number, index: number, top: number, bottom: number) =>
-  top + ((bottom - top) * index) / (count - 1);
-const inY = (index: number) => spread(INPUTS.length, index, 40, H - 40);
-const outY = (index: number) => spread(OUTPUTS.length, index, 95, H - 95);
-
-/** A curve from one point to another, leaving and arriving level. */
-const curve = (from: { x: number; y: number }, to: { x: number; y: number }) => {
-  const middle = (from.x + to.x) / 2;
-  return `M ${from.x} ${from.y} C ${middle} ${from.y}, ${middle} ${to.y}, ${to.x} ${to.y}`;
-};
-
-/** A source or a screen, set over the drawing at its point. */
-function Chip({ node, side, y }: { node: Node; side: 'in' | 'out'; y: number }) {
-  return (
-    <div
-      className={cn(
-        'absolute flex -translate-y-1/2 items-center gap-2 rounded-full bg-white py-1.5 pr-3.5 pl-1.5 text-[13px] font-medium whitespace-nowrap shadow-[0_2px_12px_-4px_rgb(15_23_42/0.18)]',
-        side === 'in' ? '-translate-x-full' : '',
-        node.soon && 'text-navy/50'
-      )}
-      style={{
-        left: `${((side === 'in' ? IN_X : OUT_X) / W) * 100}%`,
-        top: `${(y / H) * 100}%`,
-      }}
-    >
-      <span
-        className={cn(
-          'grid size-7 place-items-center rounded-full',
-          side === 'in' ? 'bg-accent text-primary' : 'bg-emerald-50 text-emerald-600',
-          node.soon && 'bg-slate-100 text-navy/40'
-        )}
-      >
-        <node.icon className="size-3.5" />
-      </span>
-      {node.label}
-      {node.soon && <span className="text-[11px] font-normal">em breve</span>}
-    </div>
   );
 }
 
 /**
- * The idea of the page, after Pluggy's: every source on the left runs along a moving dashed line
- * into the Caishen's mark, and out of it to the screens on the right. On a phone the same story
- * stacks: the sources, the mark, the screens.
+ * The live thing: a loan set by three controls and read back as the booklet of stubs it becomes,
+ * with the same Price math the app uses for the User's own debts.
  */
-function Flow() {
-  return (
-    <div
-      aria-label="Extratos, planilhas e faturas entram no Caishen e viram Fluxo de caixa, plano para sair das dívidas, respostas do Agente e Calculadoras"
-      role="img"
-    >
-      <div className="relative hidden md:block" style={{ aspectRatio: `${W} / ${H}` }}>
-        <svg aria-hidden className="absolute inset-0 size-full" viewBox={`0 0 ${W} ${H}`}>
-          {INPUTS.map((node, index) => (
-            <path
-              className={cn('flow-line', node.soon ? 'text-slate-300' : 'text-primary')}
-              d={curve({ x: IN_X + 8, y: inY(index) }, { x: CENTER.x - 70, y: CENTER.y })}
-              fill="none"
-              key={node.label}
-              stroke="currentColor"
-              strokeDasharray="5 7"
-              strokeWidth={2}
-              style={{ animationDelay: `${index * -0.3}s` }}
-            />
-          ))}
-          {OUTPUTS.map((node, index) => (
-            <path
-              className="flow-line text-emerald-500"
-              d={curve({ x: CENTER.x + 70, y: CENTER.y }, { x: OUT_X - 8, y: outY(index) })}
-              fill="none"
-              key={node.label}
-              stroke="currentColor"
-              strokeDasharray="5 7"
-              strokeWidth={2}
-              style={{ animationDelay: `${index * -0.4}s` }}
-            />
-          ))}
-        </svg>
-        <div
-          className="absolute grid size-36 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-primary text-white"
-          style={{ left: '50%', top: '50%' }}
-        >
-          <span className="flow-pulse absolute inset-0 rounded-full bg-primary/30" />
-          <Logo size={64} />
-        </div>
-        {INPUTS.map((node, index) => (
-          <Chip key={node.label} node={node} side="in" y={inY(index)} />
-        ))}
-        {OUTPUTS.map((node, index) => (
-          <Chip key={node.label} node={node} side="out" y={outY(index)} />
-        ))}
-      </div>
-
-      <div className="flex flex-col items-center gap-5 md:hidden">
-        <ul className="flex flex-wrap justify-center gap-2">
-          {INPUTS.map(node => (
-            <li
-              className={cn(
-                'flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[13px] font-medium text-primary',
-                node.soon && 'bg-slate-100 text-navy/50'
-              )}
-              key={node.label}
-            >
-              <node.icon className="size-3.5" />
-              {node.label}
-            </li>
-          ))}
-        </ul>
-        <span className="h-10 w-0.5 bg-primary/30" />
-        <span className="grid size-20 place-items-center rounded-full bg-primary text-white">
-          <Logo size={36} />
-        </span>
-        <span className="h-10 w-0.5 bg-emerald-500/40" />
-        <ul className="flex flex-wrap justify-center gap-2">
-          {OUTPUTS.map(node => (
-            <li
-              className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[13px] font-medium text-emerald-700"
-              key={node.label}
-            >
-              <node.icon className="size-3.5" />
-              {node.label}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- how it works
-
-/** Example lines of a statement, as they come out of the bank. */
-const STATEMENT = [
-  { amount: 5200, date: '05/10', text: 'SALARIO ACME LTDA' },
-  { amount: -1480, date: '06/10', text: 'ALUGUEL OUTUBRO' },
-  { amount: -312.47, date: '08/10', text: 'SUPERMERCADO BOM PRECO' },
-  { amount: -2000, date: '09/10', text: 'APLICACAO CDB' },
-  { amount: -89.9, date: '09/10', text: 'INTERNET FIBRA' },
-  { amount: -46.3, date: '11/10', text: 'FARMACIA SAO JOAO' },
-];
-
-const brl = (value: number) => formatCents(Math.round(value * 100));
-
-/** The three things importing does, each showing its own side of the same statement. */
-const STEPS: { body: string; file: string; title: string }[] = [
-  {
-    body: 'OFX, CSV, Excel ou a fatura em PDF. O Caishen acha as colunas de data, descrição e valor e separa o que é Gasto.',
-    file: 'extrato-outubro.ofx',
-    title: 'Qualquer banco, um formato só',
-  },
-  {
-    body: 'Entradas, aplicações, transferências entre as suas contas e o pagamento da fatura ficam de fora. Sobra o que você gastou.',
-    file: 'extrato-outubro.ofx → Gastos',
-    title: 'Só o que é gasto vira Gasto',
-  },
-  {
-    body: 'Cada linha tem a sua marca. Mande o mesmo extrato duas vezes e nada aparece repetido.',
-    file: 'extrato-outubro.ofx, de novo',
-    title: 'Importar de novo não duplica',
-  },
-];
-
-/** The statement in the dark panel, read differently for each step. */
-function StatementPanel({ step }: { step: number }) {
-  const spent = STATEMENT.filter(line => line.amount < 0 && !line.text.startsWith('APLICACAO'));
-  return (
-    <div
-      aria-label="Exemplo de um extrato importado"
-      className="flex min-h-[23rem] flex-col rounded-3xl bg-navy p-5 text-[13px] text-slate-300 sm:p-6"
-      data-ui
-      role="img"
-    >
-      <div className="flex items-center gap-1.5">
-        {['bg-rose-400', 'bg-amber-300', 'bg-emerald-400'].map(color => (
-          <span className={cn('size-2.5 rounded-full', color)} key={color} />
-        ))}
-        <span className="ml-3 truncate text-slate-400">{STEPS[step]!.file}</span>
-      </div>
-      <AnimatePresence initial={false} mode="wait">
-        <motion.div
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-5 flex flex-1 flex-col gap-1.5 tabular-nums"
-          exit={{ opacity: 0, y: -8 }}
-          initial={{ opacity: 0, y: 8 }}
-          key={step}
-          transition={{ duration: 0.3, ease: EASE }}
-        >
-          {step === 0 &&
-            STATEMENT.map(line => (
-              <p className="flex gap-3" key={line.text}>
-                <span className="text-slate-400">{line.date}</span>
-                <span className="min-w-0 flex-1 truncate">{line.text}</span>
-                <span className={line.amount > 0 ? 'text-emerald-400' : undefined}>
-                  {brl(line.amount)}
-                </span>
-              </p>
-            ))}
-          {step === 1 && (
-            <>
-              {STATEMENT.map(line => {
-                const kept = spent.includes(line);
-                return (
-                  <p
-                    className={cn('flex gap-3', !kept && 'text-slate-600 line-through')}
-                    key={line.text}
-                  >
-                    <span className="min-w-0 flex-1 truncate capitalize">
-                      {line.text.toLowerCase()}
-                    </span>
-                    <span>{brl(Math.abs(line.amount))}</span>
-                  </p>
-                );
-              })}
-              <p className="mt-auto flex justify-between rounded-xl bg-white/10 px-3 py-2.5 font-medium text-white">
-                Gastos de outubro
-                <span>{brl(spent.reduce((sum, line) => sum - line.amount, 0))}</span>
-              </p>
-            </>
-          )}
-          {step === 2 && (
-            <>
-              <p className="text-white">6 linhas lidas</p>
-              <p>4 já estavam no Caishen</p>
-              <p>2 ficaram de fora: entrada e aplicação</p>
-              <p className="mt-auto flex justify-between rounded-xl bg-emerald-400/15 px-3 py-2.5 font-medium text-emerald-300">
-                Novos Gastos
-                <span>0</span>
-              </p>
-            </>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function HowItWorks() {
-  const [step, setStep] = useState(0);
-  return (
-    <section
-      aria-labelledby="como-funciona-title"
-      className="scroll-mt-16 px-4 py-24 sm:px-6 sm:py-32"
-      id="como-funciona"
-    >
-      <motion.div className="mx-auto max-w-6xl" variants={stagger} {...onView}>
-        <motion.h2
-          className="mx-auto max-w-3xl text-center text-4xl leading-[1.08] font-semibold tracking-[-0.035em] sm:text-[3.25rem]"
-          id="como-funciona-title"
-          variants={rise}
-        >
-          Um lugar só para o seu dinheiro
-        </motion.h2>
-        <motion.p
-          className="mx-auto mt-5 max-w-xl text-center text-lg text-navy/80"
-          variants={rise}
-        >
-          Exporte o extrato no app do banco e mande. Sem instalar nada e sem senha de banco.
-        </motion.p>
-
-        <div className="mt-16 grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
-          <motion.div variants={rise}>
-            <StatementPanel step={step} />
-          </motion.div>
-          <motion.ol className="flex flex-col gap-2" variants={stagger}>
-            {STEPS.map((item, index) => (
-              <motion.li key={item.title} variants={rise}>
-                <button
-                  aria-pressed={step === index}
-                  className={cn(
-                    'flex w-full gap-5 rounded-2xl p-5 text-left transition-colors sm:p-6',
-                    step === index ? 'bg-slate-100' : 'hover:bg-slate-50'
-                  )}
-                  onClick={() => setStep(index)}
-                  onFocus={() => setStep(index)}
-                  onMouseEnter={() => setStep(index)}
-                  type="button"
-                >
-                  <span
-                    className={cn(
-                      'text-3xl font-semibold tabular-nums transition-colors',
-                      step === index ? 'text-primary' : 'text-navy/25'
-                    )}
-                  >
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span>
-                    <span className="block text-xl font-semibold tracking-tight">{item.title}</span>
-                    <span className="mt-1.5 block text-base text-navy/75">{item.body}</span>
-                  </span>
-                </button>
-              </motion.li>
-            ))}
-          </motion.ol>
-        </div>
-      </motion.div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------- products
-
-/** A phone, drawn in HTML, holding a piece of the app with example figures. */
-function Phone({ children, label }: { children: ReactNode; label: string }) {
-  return (
-    <div
-      aria-label={label}
-      className="mx-auto w-[15.5rem] rounded-[2.4rem] bg-navy p-2.5"
-      data-ui
-      role="img"
-    >
-      <div className="flex h-[27rem] flex-col overflow-hidden rounded-[1.9rem] bg-white px-4 pt-3 text-[11px] text-navy">
-        <div className="mx-auto mb-3 h-5 w-20 rounded-full bg-navy" />
-        <div className="mb-3 flex items-center gap-1.5 text-primary">
-          <Logo size={14} />
-          <span className="font-semibold text-navy">caishen</span>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function CashFlowScreen() {
-  return (
-    <>
-      <p className="text-sm font-semibold">Outubro de 2026</p>
-      <p className="text-slate-500">Fluxo de caixa</p>
-      <div className="mt-3 grid gap-1.5">
-        {[
-          ['Entrou', 'R$ 9.850,00', ''],
-          ['Compromissos', 'R$ 3.716,00', 'text-primary'],
-          ['Gastos', 'R$ 2.904,35', 'text-primary/70'],
-        ].map(([label, value, tone]) => (
-          <div className="flex justify-between rounded-lg bg-slate-50 px-2.5 py-2" key={label}>
-            <span className="text-slate-500">{label}</span>
-            <span className={cn('font-semibold tabular-nums', tone)}>{value}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 rounded-xl bg-emerald-50 p-3">
-        <p className="text-emerald-700">Sobra</p>
-        <p className="text-xl font-semibold text-emerald-700 tabular-nums">R$ 3.229,65</p>
-        <div className="mt-2 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
-          <span className="w-[38%] bg-primary" />
-          <span className="w-[29%] bg-primary/40" />
-          <span className="w-[33%] bg-emerald-500" />
-        </div>
-      </div>
-      <p className="mt-3 font-medium">Vence esta semana</p>
-      {[
-        ['28/10', 'Cartão Visa', 'R$ 460,00'],
-        ['30/10', 'Internet', 'R$ 89,90'],
-      ].map(([date, name, amount]) => (
-        <p className="mt-1.5 flex gap-2 tabular-nums" key={name}>
-          <span className="text-slate-500">{date}</span>
-          <span className="flex-1">{name}</span>
-          <span className="font-medium">{amount}</span>
-        </p>
-      ))}
-    </>
-  );
-}
-
-function PayoffScreen() {
-  return (
-    <>
-      <p className="text-sm font-semibold">Sair das dívidas</p>
-      <p className="text-slate-500">R$ 2.500 por mês</p>
-      <div className="mt-3 rounded-xl bg-primary p-3 text-white">
-        <p className="text-white/80">Sem dívidas em</p>
-        <p className="text-xl font-semibold">agosto de 2028</p>
-        <p className="mt-1 text-white/80">R$ 6.940 a menos em juros</p>
-      </div>
-      <p className="mt-3 font-medium">A mais cara primeiro</p>
-      {[
-        ['Cartão Visa', '9,9% a.m.', 'mar/2027', 'bg-rose-500'],
-        ['Empréstimo Itaú', '3,1% a.m.', 'jan/2028', 'bg-amber-400'],
-        ['Financiamento Caixa', '0,9% a.m.', 'ago/2028', 'bg-emerald-500'],
-      ].map(([name, rate, done, color]) => (
-        <div className="mt-2 rounded-lg bg-slate-50 px-2.5 py-2" key={name}>
-          <div className="flex justify-between">
-            <span className="font-medium">{name}</span>
-            <span className="text-slate-500 tabular-nums">{rate}</span>
-          </div>
-          <div className="mt-1.5 flex items-center gap-2">
-            <span className="h-1 flex-1 overflow-hidden rounded-full bg-slate-200">
-              <span className={cn('block h-full w-2/3 rounded-full', color)} />
-            </span>
-            <span className="text-slate-500 tabular-nums">{done}</span>
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
-function AgentScreen() {
-  return (
-    <>
-      <p className="text-sm font-semibold">Agente</p>
-      <div className="mt-3 flex flex-col gap-2">
-        <p className="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-white">
-          Quanto gastei com mercado em outubro?
-        </p>
-        <p className="max-w-[88%] rounded-2xl rounded-bl-md bg-slate-100 px-3 py-2">
-          R$ 1.284,30 em 9 compras, 12% a mais que em setembro. A maior foi de R$ 312,47 no Bom
-          Preço, dia 8.
-        </p>
-        <p className="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-white">
-          Anota a farmácia de hoje, R$ 46,30
-        </p>
-        <div className="max-w-[88%] rounded-2xl rounded-bl-md bg-slate-100 px-3 py-2">
-          <p>Posso lançar este Gasto?</p>
-          <p className="mt-1.5 rounded-lg bg-white px-2 py-1.5 font-medium">
-            Farmácia · R$ 46,30 · hoje
-          </p>
-          <div className="mt-1.5 flex gap-1.5">
-            <span className="rounded-full bg-primary px-2.5 py-1 text-white">Confirmar</span>
-            <span className="rounded-full bg-white px-2.5 py-1">Cancelar</span>
-          </div>
-        </div>
-      </div>
-      <p className="mt-auto mb-3 rounded-full bg-slate-100 px-3 py-2 text-slate-600">
-        Pergunte ao Caishen…
-      </p>
-    </>
-  );
-}
-
-function WorkflowScreen() {
-  return (
-    <>
-      <p className="text-sm font-semibold">Workflows</p>
-      <p className="text-slate-500">Toda segunda, 8h</p>
-      <div className="mt-3 rounded-xl bg-slate-50 p-3">
-        <p className="font-medium">Resumo da semana</p>
-        <p className="mt-1 text-slate-500">
-          Quanto entrou, quanto saiu e o que vence nos próximos 7 dias.
-        </p>
-        <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
-          <CheckIcon className="size-3" /> Pronto às 8h02
-        </p>
-      </div>
-      <div className="mt-2 rounded-xl bg-slate-50 p-3">
-        <p className="font-medium">Relatório do mês</p>
-        <p className="mt-1 text-slate-500">Todo dia 1º, com o mês que fechou.</p>
-      </div>
-      <div className="mt-3 rounded-xl bg-navy p-3 text-slate-300">
-        <p className="font-medium text-white">Semana de 19 a 25/10</p>
-        <p className="mt-1.5">Entraram R$ 5.200,00.</p>
-        <p>Saíram R$ 1.928,67, metade em aluguel.</p>
-        <p className="mt-1.5 text-white">Cartão Visa vence dia 28: R$ 460,00.</p>
-      </div>
-    </>
-  );
-}
-
-const PRODUCTS: {
-  body: string;
-  checks: string[];
-  name: string;
-  screen: ReactNode;
-  tint: string;
-}[] = [
-  {
-    body: 'Entradas, Compromissos e Gastos do mês numa folha só. Você vê quanto sobra antes do mês acabar.',
-    checks: [
-      'Parcelas, faturas e impostos no dia em que vencem',
-      'Renda em real ou em dólar, pela PTAX do dia',
-      'Exporta em CSV ou PDF',
-    ],
-    name: 'Fluxo de caixa',
-    screen: <CashFlowScreen />,
-    tint: 'bg-blue-50',
-  },
-  {
-    body: 'Diga quanto pode pagar por mês e veja o dia em que a última parcela acaba, a dívida mais cara primeiro.',
-    checks: [
-      'Juros calculados pela Tabela Price ou SAC',
-      'Quanto você economiza em juros',
-      'Cada taxa comparada à média do Banco Central',
-    ],
-    name: 'Sair das dívidas',
-    screen: <PayoffScreen />,
-    tint: 'bg-rose-50',
-  },
-  {
-    body: 'Pergunte em português sobre o seu dinheiro. O Agente lê os seus números e responde com eles.',
-    checks: [
-      'Lê planilhas, PDFs e prints que você manda',
-      'Propõe lançamentos e só grava se você confirmar',
-      'Nunca move dinheiro nem altera nada lá fora',
-    ],
-    name: 'Agente',
-    screen: <AgentScreen />,
-    tint: 'bg-emerald-50',
-  },
-  {
-    body: 'Peça uma vez e receba pronto: um resumo da semana, o relatório do mês, toda semana ou todo mês.',
-    checks: [
-      'Roda sozinho, no dia e na hora que você escolhe',
-      'O resultado fica salvo para baixar',
-      'Só leitura, como o Agente',
-    ],
-    name: 'Workflows',
-    screen: <WorkflowScreen />,
-    tint: 'bg-sky-50',
-  },
-];
-
-function Products() {
-  return (
-    <section
-      aria-labelledby="produtos-title"
-      className="scroll-mt-16 bg-slate-50 px-4 py-24 sm:px-6 sm:py-32"
-      id="produtos"
-    >
-      <motion.div className="mx-auto max-w-6xl" variants={stagger} {...onView}>
-        <motion.h2
-          className="mx-auto max-w-3xl text-center text-4xl leading-[1.08] font-semibold tracking-[-0.035em] sm:text-[3.25rem]"
-          id="produtos-title"
-          variants={rise}
-        >
-          Entender e quitar. No mesmo app
-        </motion.h2>
-        <motion.p
-          className="mx-auto mt-5 max-w-xl text-center text-lg text-navy/80"
-          variants={rise}
-        >
-          Do primeiro extrato ao dia da última parcela, com um Agente que conhece os seus números.
-        </motion.p>
-
-        <div className="mt-16 grid gap-6 lg:grid-cols-2">
-          {PRODUCTS.map(product => (
-            <motion.article
-              className="group grid overflow-hidden rounded-3xl bg-white sm:grid-cols-[1fr_1.05fr]"
-              key={product.name}
-              variants={rise}
-            >
-              <div
-                className={cn(
-                  'flex h-80 items-end justify-center overflow-hidden px-6 pt-8 sm:h-auto',
-                  product.tint
-                )}
-              >
-                <div className="translate-y-24 transition-transform duration-500 ease-out group-hover:translate-y-20">
-                  <Phone label={`Exemplo da tela ${product.name}`}>{product.screen}</Phone>
-                </div>
-              </div>
-              <div className="flex flex-col p-7 sm:p-8">
-                <h3 className="text-2xl font-semibold tracking-tight">{product.name}</h3>
-                <p className="mt-3 text-base text-navy/75">{product.body}</p>
-                <ul className="mt-5 flex flex-col gap-2.5 text-[15px]">
-                  {product.checks.map(check => (
-                    <li className="flex gap-2.5" key={check}>
-                      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent text-primary">
-                        <CheckIcon className="size-3" />
-                      </span>
-                      {check}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  className="mt-auto inline-flex items-center gap-1.5 pt-7 text-[15px] font-medium hover:text-primary"
-                  to={SIGN_UP}
-                >
-                  Começar
-                  <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </div>
-            </motion.article>
-          ))}
-        </div>
-        <p className="mt-5 text-center text-sm text-navy/60">Telas com figuras de exemplo.</p>
-      </motion.div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------- simulator
-
-/** The live thing: a loan's real installment, from the same math the app uses. */
-function Simulator() {
+function Carne() {
   const [principal, setPrincipal] = useState(20_000);
-  const [ratePercent, setRatePercent] = useState(3.5);
+  const [ratePercent, setRatePercent] = useState(4.2);
   const [months, setMonths] = useState(24);
 
   const installment = priceInstallment(principal * 100, ratePercent / 100, months);
   const total = installment * months;
-  const interest = total - principal * 100;
+  const start = addMonths(today().slice(0, 8) + '10', 1);
+  const last = addMonths(start, months - 1);
 
   return (
-    <section
-      aria-labelledby="simulador-title"
-      className="scroll-mt-16 bg-navy px-4 py-24 text-white sm:px-6 sm:py-32"
-      id="simulador"
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      aria-label="Simulador de parcelas"
+      className="w-full max-w-[450px] rounded-lg bg-(--l-paper) p-6 text-(--l-ink) sm:p-7"
+      data-ui
+      initial={{ opacity: 0, y: 24 }}
+      role="group"
+      transition={{ delay: 0.3, duration: 0.8, ease: EASE }}
     >
-      <motion.div
-        className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2"
-        variants={stagger}
-        {...onView}
-      >
-        <div>
-          <motion.h2
-            className="text-4xl leading-[1.08] font-semibold tracking-[-0.035em] sm:text-[3.25rem]"
-            id="simulador-title"
-            variants={rise}
-          >
-            Quanto custa a sua dívida?
-          </motion.h2>
-          <motion.p className="mt-5 max-w-lg text-lg text-slate-300" variants={rise}>
-            Arraste e veja a parcela e os juros de um empréstimo na Tabela Price, com a mesma conta
-            que o Caishen faz com as suas dívidas.
-          </motion.p>
-          <motion.div className="mt-10 grid gap-8" variants={rise}>
-            <SimulatorField
-              label="Valor emprestado"
-              max={100_000}
-              min={1_000}
-              onChange={setPrincipal}
-              shown={formatCents(principal * 100)}
-              step={1_000}
-              value={principal}
-            />
-            <SimulatorField
-              label="Juros ao mês"
-              max={12}
-              min={0.5}
-              onChange={setRatePercent}
-              shown={`${ratePercent.toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })}% a.m.`}
-              step={0.1}
-              value={ratePercent}
-            />
-            <SimulatorField
-              label="Prazo"
-              max={72}
-              min={6}
-              onChange={setMonths}
-              shown={`${months} meses`}
-              step={1}
-              value={months}
-            />
-          </motion.div>
-        </div>
+      <div className="flex items-baseline justify-between text-[13px] text-(--l-muted)">
+        <span>Carnê · Empréstimo pessoal</span>
+        <span className="tabular-nums">Tabela Price</span>
+      </div>
 
-        <motion.div
-          aria-live="polite"
-          className="flex flex-col rounded-3xl bg-white p-8 text-navy sm:p-10"
-          variants={rise}
-        >
-          <p className="text-base text-navy/70">Parcela</p>
-          <p className="mt-1 text-5xl font-semibold tracking-tight tabular-nums sm:text-6xl">
-            {formatCents(installment)}
-          </p>
-          <p className="mt-2 text-base text-navy/70">por mês, em {months} parcelas iguais</p>
-          <dl className="mt-8 grid grid-cols-2 gap-3 text-base">
-            <div className="rounded-2xl bg-slate-100 p-4">
-              <dt className="text-navy/70">Total pago</dt>
-              <dd className="mt-1 text-xl font-semibold tabular-nums">{formatCents(total)}</dd>
-            </div>
-            <div className="rounded-2xl bg-rose-50 p-4">
-              <dt className="text-rose-700">Só de juros</dt>
-              <dd className="mt-1 text-xl font-semibold text-rose-700 tabular-nums">
-                {formatCents(interest)}
-              </dd>
-            </div>
-          </dl>
-          <Button asChild className={cn(PILL, 'group mt-8 self-start')}>
-            <Link to={SIGN_UP}>
-              Calcular as minhas dívidas
-              <ArrowRightIcon className="transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </Button>
-        </motion.div>
-      </motion.div>
-    </section>
+      <div className="mt-5 grid gap-5">
+        <CarneField
+          label="Valor emprestado"
+          max={100_000}
+          min={1_000}
+          onChange={setPrincipal}
+          shown={formatCents(principal * 100)}
+          step={500}
+          value={principal}
+        />
+        <CarneField
+          label="Juros ao mês"
+          max={12}
+          min={0.5}
+          onChange={setRatePercent}
+          shown={`${percent(ratePercent)} a.m.`}
+          step={0.1}
+          value={ratePercent}
+        />
+        <CarneField
+          label="Prazo"
+          max={72}
+          min={6}
+          onChange={setMonths}
+          shown={`${months} meses`}
+          step={1}
+          value={months}
+        />
+      </div>
+
+      <div aria-live="polite" className="mt-6 rounded-md bg-(--l-surface) p-4">
+        <p className="text-[13px] text-(--l-muted)">Parcela</p>
+        <p className="font-display text-[44px] leading-none font-light tracking-[-0.022em] tabular-nums">
+          {formatCents(installment)}
+        </p>
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-[14px]">
+          <dt className="text-(--l-muted)">Total pago</dt>
+          <dd className="text-right tabular-nums">{formatCents(total)}</dd>
+          <dt className="text-(--l-muted)">Só de juros</dt>
+          <dd className="text-right text-(--l-seal) tabular-nums">
+            {formatCents(total - principal * 100)}
+          </dd>
+          <dt className="text-(--l-muted)">Última parcela</dt>
+          <dd className="text-right tabular-nums">{monthLabel(last)}</dd>
+        </dl>
+      </div>
+
+      <ol aria-label="Primeiras parcelas" className="mt-4 grid grid-cols-3 gap-2 text-[13px]">
+        {[0, 1, 2].map(index => (
+          <li
+            className="rounded-md border border-dashed border-(--l-rule) px-2.5 py-2 tabular-nums"
+            key={index}
+          >
+            <span className="block text-(--l-muted)">
+              {index + 1}/{months}
+            </span>
+            <span className="block">{monthLabel(addMonths(start, index))}</span>
+          </li>
+        ))}
+      </ol>
+    </motion.div>
   );
 }
 
-function SimulatorField({
+function CarneField({
   label,
   max,
   min,
@@ -973,9 +263,9 @@ function SimulatorField({
 }) {
   return (
     <div>
-      <div className="mb-3 flex items-baseline justify-between text-base">
-        <span className="text-slate-300">{label}</span>
-        <span className="text-lg font-semibold tabular-nums">{shown}</span>
+      <div className="mb-2.5 flex items-baseline justify-between text-[14px]">
+        <span className="text-(--l-muted)">{label}</span>
+        <span className="font-medium tabular-nums">{shown}</span>
       </div>
       <Slider
         aria-label={label}
@@ -989,217 +279,643 @@ function SimulatorField({
   );
 }
 
-// ---------------------------------------------------------------- safety
+// ---------------------------------------------------------------- how it works
 
-/** The promises behind ADR 0009. */
-const PROMISES: { body: string; icon: LucideIcon; title: string }[] = [
+/** The sample loan the four fields follow: R$ 20.000 at 4,2% a.m. in 24 Price installments. */
+const SAMPLE_DEBT: PlanDebt = {
+  id: 'loan',
+  input: {
+    firstDueDate: '2026-04-10',
+    monthlyRate: '0.042',
+    principalCents: 2_000_000,
+    system: 'PRICE',
+    termMonths: 24,
+  },
+};
+const SAMPLE_INSTALLMENT = priceInstallment(2_000_000, 0.042, 24);
+const SAMPLE_PLAN = avalanchePlan([SAMPLE_DEBT], '2026-10-27', 30_000);
+
+const FIELDS: { card: ReactNode; clause: [string, string]; tone: string }[] = [
   {
-    body: 'Lê o que você manda e volta com o trabalho pronto. Nunca altera nada lá fora.',
-    icon: FileTextIcon,
-    title: 'Só leitura',
+    card: (
+      <>
+        <p className="text-[13px] text-(--l-muted)">Extrato Nubank · 10/10</p>
+        <p className="mt-2 text-[14px] break-words">PIX ENVIADO 04.395.471 CRED PESSOAL</p>
+        <p className="mt-3 text-[15px] font-medium tabular-nums">
+          − {formatCents(SAMPLE_INSTALLMENT)}
+        </p>
+        <p className="mt-3 text-[13px] text-(--l-muted)">Sem categoria</p>
+      </>
+    ),
+    clause: ['Primeiro,', 'o extrato chega.'],
+    tone: 'bg-(--l-surface) text-(--l-ink)',
   },
   {
-    body: 'Não faz pagamentos, transferências nem contratações. Quem decide é você.',
-    icon: ReceiptIcon,
-    title: 'Nenhum centavo movido',
+    card: (
+      <>
+        <p className="text-[13px] text-(--l-muted)">Gasto · 10 out.</p>
+        <p className="mt-2 text-[15px] font-medium">Parcela do empréstimo</p>
+        <p className="mt-3 text-[15px] tabular-nums">{formatCents(SAMPLE_INSTALLMENT)}</p>
+        <p className="mt-3 inline-block rounded bg-(--l-surface) px-2 py-0.5 text-[13px]">
+          Dívidas
+        </p>
+      </>
+    ),
+    clause: ['Depois,', 'vira um gasto.'],
+    tone: 'bg-(--l-sand) text-(--l-ink)',
   },
   {
-    body: 'Você exporta o extrato no app do banco. Nenhuma senha de banco passa por aqui.',
-    icon: LandmarkIcon,
-    title: 'Sem senha de banco',
+    card: (
+      <>
+        <p className="text-[13px] text-(--l-muted)">Empréstimo · 4,2% a.m.</p>
+        <p className="mt-2 text-[15px] font-medium">Parcela 7 de 24</p>
+        <div aria-hidden className="mt-3 h-1.5 overflow-hidden rounded-full bg-(--l-surface)">
+          <div className="h-full w-[29%] rounded-full bg-(--l-ink)" />
+        </div>
+        <p className="mt-3 text-[13px] text-(--l-muted)">17 parcelas pela frente</p>
+      </>
+    ),
+    clause: ['Então,', 'entra no plano.'],
+    tone: 'bg-(--l-dark-step) text-(--l-paper)',
   },
   {
-    body: 'Juros e prazos saem de cálculo exato. A IA recebe os números prontos e explica.',
-    icon: CalculatorIcon,
-    title: 'Números exatos',
+    card: (
+      <>
+        <p className="text-[13px] text-(--l-muted)">Com + R$ 300,00 por mês</p>
+        <p className="mt-2 text-[15px] font-medium">
+          Quitado em {SAMPLE_PLAN.debtFreeOn ? monthLabel(SAMPLE_PLAN.debtFreeOn) : '—'}
+        </p>
+        <p className="mt-3 text-[13px] text-(--l-muted)">
+          em vez de{' '}
+          {SAMPLE_PLAN.debtFreeWithoutPlanOn ? monthLabel(SAMPLE_PLAN.debtFreeWithoutPlanOn) : '—'}
+        </p>
+        <p className="mt-1 text-[14px] text-(--l-seal) tabular-nums">
+          {formatCents(SAMPLE_PLAN.interestSavedCents)} a menos de juros
+        </p>
+      </>
+    ),
+    clause: ['No fim,', 'a data de quitação.'],
+    tone: 'bg-(--l-dark) text-(--l-paper)',
   },
 ];
 
-function Safety() {
+function HowItWorks() {
   return (
-    <section
-      aria-labelledby="seguranca-title"
-      className="scroll-mt-16 px-4 py-24 sm:px-6 sm:py-32"
-      id="seguranca"
-    >
-      <motion.div
-        className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1fr_1.4fr]"
-        variants={stagger}
-        {...onView}
-      >
-        <div>
-          <motion.h2
-            className="text-4xl leading-[1.08] font-semibold tracking-[-0.035em] sm:text-[3.25rem]"
-            id="seguranca-title"
+    <section aria-labelledby="como-funciona" className="grid md:grid-cols-4" id="como">
+      {FIELDS.map((field, index) => (
+        <motion.div
+          className={cn(
+            'group relative flex min-h-[64svh] flex-col px-5 pt-8 pb-10 md:min-h-[84svh] md:px-7 md:pb-7',
+            field.tone
+          )}
+          key={field.clause[1]}
+          variants={stagger}
+          {...onView}
+        >
+          {index === 0 && (
+            <motion.h2
+              className="order-first mb-4 text-(length:--step-lead) font-semibold md:mb-0"
+              id="como-funciona"
+              variants={rise}
+            >
+              Como funciona
+            </motion.h2>
+          )}
+          <motion.p
+            className="order-first mb-8 text-(length:--step-lead) leading-tight md:order-last md:mt-auto md:mb-0"
             variants={rise}
           >
-            Feito para cuidar, não para mexer
-          </motion.h2>
-          <motion.p className="mt-5 max-w-md text-lg text-navy/80" variants={rise}>
-            O Caishen organiza e explica. O dinheiro continua onde está, e cada decisão continua
-            sua.
+            {field.clause[0]}
+            <br />
+            {field.clause[1]}
           </motion.p>
-        </div>
-        <motion.ul className="grid gap-x-10 gap-y-10 sm:grid-cols-2" variants={stagger}>
-          {PROMISES.map(promise => (
-            <motion.li key={promise.title} variants={rise}>
-              <span className="grid size-11 place-items-center rounded-2xl bg-accent text-primary">
-                <promise.icon className="size-5" />
-              </span>
-              <p className="mt-4 text-xl font-semibold tracking-tight">{promise.title}</p>
-              <p className="mt-2 text-base text-navy/75">{promise.body}</p>
-            </motion.li>
-          ))}
-        </motion.ul>
-      </motion.div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------- close
-
-function FinalCta() {
-  return (
-    <section className="px-4 pb-24 sm:px-6 sm:pb-32">
-      <motion.div
-        className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-navy px-6 py-16 text-center text-white sm:py-24"
-        variants={stagger}
-        {...onView}
-      >
-        <motion.span
-          aria-hidden
-          className="absolute -top-24 -right-24 text-white/5"
-          variants={{
-            hidden: { opacity: 0, rotate: -20 },
-            shown: { opacity: 1, rotate: 0, transition: { duration: 1.2, ease: EASE } },
-          }}
-        >
-          <Logo size={420} />
-        </motion.span>
-        <motion.h2
-          className="relative mx-auto max-w-3xl text-4xl leading-[1.05] font-semibold tracking-[-0.04em] sm:text-6xl"
-          variants={rise}
-        >
-          Comece hoje, de graça
-        </motion.h2>
-        <motion.p className="relative mx-auto mt-5 max-w-lg text-lg text-slate-300" variants={rise}>
-          Crie a conta com e-mail e senha ou com o Google e mande o primeiro extrato.
-        </motion.p>
-        <motion.div
-          className="relative mt-9 flex flex-col justify-center gap-3 sm:flex-row"
-          variants={rise}
-        >
-          <Button asChild className={cn(PILL, 'group')}>
-            <Link to={SIGN_UP}>
-              Criar conta grátis
-              <ArrowRightIcon className="transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </Button>
-          <Button
-            asChild
-            className={cn(PILL, 'bg-white/10 text-white hover:bg-white/15 hover:text-white')}
-            variant="ghost"
+          <motion.div
+            className="w-[260px] max-w-full rounded-md bg-white p-4 text-(--l-ink) transition-transform duration-150 group-hover:-translate-y-1.5 md:absolute md:top-[38%] md:left-1/2 md:-translate-x-1/2 md:group-hover:-translate-x-1/2"
+            data-ui
+            variants={rise}
           >
-            <Link to="/sign-in">Já tenho conta</Link>
-          </Button>
+            {field.card}
+          </motion.div>
         </motion.div>
-        <motion.p
-          className="relative mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-400"
-          variants={rise}
-        >
-          {['Só leitura', 'Sem senha de banco', 'Sem cartão de crédito'].map(item => (
-            <span className="flex items-center gap-2" key={item}>
-              <span className="size-1.5 rounded-full bg-emerald-400" />
-              {item}
-            </span>
-          ))}
-        </motion.p>
-      </motion.div>
+      ))}
     </section>
   );
 }
 
-const FOOTER_COLUMNS: { links: { href: string; label: string }[]; title: string }[] = [
+// ---------------------------------------------------------------- showcase
+
+interface DemoDebt {
+  id: string;
+  name: string;
+  principalCents: number;
+  rate: number;
+  termMonths: number;
+}
+
+const DEMO_DEBTS: DemoDebt[] = [
+  { id: 'card', name: 'Cartão parcelado', principalCents: 600_000, rate: 0.12, termMonths: 24 },
   {
-    links: [
-      { href: '#produtos', label: 'Fluxo de caixa' },
-      { href: '#produtos', label: 'Sair das dívidas' },
-      { href: '#produtos', label: 'Agente' },
-      { href: '#simulador', label: 'Simulador' },
-    ],
-    title: 'Produto',
+    id: 'loan',
+    name: 'Empréstimo pessoal',
+    principalCents: 2_000_000,
+    rate: 0.042,
+    termMonths: 24,
   },
   {
-    links: [
-      { href: '#como-funciona', label: 'Como funciona' },
-      { href: '#seguranca', label: 'Segurança' },
-      ...SOCIAL,
-    ],
-    title: 'Caishen',
-  },
-  {
-    links: [
-      { href: '/sign-in', label: 'Entrar' },
-      { href: SIGN_UP, label: 'Criar conta' },
-    ],
-    title: 'Conta',
-  },
-  {
-    links: [
-      { href: '/terms', label: 'Termos de Uso' },
-      { href: '/privacy', label: 'Política de Privacidade' },
-    ],
-    title: 'Legal',
+    id: 'car',
+    name: 'Financiamento do carro',
+    principalCents: 4_500_000,
+    rate: 0.016,
+    termMonths: 48,
   },
 ];
 
-/** The navy close: the mark and what it stands for, the links in columns, the fine print. */
-function Footer() {
+/** Months between two ISO dates, by their year and month alone. */
+const monthsBetween = (from: IsoDate, to: IsoDate) =>
+  (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 +
+  Number(to.slice(5, 7)) -
+  Number(from.slice(5, 7));
+
+/** Sair das dívidas, working: three debts, an extra a month, the order and the dates. */
+function Showcase() {
+  const [extra, setExtra] = useState(400);
+  const [cardRate, setCardRate] = useState(12);
+  const [on, setOn] = useState<Record<string, boolean>>({ car: true, card: true, loan: true });
+  const asOf = today();
+
+  const debts = useMemo(
+    () =>
+      DEMO_DEBTS.filter(debt => on[debt.id]).map(debt => ({
+        ...debt,
+        rate: debt.id === 'card' ? cardRate / 100 : debt.rate,
+      })),
+    [cardRate, on]
+  );
+  const plan = useMemo(
+    () =>
+      debts.length === 0
+        ? null
+        : avalanchePlan(
+            debts.map(debt => ({
+              id: debt.id,
+              input: {
+                firstDueDate: addMonths(asOf.slice(0, 8) + '10', 1),
+                monthlyRate: debt.rate,
+                principalCents: debt.principalCents,
+                system: 'PRICE' as const,
+                termMonths: debt.termMonths,
+              },
+            })),
+            asOf,
+            extra * 100
+          ),
+    [asOf, debts, extra]
+  );
+  const ahead =
+    plan?.debtFreeOn && plan.debtFreeWithoutPlanOn
+      ? monthsBetween(plan.debtFreeOn, plan.debtFreeWithoutPlanOn)
+      : 0;
+
   return (
-    <footer className="bg-navy px-4 pt-16 pb-10 text-slate-300 sm:px-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="grid gap-12 md:grid-cols-[1.4fr_repeat(4,1fr)]">
-          <div className="text-white">
-            <Brand light />
-            <p className="mt-4 max-w-xs text-[15px] text-slate-400">
-              Assistente financeiro para sair das dívidas e começar a investir.
+    <section aria-labelledby="sair-title" className="px-5 py-[15vh] md:px-10" id="sair-das-dividas">
+      <motion.div className="mx-auto max-w-[760px]" variants={stagger} {...onView}>
+        <motion.h2
+          className="text-(length:--step-lead) font-semibold"
+          id="sair-title"
+          variants={rise}
+        >
+          Sair das dívidas
+        </motion.h2>
+        <motion.p className="mt-2 max-w-[52ch] text-(length:--step-body)" variants={rise}>
+          Cada real a mais vai para a dívida de juros mais altos. Mexa no extra e veja as datas
+          mudarem.
+        </motion.p>
+
+        <motion.div
+          className="mt-8 grid overflow-hidden rounded-lg bg-(--l-surface) md:grid-cols-[62fr_38fr]"
+          data-ui
+          variants={rise}
+        >
+          <div aria-live="polite" className="flex flex-col p-6">
+            <p className="text-[13px] text-(--l-muted)">Livre das dívidas em</p>
+            <p className="font-display text-[48px] leading-none font-light tracking-[-0.022em] tabular-nums">
+              {plan?.debtFreeOn ? monthLabel(plan.debtFreeOn) : 'nada a pagar'}
             </p>
+            {plan && (
+              <p className="mt-3 text-[14px]">
+                {ahead > 0 ? `${ahead} ${ahead === 1 ? 'mês' : 'meses'} antes · ` : ''}
+                <span className="text-(--l-seal) tabular-nums">
+                  {formatCents(plan.interestSavedCents)}
+                </span>{' '}
+                a menos de juros
+              </p>
+            )}
+            <ol className="mt-8 flex flex-col gap-2">
+              {(plan?.payoffs ?? []).map((payoff, index) => {
+                const debt = debts.find(item => item.id === payoff.id)!;
+                return (
+                  <motion.li
+                    className="flex items-center justify-between gap-4 rounded-md bg-white px-4 py-3 text-[14px]"
+                    key={payoff.id}
+                    layout
+                    transition={{ duration: 0.35, ease: EASE }}
+                  >
+                    <span>
+                      <span className="block font-medium">
+                        {index + 1}. {debt.name}
+                      </span>
+                      <span className="block text-[13px] text-(--l-muted) tabular-nums">
+                        {formatCents(debt.principalCents)} · {percent(debt.rate * 100)} a.m.
+                      </span>
+                    </span>
+                    <span className="text-right tabular-nums">{monthLabel(payoff.paidOffOn)}</span>
+                  </motion.li>
+                );
+              })}
+            </ol>
+            <Link
+              className="mt-auto pt-8 text-[14px] text-(--l-seal) underline-offset-4 hover:underline"
+              to={SIGN_UP}
+            >
+              Montar o plano com as suas dívidas
+            </Link>
           </div>
-          {FOOTER_COLUMNS.map(column => (
-            <nav aria-label={column.title} key={column.title}>
-              <p className="text-sm font-medium text-white">{column.title}</p>
-              <ul className="mt-4 flex flex-col gap-2.5 text-[15px]">
-                {column.links.map(link => (
-                  <li key={link.label}>
-                    {link.href.startsWith('/') ? (
-                      <Link className="hover:text-white" to={link.href}>
-                        {link.label}
-                      </Link>
-                    ) : (
-                      <a className="hover:text-white" href={link.href}>
-                        {link.label}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </nav>
+
+          <div className="flex flex-col bg-(--l-sand) px-5 py-4">
+            <ControlRow label="Extra por mês" value={formatCents(extra * 100)}>
+              <Slider
+                aria-label="Extra por mês"
+                className="w-full"
+                max={2_000}
+                min={100}
+                onValueChange={([next]) => next !== undefined && setExtra(next)}
+                step={50}
+                value={[extra]}
+              />
+            </ControlRow>
+            <ControlRow label="Juros do cartão" value={`${percent(cardRate)} a.m.`}>
+              <Slider
+                aria-label="Juros do cartão"
+                className="w-full"
+                max={15}
+                min={2}
+                onValueChange={([next]) => next !== undefined && setCardRate(next)}
+                step={0.5}
+                value={[cardRate]}
+              />
+            </ControlRow>
+            {DEMO_DEBTS.map(debt => (
+              <label
+                className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-[14px]"
+                key={debt.id}
+              >
+                {debt.name}
+                <Switch
+                  checked={on[debt.id]}
+                  onCheckedChange={checked =>
+                    setOn(current => ({ ...current, [debt.id]: checked }))
+                  }
+                />
+              </label>
+            ))}
+            <div className="flex min-h-11 items-center justify-between text-[14px]">
+              <span>Método</span>
+              <span className="text-(--l-muted)">Avalanche</span>
+            </div>
+            <div className="flex min-h-11 items-center justify-between text-[14px]">
+              <span>A partir de</span>
+              <span className="text-(--l-muted) tabular-nums">
+                {monthLabel(addMonths(asOf.slice(0, 8) + '10', 1))}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+        <motion.p className="mt-4 text-(length:--step-small) text-(--l-muted)" variants={rise}>
+          Exemplo com valores fictícios. Na sua conta, as dívidas vêm dos seus contratos.
+        </motion.p>
+      </motion.div>
+    </section>
+  );
+}
+
+function ControlRow({
+  children,
+  label,
+  value,
+}: {
+  children: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex flex-col justify-center gap-2 py-2.5 text-[14px]">
+      <div className="flex items-baseline justify-between">
+        <span>{label}</span>
+        <span className="font-medium tabular-nums">{value}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- what it reads
+
+const READS: { rows: { dot: string; name: string; value: string }[]; title: string }[] = [
+  {
+    rows: [
+      { dot: 'bg-(--l-ink)', name: 'Extrato do banco', value: '.ofx' },
+      { dot: 'bg-(--l-ink)', name: 'Planilha exportada do banco', value: '.csv · .xlsx' },
+      { dot: 'bg-(--l-ink)', name: 'Extrato ou fatura em PDF', value: 'PDF com texto' },
+      { dot: 'bg-(--l-ink)', name: 'Arquivos e prints no chat', value: 'até 5 por vez' },
+      { dot: 'bg-(--l-ink)', name: 'Mensagens no WhatsApp', value: 'texto' },
+      { dot: 'bg-(--l-rule)', name: 'Open Finance', value: 'em breve' },
+    ],
+    title: 'Lê',
+  },
+  {
+    rows: [
+      { dot: 'bg-(--l-seal)', name: 'Fluxo de caixa', value: 'dia, mês ou período' },
+      { dot: 'bg-(--l-seal)', name: 'Gastos recorrentes e assinaturas', value: 'todo mês' },
+      { dot: 'bg-(--l-seal)', name: 'Plano para sair das dívidas', value: 'avalanche' },
+      { dot: 'bg-(--l-seal)', name: 'Tabela Price e SAC, lado a lado', value: 'calculadora' },
+      { dot: 'bg-(--l-seal)', name: 'Alugar ou financiar', value: 'calculadora' },
+      { dot: 'bg-(--l-seal)', name: 'Resumos que chegam sozinhos', value: 'semana ou mês' },
+    ],
+    title: 'Monta',
+  },
+  {
+    rows: [
+      { dot: 'bg-(--l-muted)', name: 'Mover o seu dinheiro', value: 'nunca' },
+      { dot: 'bg-(--l-muted)', name: 'Pedir a senha do seu banco', value: 'nunca' },
+      { dot: 'bg-(--l-muted)', name: 'Oferecer crédito ou indicar investimento', value: 'nunca' },
+      { dot: 'bg-(--l-muted)', name: 'Vender ou usar seus dados para anúncio', value: 'nunca' },
+    ],
+    title: 'Não faz',
+  },
+];
+
+function Reads() {
+  return (
+    <section aria-labelledby="le-title" className="px-5 py-[12vh] md:pl-[22vw]">
+      <motion.div className="max-w-[520px]" variants={stagger} {...onView}>
+        <motion.h2
+          className="mb-8 text-(length:--step-lead) font-medium"
+          id="le-title"
+          variants={rise}
+        >
+          O que ele lê e o que monta
+        </motion.h2>
+        {READS.map(group => (
+          <motion.div className="mb-10 last:mb-0" key={group.title} variants={rise}>
+            <p className="mb-1 text-[15px] text-(--l-muted)">{group.title}</p>
+            <ul>
+              {group.rows.map(row => (
+                <li
+                  className="flex min-h-11 items-baseline justify-between gap-4 py-2 md:min-h-9"
+                  key={row.name}
+                >
+                  <span className="flex items-baseline gap-2 text-[16px]">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'inline-block size-4 shrink-0 translate-y-0.5 rounded-full',
+                        row.dot
+                      )}
+                    />
+                    {row.name}
+                  </span>
+                  <span className="shrink-0 text-[13px] text-(--l-muted) tabular-nums">
+                    {row.value}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        ))}
+      </motion.div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------- the name
+
+const OBJECTS: { alt: string; credit: string; height: number; src: string; width: number }[] = [
+  {
+    alt: 'Figura de porcelana do deus da riqueza em armadura, sentado',
+    credit: 'Deus da riqueza, aspecto militar, séc. XVII–XVIII',
+    height: 1400,
+    src: '/landing/caishen-military.jpg',
+    width: 1051,
+  },
+  {
+    alt: 'Taça de cerâmica dourada na forma de um lingote de prata chinês',
+    credit: 'Taça em forma de lingote, séc. XIX',
+    height: 933,
+    src: '/landing/ingot-cup.jpg',
+    width: 1400,
+  },
+  {
+    alt: 'Moeda chinesa de bronze, redonda com furo quadrado, partida em pedaços',
+    credit: 'Moeda da dinastia Song, c. 1068–77',
+    height: 1400,
+    src: '/landing/song-coin.jpg',
+    width: 1042,
+  },
+];
+
+/** Why the name: the god of wealth, in porcelain, beside a short letter. */
+function Letter() {
+  return (
+    <section aria-label="Por que Caishen" className="bg-(--l-surface) px-5 py-[14vh] md:px-10">
+      <div className="mx-auto grid max-w-6xl items-start gap-12 md:grid-cols-[5fr_7fr]">
+        <motion.figure className="overflow-hidden rounded-lg" variants={rise} {...onView}>
+          <img
+            alt="Figura de porcelana do deus da riqueza em trajes de funcionário, sentado numa cadeira com braços de dragão"
+            className="landing-drift aspect-[3/4] w-full object-cover"
+            height={1400}
+            loading="lazy"
+            src="/landing/caishen-civil.jpg"
+            width={1051}
+          />
+          <figcaption className="bg-(--l-surface) pt-3 text-[13px] text-(--l-muted)">
+            Deus da riqueza, aspecto civil, China, séc. XVII–XVIII. The Met, domínio público.
+          </figcaption>
+        </motion.figure>
+
+        <motion.div className="max-w-[520px] md:pt-10" variants={stagger} {...onView}>
+          <motion.div
+            className="flex flex-col gap-5 text-(length:--step-body) leading-[1.55]"
+            variants={rise}
+          >
+            <p>
+              Caishen (財神) é o deus chinês da riqueza. Nas casas e nas lojas ele fica perto da
+              porta, com um lingote na mão, para lembrar que dinheiro se cuida todo dia, não só no
+              fim do mês.
+            </p>
+            <p>
+              Fiz o Caishen porque as contas de casa moram espalhadas: um extrato em cada banco, uma
+              fatura em PDF, uma planilha que ninguém atualiza. Ele junta tudo num lugar só e faz a
+              conta que dá trabalho: quanto sobra, quanto custa cada dívida e{' '}
+              <mark className="bg-(--l-marker) px-1 text-(--l-ink)">
+                em que mês você termina de pagar
+              </mark>
+              .
+            </p>
+            <p>
+              Ele só lê. Não pede a senha do banco, não mexe no seu dinheiro e não oferece crédito.
+              Quando sugere um lançamento, quem confirma é você.
+            </p>
+          </motion.div>
+          <motion.p className="mt-8 text-[22px] italic" variants={rise}>
+            Pedro Felippe
+          </motion.p>
+          <motion.p className="text-[14px] text-(--l-muted)" variants={rise}>
+            quem faz o Caishen
+          </motion.p>
+
+          <motion.ul className="mt-12 grid grid-cols-3 gap-3" variants={rise}>
+            {OBJECTS.map(object => (
+              <li key={object.src}>
+                <img
+                  alt={object.alt}
+                  className="aspect-square w-full rounded-md object-cover transition-transform duration-300 hover:scale-[1.03]"
+                  height={object.height}
+                  loading="lazy"
+                  src={object.src}
+                  width={object.width}
+                />
+                <p className="mt-2 text-[13px] leading-snug text-(--l-muted)">{object.credit}</p>
+              </li>
+            ))}
+          </motion.ul>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------- the first step
+
+const GOALS = ['Quitar dívidas', 'Organizar o mês'] as const;
+
+/** The close: the sign-up already open, on the seal's red. */
+function Start() {
+  const navigate = useNavigate();
+  const [name, setName] = useState('Ana');
+  const [goal, setGoal] = useState<(typeof GOALS)[number]>('Quitar dívidas');
+
+  return (
+    <section
+      aria-labelledby="comece-title"
+      className="grid min-h-[84svh] gap-10 bg-(--l-seal) px-4 py-14 text-white sm:px-10 lg:min-h-[90svh] lg:grid-cols-12 lg:py-10"
+    >
+      <motion.div
+        className="flex flex-col lg:col-span-5 lg:justify-end"
+        variants={stagger}
+        {...onView}
+      >
+        <motion.h2
+          className="font-display text-(length:--step-head) leading-[0.98] font-light tracking-[-0.022em]"
+          id="comece-title"
+          variants={rise}
+        >
+          Comece pelo
+          <br />
+          extrato.
+        </motion.h2>
+        <motion.p className="mt-5 max-w-[40ch] text-(length:--step-body)" variants={rise}>
+          Crie a conta, mande o arquivo do seu banco e veja o mês inteiro organizado em poucos
+          minutos.
+        </motion.p>
+      </motion.div>
+
+      <motion.form
+        className="self-end rounded-lg bg-white p-6 text-(--l-ink) shadow-[0_24px_60px_-20px_rgb(0_0_0/0.45)] sm:max-w-[440px] lg:col-span-5 lg:col-start-7 lg:self-center"
+        data-ui
+        onSubmit={event => {
+          event.preventDefault();
+          navigate(SIGN_UP);
+        }}
+        variants={rise}
+        {...onView}
+      >
+        <p className="text-[18px] font-medium">Criar sua conta</p>
+        <label className="mt-5 block text-[14px]" htmlFor="start-name">
+          Como podemos te chamar?
+        </label>
+        <Input
+          className="mt-2 h-11 text-[15px]"
+          id="start-name"
+          onChange={event => setName(event.target.value)}
+          value={name}
+        />
+        <p className="mt-5 text-[14px]">O que vem primeiro?</p>
+        <div
+          className="mt-2 grid grid-cols-2 gap-1 rounded-md bg-(--l-surface) p-1"
+          role="radiogroup"
+        >
+          {GOALS.map(option => (
+            <Button
+              aria-checked={goal === option}
+              className={cn(
+                'h-10 rounded text-[14px] font-normal shadow-none',
+                goal === option
+                  ? 'bg-white font-medium text-(--l-ink) hover:bg-white'
+                  : 'text-(--l-muted) hover:bg-transparent hover:text-(--l-ink)'
+              )}
+              key={option}
+              onClick={() => setGoal(option)}
+              role="radio"
+              type="button"
+              variant="ghost"
+            >
+              {option}
+            </Button>
           ))}
         </div>
-        <p className="mt-14 max-w-3xl text-[13px] text-slate-500">
-          O Caishen não é uma instituição financeira, não oferece crédito nem recomenda
-          investimentos, e nunca movimenta dinheiro. Os cálculos partem dos dados que você informa e
-          servem para entender e planejar; confira sempre os valores com a sua instituição.
+        <Button
+          className="mt-6 h-[52px] w-full rounded-md bg-(--l-ink) text-[15px] text-white hover:bg-(--l-dark-step) active:scale-[0.99]"
+          type="submit"
+        >
+          {name.trim() ? `Criar conta, ${name.trim().split(' ')[0]}` : 'Criar conta'}
+        </Button>
+      </motion.form>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------- footer
+
+const FOOTER_LINKS = [
+  { href: '/sign-in', label: 'Entrar' },
+  { href: SIGN_UP, label: 'Criar conta' },
+  { href: '/terms', label: 'Termos' },
+];
+
+function Footer() {
+  return (
+    <footer className="px-5 pt-[20svh] pb-6 text-(length:--step-small) md:px-10 md:pt-[30svh] md:pb-[30px]">
+      <p className="mb-10 max-w-[60ch] text-(--l-muted)">
+        O Caishen não é uma instituição financeira, não oferece crédito nem recomenda investimentos,
+        e nunca movimenta dinheiro. Os cálculos partem dos dados que você informa; confira sempre os
+        valores com a sua instituição. Imagens: The Metropolitan Museum of Art, domínio público
+        (CC0). {COMPANY.name}, CNPJ {COMPANY.cnpj}.
+      </p>
+      <div className="flex flex-col gap-2 md:grid md:grid-cols-[1fr_auto_1fr] md:items-baseline">
+        <p className="text-(--l-muted)">Caishen, finanças sem senha de banco</p>
+        <nav aria-label="Rodapé" className="flex flex-wrap gap-x-6 gap-y-1">
+          {FOOTER_LINKS.map(link => (
+            <Link className="underline-offset-4 hover:underline" key={link.href} to={link.href}>
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+        <p className="text-(--l-muted) md:text-right">
+          © {new Date().getFullYear()} ·{' '}
+          <Link className="text-(--l-ink) underline-offset-4 hover:underline" to="/privacy">
+            Privacidade
+          </Link>
         </p>
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 text-[13px] text-slate-500">
-          <p>
-            © {new Date().getFullYear()} Caishen · {COMPANY.name} · CNPJ {COMPANY.cnpj}
-          </p>
-          <a className="inline-flex items-center gap-1 hover:text-white" href="#conteudo">
-            De volta ao topo
-            <ArrowUpIcon className="size-3.5" />
-          </a>
-        </div>
       </div>
     </footer>
   );
