@@ -169,6 +169,37 @@ Tarefas. Arquivada, sai da lista sem ser apagada.
 **Progresso** (`GoalProgress`):
 Um passo rumo a uma Meta, na unidade dela; negativo desconta.
 
+### Fitness
+
+Dados de saúde, sensíveis pela LGPD: só o Usuário os vê, e saem com a conta.
+Só números inteiros: gramas, milímetros, décimos de por cento, kcal.
+
+**Ficha de treino** (`WorkoutPlan`):
+Uma lista de Exercícios (séries, repetições, carga, descanso), talvez para
+alguns dias da semana. Mudar a Ficha troca os Exercícios dela.
+_Avoid_: rotina (que é outra coisa), programa
+
+**Treino** (`WorkoutSession`):
+Um treino feito num dia, de uma Ficha ou livre ("Corrida, 5 km"). Guarda o
+título, então fica no histórico mesmo se a Ficha for apagada.
+_Avoid_: sessão, exercício
+
+**Refeição** (`Meal`):
+O que se comeu num dia (café da manhã, almoço, lanche, jantar ou outra), com
+kcal e macros em gramas. A Dieta é a lista das Refeições de um dia.
+
+**Metas de macros** (`MacroTarget`):
+Quanto o Usuário quer comer por dia: kcal, proteínas, carboidratos, gorduras,
+cada uma opcional. Digitadas por ele; o app não as calcula. Não é uma Meta.
+_Avoid_: meta (que em Pessoal é outra coisa), dieta
+
+**Noite de sono** (`SleepLog`):
+Da hora de deitar à de acordar, no dia em que acordou, com a qualidade de 1 a 5.
+
+**Medida** (`Measurement`):
+Uma leitura do corpo num dia: peso, gordura corporal, cintura, quadril, peito,
+braço ou coxa.
+
 ### Acesso
 
 **Organização** (`Organization`):

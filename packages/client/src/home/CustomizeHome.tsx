@@ -58,7 +58,7 @@ export function useHomeLayout() {
   return { change, layout };
 }
 
-const AREAS: CardArea[] = ['finance', 'personal', 'general'];
+const AREAS: CardArea[] = ['finance', 'personal', 'fitness', 'general'];
 
 /** The cards, each with a switch and arrows to move it, under the name of its area. */
 function CardList({ layout, onChange }: { layout: Layout; onChange: (cards: Layout) => void }) {

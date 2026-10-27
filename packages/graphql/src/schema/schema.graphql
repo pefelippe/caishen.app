@@ -364,6 +364,8 @@ enum HomeCardKey {
   AGENDA
   GOALS
   NOTES
+  FITNESS
+  MEASURES
 }
 
 type HomeCardSetting {
@@ -1647,4 +1649,218 @@ extend type Mutation {
   book(input: BookInput!): BookingConfirmation!
   "Public: the guest cancels with their secret; false if it already was."
   cancelBookingByToken(token: String!): Boolean!
+}
+
+# Fitness: Fichas de treino, Treinos, Dieta, Macros, Sono and Medidas. Only integers come back
+# (grams, millimetres, kcal); what people type with decimals goes in as text, read by the server.
+
+"One line of a Ficha de treino."
+type WorkoutExercise {
+  id: ID!
+  name: String!
+  sets: Int!
+  "As written: 10, 8-12, até a falha."
+  reps: String!
+  "Grams; null for the body's own weight."
+  loadGrams: Int
+  restSeconds: Int
+  notes: String!
+}
+
+input WorkoutExerciseInput {
+  name: String!
+  sets: Int!
+  reps: String
+  "Kilograms as typed: 22,5."
+  load: String
+  restSeconds: Int
+  notes: String
+}
+
+"Ficha de treino: exercises, maybe set for some weekdays."
+type WorkoutPlan {
+  id: ID!
+  name: String!
+  notes: String!
+  "0 Sunday to 6."
+  weekdays: [Int!]!
+  exercises: [WorkoutExercise!]!
+  "The last day a Treino from it was logged."
+  lastDoneOn: Date
+}
+
+input WorkoutPlanInput {
+  name: String!
+  notes: String
+  weekdays: [Int!]
+  "Replace the Ficha's exercises, in this order."
+  exercises: [WorkoutExerciseInput!]!
+}
+
+"Treino: a workout done on a day."
+type WorkoutSession {
+  id: ID!
+  planId: ID
+  title: String!
+  doneOn: Date!
+  durationMinutes: Int
+  notes: String!
+}
+
+input WorkoutSessionInput {
+  planId: ID
+  "Without a Ficha; with one, its name."
+  title: String
+  doneOn: Date!
+  durationMinutes: Int
+  notes: String
+}
+
+enum MealKind {
+  BREAKFAST
+  LUNCH
+  SNACK
+  DINNER
+  OTHER
+}
+
+"Refeição: what was eaten, with kcal and macros in whole grams."
+type Meal {
+  id: ID!
+  eatenOn: Date!
+  time: String
+  kind: MealKind!
+  description: String!
+  kcal: Int!
+  proteinG: Int!
+  carbsG: Int!
+  fatG: Int!
+}
+
+input MealInput {
+  eatenOn: Date!
+  time: String
+  kind: MealKind
+  description: String!
+  kcal: Int
+  proteinG: Int
+  carbsG: Int
+  fatG: Int
+}
+
+"What the Viewer aims to eat a day; each optional."
+type MacroTarget {
+  kcal: Int
+  proteinG: Int
+  carbsG: Int
+  fatG: Int
+}
+
+input MacroTargetInput {
+  kcal: Int
+  proteinG: Int
+  carbsG: Int
+  fatG: Int
+}
+
+"What the Refeições of one day add up to."
+type MacroDay {
+  date: Date!
+  meals: Int!
+  kcal: Int!
+  proteinG: Int!
+  carbsG: Int!
+  fatG: Int!
+}
+
+"Noite de sono, filed under the morning it ended."
+type SleepLog {
+  id: ID!
+  wokeOn: Date!
+  bedTime: String!
+  wakeTime: String!
+  "How long it lasted."
+  minutes: Int!
+  "1 to 5."
+  quality: Int
+  notes: String!
+}
+
+input SleepLogInput {
+  wokeOn: Date!
+  bedTime: String!
+  wakeTime: String!
+  quality: Int
+  notes: String
+}
+
+enum MeasureKind {
+  WEIGHT
+  BODY_FAT
+  WAIST
+  HIP
+  CHEST
+  ARM
+  THIGH
+}
+
+"Medida: grams for WEIGHT, tenths of a percent for BODY_FAT, millimetres for the rest."
+type Measurement {
+  id: ID!
+  kind: MeasureKind!
+  measuredOn: Date!
+  value: Int!
+}
+
+input MeasurementInput {
+  kind: MeasureKind!
+  measuredOn: Date!
+  "As typed, in kg, % or cm: 72,5."
+  value: String!
+}
+
+"Fitness today, for the Página inicial."
+type FitnessToday {
+  date: Date!
+  eaten: MacroDay!
+  target: MacroTarget
+  "The last night logged."
+  lastSleep: SleepLog
+  "The Fichas set for today's weekday."
+  plans: [WorkoutPlan!]!
+  done: [WorkoutSession!]!
+}
+
+extend type Query {
+  workoutPlans: [WorkoutPlan!]!
+  "Newest first; the last 90 days without dates."
+  workoutSessions(from: Date, to: Date): [WorkoutSession!]!
+  "The Refeições of some days, by day and time."
+  meals(from: Date!, to: Date!): [Meal!]!
+  macroTarget: MacroTarget
+  "Each day from `from` to `to` (at most 92), with or without Refeições."
+  macroDays(from: Date!, to: Date!): [MacroDay!]!
+  "Newest first; the last 60 nights without dates."
+  sleepLogs(from: Date, to: Date): [SleepLog!]!
+  "Oldest first; every kind without one."
+  measurements(kind: MeasureKind): [Measurement!]!
+  fitnessToday: FitnessToday!
+}
+
+extend type Mutation {
+  "Creates a Ficha (no id) or changes one, exercises and all."
+  saveWorkoutPlan(id: ID, input: WorkoutPlanInput!): WorkoutPlan!
+  "Its Treinos stay, without the link."
+  deleteWorkoutPlan(id: ID!): Boolean!
+  logWorkout(input: WorkoutSessionInput!): WorkoutSession!
+  deleteWorkoutSession(id: ID!): Boolean!
+  createMeal(input: MealInput!): Meal!
+  updateMeal(id: ID!, input: MealInput!): Meal!
+  deleteMeal(id: ID!): Boolean!
+  setMacroTarget(input: MacroTargetInput!): MacroTarget!
+  "Logs a night (no id) or changes one."
+  saveSleepLog(id: ID, input: SleepLogInput!): SleepLog!
+  deleteSleepLog(id: ID!): Boolean!
+  addMeasurement(input: MeasurementInput!): Measurement!
+  deleteMeasurement(id: ID!): Boolean!
 }

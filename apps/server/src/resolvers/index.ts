@@ -7,6 +7,7 @@ import { connectionResolvers } from './connections';
 import { documentResolvers } from './documents';
 import { holderResolvers } from './holders';
 import { homeResolvers } from './home';
+import { fitnessResolvers } from './fitness';
 import { personalResolvers } from './personal';
 import { marketResolvers } from './market';
 import { obligationResolvers } from './obligations';
@@ -25,6 +26,7 @@ const modules: Resolvers[] = [
   settingsResolvers,
   homeResolvers,
   personalResolvers,
+  fitnessResolvers,
   billingResolvers,
   marketResolvers,
 ];

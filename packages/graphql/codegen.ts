@@ -44,6 +44,8 @@ const config: CodegenConfig = {
           Goal: '@zapbots/database#GoalWithProgressRow',
           GoalProgress: '@zapbots/database#GoalProgressRow',
           Task: '@zapbots/database#TaskRow',
+          SleepLog: '@zapbots/database#SleepLogRow',
+          WorkoutPlan: '@zapbots/database#WorkoutPlanRow',
         },
         scalars: { ...scalars, DateTime: 'Date | string' },
         useIndexSignature: true,

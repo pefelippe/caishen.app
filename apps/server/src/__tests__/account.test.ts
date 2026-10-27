@@ -57,6 +57,12 @@ describe('deleteAccount', () => {
     await db
       .insert(schema.consent)
       .values({ grantedById: viewer.userId, holderId: holder!.id, source: 'OPEN_FINANCE' });
+    // Health data (Fitness) goes with the account too.
+    await gql(viewer, `mutation { setMacroTarget(input: { kcal: 2000 }) { kcal } }`);
+    await gql(
+      viewer,
+      `mutation { addMeasurement(input: { kind: WEIGHT, measuredOn: "2026-10-01", value: "70" }) { id } }`
+    );
 
     const result = await gql(viewer, DELETE_ACCOUNT, {
       confirm: ` ${viewer.userId.toUpperCase()}@TEST.LOCAL `,
@@ -69,6 +75,10 @@ describe('deleteAccount', () => {
     expect(await db.select().from(schema.holder).where(eq(schema.holder.id, holder!.id))).toEqual(
       []
     );
+    for (const table of [schema.measurement, schema.macroTarget])
+      expect(
+        await db.select().from(table).where(eq(table.organizationId, viewer.organizationId))
+      ).toEqual([]);
   });
 
   it('leaves an Organization shared with others, taking only their membership and consents', async () => {

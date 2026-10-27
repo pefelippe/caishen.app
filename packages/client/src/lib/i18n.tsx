@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
+import { FITNESS_STRINGS } from './i18n-fitness';
 import { PERSONAL_STRINGS } from './i18n-personal';
 
 export type Language = 'en' | 'pt';
@@ -479,6 +480,7 @@ const STRINGS = {
   'toast.close': { en: 'Close', pt: 'Fechar' },
   'models.perBot': { en: 'Model of each Bot', pt: 'Modelo de cada Bot' },
   ...PERSONAL_STRINGS,
+  ...FITNESS_STRINGS,
 } satisfies Record<string, Record<Language, string>>;
 
 export type StringKey = keyof typeof STRINGS;

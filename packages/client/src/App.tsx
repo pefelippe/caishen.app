@@ -52,6 +52,11 @@ const BookingLinksPage = page(
   () => import('./pages/personal/BookingLinksPage'),
   'BookingLinksPage'
 );
+const WorkoutsPage = page(() => import('./pages/fitness/WorkoutsPage'), 'WorkoutsPage');
+const DietPage = page(() => import('./pages/fitness/DietPage'), 'DietPage');
+const MacrosPage = page(() => import('./pages/fitness/MacrosPage'), 'MacrosPage');
+const SleepPage = page(() => import('./pages/fitness/SleepPage'), 'SleepPage');
+const MeasuresPage = page(() => import('./pages/fitness/MeasuresPage'), 'MeasuresPage');
 const BookingPage = page(() => import('./pages/BookingPage'), 'BookingPage');
 const CancelBookingPage = page(() => import('./pages/BookingPage'), 'CancelBookingPage');
 
@@ -300,6 +305,47 @@ export function App() {
           path="personal/goals"
         />
         <Route element={<Navigate replace to="/personal/tasks" />} path="personal" />
+        <Route
+          element={
+            <Scrolling>
+              <WorkoutsPage />
+            </Scrolling>
+          }
+          path="fitness/workouts"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <DietPage />
+            </Scrolling>
+          }
+          path="fitness/diet"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <MacrosPage />
+            </Scrolling>
+          }
+          path="fitness/macros"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <SleepPage />
+            </Scrolling>
+          }
+          path="fitness/sleep"
+        />
+        <Route
+          element={
+            <Scrolling>
+              <MeasuresPage />
+            </Scrolling>
+          }
+          path="fitness/measures"
+        />
+        <Route element={<Navigate replace to="/fitness/workouts" />} path="fitness" />
         <Route element={<IntegrationsPage />} path="integrations" />
         <Route element={<Navigate replace to="/integrations#ai" />} path="integrations/models" />
         <Route element={<LegacyIntegration />} path="integrations/:group" />

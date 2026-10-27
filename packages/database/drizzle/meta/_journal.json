@@ -281,6 +281,13 @@
       "when": 1793115103592,
       "tag": "0039_ancient_grey_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793116055556,
+      "tag": "0040_green_sentinels",
+      "breakpoints": true
     }
   ]
 }

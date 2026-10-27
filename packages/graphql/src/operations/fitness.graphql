@@ -1,0 +1,207 @@
+# Fitness: Fichas de treino, Treinos, Dieta, Macros, Sono and Medidas.
+
+fragment WorkoutPlanFields on WorkoutPlan {
+  id
+  name
+  notes
+  weekdays
+  lastDoneOn
+  exercises {
+    id
+    name
+    sets
+    reps
+    loadGrams
+    restSeconds
+    notes
+  }
+}
+
+fragment WorkoutSessionFields on WorkoutSession {
+  id
+  planId
+  title
+  doneOn
+  durationMinutes
+  notes
+}
+
+fragment MealFields on Meal {
+  id
+  eatenOn
+  time
+  kind
+  description
+  kcal
+  proteinG
+  carbsG
+  fatG
+}
+
+fragment MacroTargetFields on MacroTarget {
+  kcal
+  proteinG
+  carbsG
+  fatG
+}
+
+fragment MacroDayFields on MacroDay {
+  date
+  meals
+  kcal
+  proteinG
+  carbsG
+  fatG
+}
+
+fragment SleepLogFields on SleepLog {
+  id
+  wokeOn
+  bedTime
+  wakeTime
+  minutes
+  quality
+  notes
+}
+
+query Workouts {
+  workoutPlans {
+    ...WorkoutPlanFields
+  }
+  workoutSessions {
+    ...WorkoutSessionFields
+  }
+}
+
+mutation SaveWorkoutPlan($id: ID, $input: WorkoutPlanInput!) {
+  saveWorkoutPlan(id: $id, input: $input) {
+    ...WorkoutPlanFields
+  }
+}
+
+mutation DeleteWorkoutPlan($id: ID!) {
+  deleteWorkoutPlan(id: $id)
+}
+
+mutation LogWorkout($input: WorkoutSessionInput!) {
+  logWorkout(input: $input) {
+    ...WorkoutSessionFields
+  }
+}
+
+mutation DeleteWorkoutSession($id: ID!) {
+  deleteWorkoutSession(id: $id)
+}
+
+query Meals($from: Date!, $to: Date!) {
+  meals(from: $from, to: $to) {
+    ...MealFields
+  }
+  macroTarget {
+    ...MacroTargetFields
+  }
+}
+
+mutation CreateMeal($input: MealInput!) {
+  createMeal(input: $input) {
+    ...MealFields
+  }
+}
+
+mutation UpdateMeal($id: ID!, $input: MealInput!) {
+  updateMeal(id: $id, input: $input) {
+    ...MealFields
+  }
+}
+
+mutation DeleteMeal($id: ID!) {
+  deleteMeal(id: $id)
+}
+
+query Macros($from: Date!, $to: Date!) {
+  macroDays(from: $from, to: $to) {
+    ...MacroDayFields
+  }
+  macroTarget {
+    ...MacroTargetFields
+  }
+}
+
+mutation SetMacroTarget($input: MacroTargetInput!) {
+  setMacroTarget(input: $input) {
+    ...MacroTargetFields
+  }
+}
+
+query SleepLogs($from: Date, $to: Date) {
+  sleepLogs(from: $from, to: $to) {
+    ...SleepLogFields
+  }
+}
+
+mutation SaveSleepLog($id: ID, $input: SleepLogInput!) {
+  saveSleepLog(id: $id, input: $input) {
+    ...SleepLogFields
+  }
+}
+
+mutation DeleteSleepLog($id: ID!) {
+  deleteSleepLog(id: $id)
+}
+
+query Measurements {
+  measurements {
+    id
+    kind
+    measuredOn
+    value
+  }
+}
+
+mutation AddMeasurement($input: MeasurementInput!) {
+  addMeasurement(input: $input) {
+    id
+    kind
+    measuredOn
+    value
+  }
+}
+
+mutation DeleteMeasurement($id: ID!) {
+  deleteMeasurement(id: $id)
+}
+
+query HomeFitness {
+  fitnessToday {
+    date
+    eaten {
+      ...MacroDayFields
+    }
+    target {
+      ...MacroTargetFields
+    }
+    lastSleep {
+      ...SleepLogFields
+    }
+    plans {
+      id
+      name
+      exercises {
+        id
+      }
+    }
+    done {
+      id
+      title
+    }
+  }
+}
+
+query HomeMeasures {
+  measurements(kind: WEIGHT) {
+    id
+    kind
+    measuredOn
+    value
+  }
+}

@@ -20,6 +20,7 @@
     "@zapbots/auth": "workspace:*",
     "@zapbots/database": "workspace:*",
     "@zapbots/finance": "workspace:*",
+    "@zapbots/fitness": "workspace:*",
     "@zapbots/personal": "workspace:*",
     "@zapbots/graphql": "workspace:*",
     "better-auth": "1.7.6",

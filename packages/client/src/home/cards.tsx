@@ -23,6 +23,7 @@ import { Overview } from '../components/Overview';
 import { formatCents, formatDate, formatPercent } from '../lib/format';
 import { useI18n, type Language, type StringKey } from '../lib/i18n';
 import type { CardSetting } from './layout';
+import { FitnessCard, MeasuresCard } from './fitnessCards';
 import { Empty, Lines, Panel } from './panel';
 import { AgendaCard, GoalsCard, NotesCard, TodayCard } from './personalCards';
 
@@ -35,7 +36,7 @@ export const rise: Variants = {
 };
 
 /** Where a card comes from: the menu's groups, so the Personalizar list groups them the same way. */
-export type CardArea = 'finance' | 'general' | 'personal';
+export type CardArea = 'finance' | 'fitness' | 'general' | 'personal';
 
 /** How much of the row a card takes on a wide screen; on a phone each takes the whole row. */
 export type CardSize = 'full' | 'third' | 'twoThirds';
@@ -275,6 +276,18 @@ export const HOME_CARDS: Record<HomeCardKey, HomeCard> = {
   GOALS: { Component: GoalsCard, area: 'personal', size: 'twoThirds', title: 'nav.goals' },
   NOTES: { Component: NotesCard, area: 'personal', size: 'third', title: 'home.card.notes' },
   TODAY: { Component: TodayCard, area: 'personal', size: 'twoThirds', title: 'home.card.today' },
+  FITNESS: {
+    Component: FitnessCard,
+    area: 'fitness',
+    size: 'twoThirds',
+    title: 'home.card.fitness',
+  },
+  MEASURES: {
+    Component: MeasuresCard,
+    area: 'fitness',
+    size: 'third',
+    title: 'home.card.measures',
+  },
   CHATS: { Component: ChatsCard, area: 'general', size: 'third', title: 'home.chats' },
   DUES: { Component: DuesCard, area: 'finance', size: 'twoThirds', title: 'home.dues' },
   MARKET: { Component: MarketCard, area: 'finance', size: 'full', title: 'home.card.market' },
@@ -298,4 +311,6 @@ export const DEFAULT_LAYOUT: CardSetting<HomeCardKey>[] = [
   { hidden: false, key: 'CHATS' },
   { hidden: false, key: 'GOALS' },
   { hidden: false, key: 'NOTES' },
+  { hidden: false, key: 'FITNESS' },
+  { hidden: false, key: 'MEASURES' },
 ];

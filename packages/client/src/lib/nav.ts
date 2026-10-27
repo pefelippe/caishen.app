@@ -63,7 +63,7 @@ export interface Nav {
 /**
  * Every screen of the app as the menu on the left lists them: the main ones on top (Página inicial,
  * Agente, Documentos, Workflows, Integrações), then Finanças, Pessoal and
- * Fitness (only "Em breve" for now). The account's (Perfil, Plano,
+ * Fitness. The account's (Perfil, Plano,
  * Configurações) are in the avatar's menu instead.
  */
 export function useNav(): Nav {
@@ -98,14 +98,13 @@ export function useNav(): Nav {
         key: 'personal',
         label: t('nav.personal'),
       },
-      // Fitness is still to come: its entries show "Em breve" and lead nowhere.
       {
         items: [
-          { icon: DumbbellIcon, label: t('nav.workouts'), soon: true, to: '/fitness/workouts' },
-          { icon: SaladIcon, label: t('nav.meals'), soon: true, to: '/fitness/diet' },
-          { icon: PieChartIcon, label: t('nav.macros'), soon: true, to: '/fitness/macros' },
-          { icon: BedIcon, label: t('nav.sleep'), soon: true, to: '/fitness/sleep' },
-          { icon: RulerIcon, label: t('nav.measures'), soon: true, to: '/fitness/measures' },
+          { icon: DumbbellIcon, label: t('nav.workouts'), to: '/fitness/workouts' },
+          { icon: SaladIcon, label: t('nav.meals'), to: '/fitness/diet' },
+          { icon: PieChartIcon, label: t('nav.macros'), to: '/fitness/macros' },
+          { icon: BedIcon, label: t('nav.sleep'), to: '/fitness/sleep' },
+          { icon: RulerIcon, label: t('nav.measures'), to: '/fitness/measures' },
         ],
         area: 'fitness',
         key: 'fitness',

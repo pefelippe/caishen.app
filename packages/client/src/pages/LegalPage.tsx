@@ -128,6 +128,11 @@ const TERMS: Clause[] = [
           Os cálculos partem dos dados que você informa ou importa. Confira sempre os valores com o
           seu banco, a sua administradora de cartão ou o órgão responsável antes de decidir.
         </li>
+        <li>
+          O Fitness (fichas de treino, dieta, macros, sono e medidas) é um caderno para você anotar
+          e acompanhar. <strong>Não é orientação médica, nutricional ou de educação física</strong>:
+          procure um profissional antes de mudar treino ou alimentação.
+        </li>
       </ul>
     ),
     id: 'nao-e',
@@ -319,6 +324,14 @@ const PRIVACY: Clause[] = [
         <li>
           <strong>Pessoal:</strong> o que você anota: tarefas e listas, notas, eventos da agenda,
           metas e o progresso delas, e como você arrumou os cards da página inicial.
+        </li>
+        <li>
+          <strong>Fitness (dados de saúde):</strong> fichas de treino e os treinos feitos, refeições
+          com calorias e macros, as suas metas de macros, as noites de sono e medidas do corpo
+          (peso, gordura, circunferências). São dados pessoais sensíveis (art. 11 da LGPD): você os
+          informa por vontade própria, eles servem só para mostrar a você o seu próprio
+          acompanhamento, não são compartilhados com ninguém nem usados para publicidade ou perfil,
+          e saem junto com a sua conta. Você pode apagar cada registro quando quiser.
         </li>
         <li>
           <strong>Links de agendamento:</strong> quando alguém marca um horário pelo seu link,
