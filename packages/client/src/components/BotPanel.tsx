@@ -29,10 +29,11 @@ export const PANEL_BUTTON =
   'size-10 rounded-xl bg-accent text-primary hover:bg-accent/70 hover:text-primary [&_svg]:size-5!';
 
 interface Props {
-  /** Extra buttons at the end of the header. */
-  actions?: ReactNode;
-  /** A button at the start of the header, e.g. to close a floating panel. */
-  leading?: ReactNode;
+  /** Buttons at the end of the header, given the open Conversation: on the panel, opening it on
+   * its own page and closing. */
+  actions?: (conversationId: string | null) => ReactNode;
+  /** The User's first name, greeted while the Conversation is empty. */
+  greeting?: string;
   bot: BotKey;
   className?: string;
   /** Sent as soon as the blank Conversation opens. */
@@ -51,7 +52,7 @@ export function BotPanel({
   className,
   firstFiles,
   firstMessage,
-  leading,
+  greeting,
   startBlank,
   suggestions,
 }: Props) {
@@ -85,10 +86,7 @@ export function BotPanel({
   return (
     <section className={cn('flex min-h-0 flex-col gap-4', className)} data-bot={key}>
       <header className="flex items-center gap-2">
-        {leading}
-        <div className="min-w-0 flex-1 truncate text-center text-base font-semibold">
-          {bot.name}
-        </div>
+        <div className="min-w-0 flex-1 truncate pl-1 text-base font-semibold">{bot.name}</div>
         {Boolean(list?.conversations.length) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -132,7 +130,7 @@ export function BotPanel({
         >
           <PlusIcon />
         </Button>
-        {actions}
+        {actions?.(conversationId)}
       </header>
       {!data.aiStatus.configured ? (
         <Alert>
@@ -153,6 +151,7 @@ export function BotPanel({
           ensureConversation={ensureConversation}
           firstFiles={thread === 0 ? firstFiles : undefined}
           firstMessage={thread === 0 ? firstMessage : undefined}
+          greeting={greeting}
           key={thread}
           suggestions={suggestions}
         />

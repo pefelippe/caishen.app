@@ -101,7 +101,7 @@ export function Layout({ user }: Props) {
                   <MobileNav />
                 </div>
                 <div className="contents print:hidden">
-                  <ChatPanel />
+                  <ChatPanel greeting={user.name.split(' ')[0]} />
                 </div>
               </CommandMenu>
             </SidebarProvider>

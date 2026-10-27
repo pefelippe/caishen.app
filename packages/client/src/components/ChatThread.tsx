@@ -291,21 +291,35 @@ export function ChatThread({
           page && 'mx-auto w-full max-w-3xl gap-6 px-1 pt-6 pb-4'
         )}
       >
-        {empty && !page && (
-          <div className="flex flex-col gap-3 py-2">
-            <p className="font-serif text-lg leading-snug text-pretty">{bot.personality}</p>
-            {suggestions.map(suggestion => (
-              <Button
-                className="h-auto justify-start px-0 py-0.5 text-left whitespace-normal text-ink"
-                key={suggestion.text}
-                onClick={() => fill(suggestion.text)}
-                variant="link"
-              >
-                {suggestion.text}
-              </Button>
-            ))}
-          </div>
-        )}
+        {empty &&
+          !page && (
+            // After Mercado Pago's: the greeting large on top, the suggestions at the foot as one list.
+            <div className="flex flex-1 flex-col justify-between gap-8 pt-4">
+              <p className="text-2xl leading-tight font-semibold tracking-tight text-balance">
+                {greeting ? `Olá, ${greeting}!` : 'Olá!'}
+                <br />
+                Como posso te ajudar?
+              </p>
+              {suggestions.length > 0 && (
+                <ul className="flex flex-col gap-0.5 overflow-hidden rounded-2xl">
+                  {suggestions.map(suggestion => (
+                    <li key={suggestion.text}>
+                      <Button
+                        className="h-auto w-full justify-start gap-3 rounded-none bg-muted px-3 py-3 text-left text-sm font-normal whitespace-normal text-foreground hover:bg-accent active:scale-[0.99]"
+                        onClick={() => fill(suggestion.text)}
+                        variant="ghost"
+                      >
+                        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-card text-foreground">
+                          <suggestion.icon className="size-[18px]" />
+                        </span>
+                        <span className="leading-snug">{suggestion.text}</span>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         {empty && page && (
           <div className="flex flex-1 flex-col justify-center gap-8 py-6">
             <div className="flex flex-col items-center gap-2 text-center">
@@ -480,42 +494,46 @@ export function ChatThread({
         </div>
       ) : (
         <>
-          <form className="relative mt-3 flex shrink-0 flex-col gap-2" onSubmit={onSubmit}>
+          {/* After Mercado Pago's: one rounded line, the + on the left and sending on the right. */}
+          <form
+            className="mt-4 flex shrink-0 flex-col gap-2 rounded-[28px] border bg-card p-2 transition-colors focus-within:border-primary/50"
+            onSubmit={onSubmit}
+          >
             <Waiting files={files} onRemove={remove} />
-            <Textarea
-              aria-label={`Mensagem para ${bot.name}`}
-              data-chat-input
-              className="max-h-40 min-h-[5.25rem] resize-none bg-card pr-11 pb-10"
-              disabled={Boolean(unavailable)}
-              onChange={event => setDraft(event.target.value)}
-              onKeyDown={onKeyDown}
-              onPaste={onPaste}
-              placeholder={`Escreva para ${bot.name}…`}
-              ref={input}
-              value={draft}
-            />
-            <div className="absolute bottom-2 left-2">
+            <div className="flex items-end gap-1">
               <AttachMenu
                 disabled={Boolean(unavailable) || files.length >= MAX_ATTACHMENTS}
                 onPick={() => picker.current?.click()}
-                small
               />
+              <Textarea
+                aria-label={`Mensagem para ${bot.name}`}
+                data-chat-input
+                className="max-h-40 min-h-10 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-base shadow-none focus-visible:ring-0 md:text-[0.9375rem] dark:bg-transparent"
+                disabled={Boolean(unavailable)}
+                onChange={event => setDraft(event.target.value)}
+                onKeyDown={onKeyDown}
+                onPaste={onPaste}
+                placeholder="Pergunte algo"
+                ref={input}
+                rows={1}
+                value={draft}
+              />
+              {replying ? (
+                <StopButton className="size-10 shrink-0 rounded-full" onStop={stop} />
+              ) : (
+                <Button
+                  aria-label="Enviar"
+                  className="size-10 shrink-0 rounded-full transition-transform active:scale-95"
+                  disabled={!canSend}
+                  size="icon"
+                  type="submit"
+                >
+                  <ArrowUpIcon />
+                </Button>
+              )}
             </div>
-            {replying ? (
-              <StopButton className="absolute right-2 bottom-2 size-8" onStop={stop} />
-            ) : (
-              <Button
-                aria-label="Enviar"
-                className="absolute right-2 bottom-2"
-                disabled={!canSend}
-                size="icon-sm"
-                type="submit"
-              >
-                <ArrowUpIcon />
-              </Button>
-            )}
           </form>
-          <p className="pt-1.5 text-center text-[11px] text-muted-foreground">
+          <p className="pt-2 text-center text-[11px] text-muted-foreground">
             {bot.name} é uma IA e pode errar.
           </p>
         </>

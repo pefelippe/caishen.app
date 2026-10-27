@@ -1,7 +1,7 @@
-import { BellIcon, ChevronLeftIcon, GaugeIcon, ListOrderedIcon } from 'lucide-react';
+import { BellIcon, GaugeIcon, ListOrderedIcon, Maximize2Icon, XIcon } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '@zapbots/ui/components/button';
 
@@ -12,7 +12,7 @@ import { BotPanel, PANEL_BUTTON } from './BotPanel';
 import type { Suggestion } from './ChatThread';
 
 const STORAGE_KEY = 'zapbots.chatPanel';
-const WIDTH = 400;
+const WIDTH = 460;
 const EASE = [0.22, 1, 0.36, 1] as const;
 /** Questions offered while a Conversation is still blank. */
 export const CHAT_SUGGESTIONS: Suggestion[] = [
@@ -99,14 +99,16 @@ export function useChatPanel(): ChatPanelState {
 
 /**
  * The chat with the Caishen, a card floating over the bottom right corner of whatever screen is
- * open, as Mercado Pago's: his latest Conversation, the earlier ones and a blank one. On a desktop
- * it grows from that corner as it fades in; on a phone it covers the screen, rising a little.
+ * open, as Mercado Pago's: it always opens on a blank Conversation, the earlier ones a click away.
+ * On a desktop it grows from that corner as it fades in; on a phone it covers the screen, rising a
+ * little. Its header closes it, or takes the open Conversation to the Agente page.
  */
-export function ChatPanel() {
+export function ChatPanel({ greeting }: { greeting?: string }) {
   const { close, open } = useChatPanel();
   const { blank, firstFiles, firstMessage } = useContext(BlankContext);
   const { t } = useI18n();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const desktop = useDesktop();
   const still = useReducedMotion();
   // The chat page already is the chat; the panel stays closed there.
@@ -125,7 +127,7 @@ export function ChatPanel() {
         <motion.aside
           animate={shown}
           aria-label={t('chat.panel')}
-          className="fixed inset-0 z-40 flex origin-bottom-right flex-col overflow-hidden bg-card md:inset-auto md:right-6 md:bottom-6 md:h-[min(46rem,calc(100svh-6rem))] md:rounded-3xl md:border md:shadow-[0_24px_60px_-20px_rgb(15_23_42/0.3)]"
+          className="fixed inset-0 z-40 flex origin-bottom-right flex-col overflow-hidden bg-card md:inset-auto md:right-6 md:bottom-6 md:h-[min(52rem,calc(100svh-6rem))] md:rounded-3xl md:border md:shadow-[0_24px_60px_-20px_rgb(15_23_42/0.3)]"
           exit={hidden}
           initial={hidden}
           key="chat"
@@ -135,24 +137,40 @@ export function ChatPanel() {
           {/* Covering a phone's screen, it keeps clear of the notch and the home indicator. */}
           <div className="flex h-full min-h-0 w-full flex-col p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] md:p-5">
             <BotPanel
-              leading={
-                <Button
-                  aria-label={t('chat.close')}
-                  className={PANEL_BUTTON}
-                  onClick={close}
-                  size="icon"
-                  title={t('chat.close')}
-                  variant="ghost"
-                >
-                  <ChevronLeftIcon />
-                </Button>
-              }
+              actions={conversationId => (
+                <>
+                  <Button
+                    aria-label={t('chat.expand')}
+                    className={PANEL_BUTTON}
+                    onClick={() => {
+                      close();
+                      navigate(conversationId ? `/chat?c=${conversationId}` : '/chat');
+                    }}
+                    size="icon"
+                    title={t('chat.expand')}
+                    variant="ghost"
+                  >
+                    <Maximize2Icon />
+                  </Button>
+                  <Button
+                    aria-label={t('chat.close')}
+                    className={PANEL_BUTTON}
+                    onClick={close}
+                    size="icon"
+                    title={t('chat.close')}
+                    variant="ghost"
+                  >
+                    <XIcon />
+                  </Button>
+                </>
+              )}
               bot="FINANCE"
               className="h-full"
               firstFiles={firstFiles}
               firstMessage={firstMessage}
+              greeting={greeting}
               key={blank}
-              startBlank={blank > 0}
+              startBlank
               suggestions={CHAT_SUGGESTIONS}
             />
           </div>
