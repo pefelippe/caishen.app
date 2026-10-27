@@ -1681,6 +1681,10 @@ input WorkoutExerciseInput {
 type WorkoutPlan {
   id: ID!
   name: String!
+  "Who it is for; null for the Viewer."
+  forName: String
+  "The secret of its public link, /w/<token>; null while not shared."
+  shareToken: String
   notes: String!
   "0 Sunday to 6."
   weekdays: [Int!]!
@@ -1691,6 +1695,8 @@ type WorkoutPlan {
 
 input WorkoutPlanInput {
   name: String!
+  "Who it is for; empty for the Viewer."
+  forName: String
   notes: String
   weekdays: [Int!]
   "Replace the Ficha's exercises, in this order."
@@ -1831,7 +1837,71 @@ type FitnessToday {
   done: [WorkoutSession!]!
 }
 
+enum WorkoutGoal {
+  HYPERTROPHY
+  FAT_LOSS
+  STRENGTH
+  CONDITIONING
+  HEALTH
+}
+
+enum WorkoutLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum WorkoutEquipment {
+  GYM
+  HOME
+  BODYWEIGHT
+}
+
+"What Fichas a Model should write, and for whom."
+input WorkoutBrief {
+  forName: String
+  goal: WorkoutGoal!
+  level: WorkoutLevel!
+  daysPerWeek: Int!
+  minutes: Int!
+  equipment: WorkoutEquipment!
+  notes: String
+}
+
+"An exercise as a Model wrote it, ready for WorkoutExerciseInput."
+type WorkoutExerciseDraft {
+  name: String!
+  sets: Int!
+  reps: String!
+  "Kilograms as text, or null."
+  load: String
+  restSeconds: Int
+  notes: String!
+}
+
+"A Ficha a Model wrote, not saved until the Viewer saves it."
+type WorkoutPlanDraft {
+  name: String!
+  notes: String!
+  weekdays: [Int!]!
+  exercises: [WorkoutExerciseDraft!]!
+}
+
+"A shared Ficha as anyone with its link sees it."
+type PublicWorkoutPlan {
+  name: String!
+  forName: String
+  notes: String!
+  weekdays: [Int!]!
+  "Who made it."
+  ownerName: String!
+  exercises: [WorkoutExercise!]!
+}
+
 extend type Query {
+  "Public: a shared Ficha by its link's secret, or null."
+  publicWorkoutPlan(token: String!): PublicWorkoutPlan
+  "Every Ficha, the Viewer's own first, then by whom they are for."
   workoutPlans: [WorkoutPlan!]!
   "Newest first; the last 90 days without dates."
   workoutSessions(from: Date, to: Date): [WorkoutSession!]!
@@ -1852,6 +1922,10 @@ extend type Mutation {
   saveWorkoutPlan(id: ID, input: WorkoutPlanInput!): WorkoutPlan!
   "Its Treinos stay, without the link."
   deleteWorkoutPlan(id: ID!): Boolean!
+  "Drafts written by the Agente's Model from a brief; nothing is saved."
+  generateWorkoutPlans(brief: WorkoutBrief!): [WorkoutPlanDraft!]!
+  "Opens a public link to the Ficha (a new secret each time), or closes it."
+  shareWorkoutPlan(id: ID!, shared: Boolean!): WorkoutPlan!
   logWorkout(input: WorkoutSessionInput!): WorkoutSession!
   deleteWorkoutSession(id: ID!): Boolean!
   createMeal(input: MealInput!): Meal!

@@ -334,6 +334,14 @@ const PRIVACY: Clause[] = [
           e saem junto com a sua conta. Você pode apagar cada registro quando quiser.
         </li>
         <li>
+          <strong>Fichas para outras pessoas:</strong> se você monta fichas para alunos ou clientes,
+          guardamos o nome que você der a cada um e as fichas deles. Você é responsável por ter a
+          autorização dessas pessoas. Ao compartilhar uma ficha, quem tiver o link vê a ficha, o
+          nome para quem ela é e o seu nome; parar de compartilhar desliga o link na hora. Ao gerar
+          fichas com IA, o que você preencher (para quem, objetivo, nível, dias, tempo, equipamento
+          e observações) vai ao provedor do modelo de IA só para escrever aquela resposta.
+        </li>
+        <li>
           <strong>Links de agendamento:</strong> quando alguém marca um horário pelo seu link,
           guardamos o nome, o e-mail, o fuso horário e a mensagem dessa pessoa, mostramos esses
           dados a você e mandamos a ela um e-mail de confirmação com um link para cancelar. Quem tem

@@ -176,8 +176,13 @@ Só números inteiros: gramas, milímetros, décimos de por cento, kcal.
 
 **Ficha de treino** (`WorkoutPlan`):
 Uma lista de Exercícios (séries, repetições, carga, descanso), talvez para
-alguns dias da semana. Mudar a Ficha troca os Exercícios dela.
-_Avoid_: rotina (que é outra coisa), programa
+alguns dias da semana. Mudar a Ficha troca os Exercícios dela. É do Usuário ou
+de alguém que ele treina (`forName`, só um nome: aluno ou cliente, não um
+Usuário). Pode ser gerada pelo Agente a partir de um pedido (objetivo, nível,
+dias, tempo, equipamento): vem como rascunho e só é salva quando o Usuário
+quiser. Compartilhada, abre para qualquer um num link (`/w/<token>`) até o
+Usuário parar de compartilhar.
+_Avoid_: rotina (que é outra coisa), programa, treino (que é o feito num dia)
 
 **Treino** (`WorkoutSession`):
 Um treino feito num dia, de uma Ficha ou livre ("Corrida, 5 km"). Guarda o

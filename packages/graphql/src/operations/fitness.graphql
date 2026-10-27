@@ -3,6 +3,8 @@
 fragment WorkoutPlanFields on WorkoutPlan {
   id
   name
+  forName
+  shareToken
   notes
   weekdays
   lastDoneOn
@@ -203,5 +205,47 @@ query HomeMeasures {
     kind
     measuredOn
     value
+  }
+}
+
+mutation GenerateWorkoutPlans($brief: WorkoutBrief!) {
+  generateWorkoutPlans(brief: $brief) {
+    name
+    notes
+    weekdays
+    exercises {
+      name
+      sets
+      reps
+      load
+      restSeconds
+      notes
+    }
+  }
+}
+
+mutation ShareWorkoutPlan($id: ID!, $shared: Boolean!) {
+  shareWorkoutPlan(id: $id, shared: $shared) {
+    id
+    shareToken
+  }
+}
+
+query PublicWorkoutPlan($token: String!) {
+  publicWorkoutPlan(token: $token) {
+    name
+    forName
+    notes
+    weekdays
+    ownerName
+    exercises {
+      id
+      name
+      sets
+      reps
+      loadGrams
+      restSeconds
+      notes
+    }
   }
 }

@@ -57,6 +57,7 @@ const DietPage = page(() => import('./pages/fitness/DietPage'), 'DietPage');
 const MacrosPage = page(() => import('./pages/fitness/MacrosPage'), 'MacrosPage');
 const SleepPage = page(() => import('./pages/fitness/SleepPage'), 'SleepPage');
 const MeasuresPage = page(() => import('./pages/fitness/MeasuresPage'), 'MeasuresPage');
+const WorkoutSharePage = page(() => import('./pages/WorkoutSharePage'), 'WorkoutSharePage');
 const BookingPage = page(() => import('./pages/BookingPage'), 'BookingPage');
 const CancelBookingPage = page(() => import('./pages/BookingPage'), 'CancelBookingPage');
 
@@ -134,6 +135,7 @@ export function App() {
           <Route element={<TermsPage />} path="terms" />
           <Route element={<PrivacyPage />} path="privacy" />
           <Route element={<BookingPage />} path="book/:slug" />
+          <Route element={<WorkoutSharePage />} path="w/:token" />
           <Route element={<CancelBookingPage />} path="book/cancel/:token" />
           <Route element={<Navigate replace to="/sign-in" />} path="*" />
         </Routes>
@@ -188,6 +190,14 @@ export function App() {
           </Suspense>
         }
         path="book/cancel/:token"
+      />
+      <Route
+        element={
+          <Suspense fallback={null}>
+            <WorkoutSharePage />
+          </Suspense>
+        }
+        path="w/:token"
       />
       <Route element={<Layout user={session.user} />}>
         <Route

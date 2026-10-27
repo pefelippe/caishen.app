@@ -22,14 +22,21 @@ import { organizationId, timestamps } from './columns';
 
 const createdById = () => text('created_by_id').references(() => user.id, { onDelete: 'set null' });
 
-/** Ficha de treino: a named list of exercises, maybe set for some weekdays. */
+/**
+ * Ficha de treino: a named list of exercises, maybe set for some weekdays, for the User or for
+ * someone they train (`forName`); with `shareToken`, anyone with its link reads it.
+ */
 export const workoutPlan = pgTable('workout_plan', {
   createdById: createdById(),
+  /** Who it is for, as the User calls them; null for the User. */
+  forName: text('for_name'),
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   notes: text('notes').notNull().default(''),
   organizationId: organizationId(),
   position: integer('position').notNull().default(0),
+  /** The secret of its public link, `/w/<token>`; null while it is not shared. */
+  shareToken: text('share_token').unique(),
   /** 0 Sunday to 6; empty for a Ficha done on no set day. */
   weekdays: jsonb('weekdays').$type<number[]>().notNull().default([]),
   ...timestamps,

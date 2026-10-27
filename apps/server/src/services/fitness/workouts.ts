@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import type { Viewer } from '@zapbots/auth';
 import {
   db,
@@ -7,7 +9,7 @@ import {
   type WorkoutSessionRow,
 } from '@zapbots/database';
 import { parseDecimal } from '@zapbots/fitness';
-import { and, asc, between, desc, eq, inArray, max } from 'drizzle-orm';
+import { and, asc, between, desc, eq, inArray, max, sql } from 'drizzle-orm';
 
 import { badInput, notFound, owned } from '../../resolvers/guards';
 import { text, title, viewerToday } from '../personal/clock';
@@ -24,6 +26,7 @@ export interface WorkoutExerciseInput {
 
 export interface WorkoutPlanInput {
   exercises: WorkoutExerciseInput[];
+  forName?: null | string;
   name: string;
   notes?: null | string;
   weekdays?: null | number[];
@@ -73,6 +76,7 @@ export async function saveWorkoutPlan(
   if (input.exercises.length > MAX_EXERCISES)
     badInput(`Uma Ficha pode ter até ${MAX_EXERCISES} exercícios.`);
   const values = {
+    forName: text(input.forName, 'Para quem', 120) || null,
     name: title(input.name, 'O nome da Ficha'),
     notes: text(input.notes, 'A observação', 2_000),
     weekdays: weekdays(input.weekdays),
@@ -116,11 +120,47 @@ export async function deleteWorkoutPlan(viewer: Viewer, id: string): Promise<boo
 }
 
 export function listWorkoutPlans(viewer: Viewer): Promise<WorkoutPlanRow[]> {
-  return db
-    .select()
+  return (
+    db
+      .select()
+      .from(schema.workoutPlan)
+      .where(owned(schema.workoutPlan, viewer))
+      // The User's own first, then each person's together.
+      .orderBy(
+        sql`${schema.workoutPlan.forName} is not null`,
+        asc(schema.workoutPlan.forName),
+        asc(schema.workoutPlan.position),
+        asc(schema.workoutPlan.createdAt)
+      )
+  );
+}
+
+/** Opens the Ficha's public link with a new secret, or closes it. */
+export async function shareWorkoutPlan(
+  viewer: Viewer,
+  id: string,
+  shared: boolean
+): Promise<WorkoutPlanRow> {
+  await findPlan(viewer, id);
+  const [row] = await db
+    .update(schema.workoutPlan)
+    .set({ shareToken: shared ? randomBytes(18).toString('base64url') : null })
+    .where(owned(schema.workoutPlan, viewer, id))
+    .returning();
+  return row!;
+}
+
+/** A shared Ficha by its secret, with who made it, for anyone with the link. */
+export async function publicWorkoutPlan(
+  token: string
+): Promise<(WorkoutPlanRow & { ownerName: string }) | null> {
+  if (!token) return null;
+  const [row] = await db
+    .select({ ownerName: schema.user.name, plan: schema.workoutPlan })
     .from(schema.workoutPlan)
-    .where(owned(schema.workoutPlan, viewer))
-    .orderBy(asc(schema.workoutPlan.position), asc(schema.workoutPlan.createdAt));
+    .leftJoin(schema.user, eq(schema.user.id, schema.workoutPlan.createdById))
+    .where(eq(schema.workoutPlan.shareToken, token));
+  return row ? { ...row.plan, ownerName: row.ownerName ?? 'Caishen' } : null;
 }
 
 export function planExercises(planId: string): Promise<WorkoutExerciseRow[]> {

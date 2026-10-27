@@ -2,13 +2,29 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import {
   DeleteWorkoutPlanDocument,
   DeleteWorkoutSessionDocument,
+  GenerateWorkoutPlansDocument,
   LogWorkoutDocument,
   SaveWorkoutPlanDocument,
+  ShareWorkoutPlanDocument,
   WorkoutsDocument,
+  type GenerateWorkoutPlansMutation,
+  type WorkoutEquipment,
+  type WorkoutGoal,
+  type WorkoutLevel,
   type WorkoutPlanFieldsFragment,
 } from '@zapbots/graphql/client';
 import { formatDecimal } from '@zapbots/fitness';
-import { CheckIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
+import {
+  CheckIcon,
+  CopyIcon,
+  Link2Icon,
+  Link2OffIcon,
+  PencilIcon,
+  PlusIcon,
+  SparklesIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 import { Field, PageHeading } from '@zapbots/ui/blocks/field';
@@ -38,41 +54,94 @@ import { FormError } from '../../components/FormError';
 import { QueryError } from '../../components/QueryError';
 import { useToast, useUndoableDelete } from '../../components/Toaster';
 import { localToday } from '../../lib/bots';
-import { useI18n } from '../../lib/i18n';
+import { useI18n, type StringKey } from '../../lib/i18n';
 import { useDayLabel, weekdayNames } from '../personal/shared';
 import { wholeOrNull, WeekdayPicker } from './shared';
 
 type Plan = WorkoutPlanFieldsFragment;
 
+/** A Ficha the Agente wrote, waiting on this page until it is saved or dropped. */
+type Draft = GenerateWorkoutPlansMutation['generateWorkoutPlans'][number] & {
+  forName: null | string;
+  key: string;
+};
+
 interface ExerciseDraft {
   load: string;
   name: string;
+  notes: string;
   reps: string;
   rest: string;
   sets: string;
 }
 
-const blankExercise = (): ExerciseDraft => ({ load: '', name: '', reps: '', rest: '', sets: '3' });
+const blankExercise = (): ExerciseDraft => ({
+  load: '',
+  name: '',
+  notes: '',
+  reps: '',
+  rest: '',
+  sets: '3',
+});
 
-function PlanDialog({ onClose, plan }: { onClose: () => void; plan: null | Plan }) {
+/** A draft as the save mutation takes it. */
+const draftInput = (draft: Draft) => ({
+  exercises: draft.exercises.map(exercise => ({
+    load: exercise.load,
+    name: exercise.name,
+    notes: exercise.notes,
+    reps: exercise.reps,
+    restSeconds: exercise.restSeconds,
+    sets: exercise.sets,
+  })),
+  forName: draft.forName,
+  name: draft.name,
+  notes: draft.notes,
+  weekdays: draft.weekdays,
+});
+
+const linkOf = (token: string) => `${window.location.origin}/w/${token}`;
+
+function PlanDialog({
+  draft,
+  onClose,
+  onSaved,
+  plan,
+}: {
+  draft?: Draft;
+  onClose: () => void;
+  onSaved?: () => void;
+  plan: null | Plan;
+}) {
   const { language, t } = useI18n();
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-  const [name, setName] = useState(plan?.name ?? '');
-  const [notes, setNotes] = useState(plan?.notes ?? '');
-  const [weekdays, setWeekdays] = useState<number[]>(plan?.weekdays ?? []);
+  const [name, setName] = useState(plan?.name ?? draft?.name ?? '');
+  const [forName, setForName] = useState(plan?.forName ?? draft?.forName ?? '');
+  const [notes, setNotes] = useState(plan?.notes ?? draft?.notes ?? '');
+  const [weekdays, setWeekdays] = useState<number[]>(plan?.weekdays ?? draft?.weekdays ?? []);
   const [exercises, setExercises] = useState<ExerciseDraft[]>(() =>
-    plan?.exercises.length
-      ? plan.exercises.map(exercise => ({
-          load:
-            exercise.loadGrams === null || exercise.loadGrams === undefined
-              ? ''
-              : formatDecimal(exercise.loadGrams, 3, locale),
+    draft
+      ? draft.exercises.map(exercise => ({
+          load: exercise.load ?? '',
           name: exercise.name,
+          notes: exercise.notes,
           reps: exercise.reps,
           rest: exercise.restSeconds?.toString() ?? '',
           sets: String(exercise.sets),
         }))
-      : [blankExercise()]
+      : plan?.exercises.length
+        ? plan.exercises.map(exercise => ({
+            load:
+              exercise.loadGrams === null || exercise.loadGrams === undefined
+                ? ''
+                : formatDecimal(exercise.loadGrams, 3, locale),
+            name: exercise.name,
+            notes: exercise.notes,
+            reps: exercise.reps,
+            rest: exercise.restSeconds?.toString() ?? '',
+            sets: String(exercise.sets),
+          }))
+        : [blankExercise()]
   );
   const [save, saving] = useMutation(SaveWorkoutPlanDocument, {
     refetchQueries: [WorkoutsDocument],
@@ -94,17 +163,22 @@ function PlanDialog({ onClose, plan }: { onClose: () => void; plan: null | Plan 
             .map(exercise => ({
               load: exercise.load,
               name: exercise.name,
+              notes: exercise.notes,
               reps: exercise.reps,
               restSeconds: wholeOrNull(exercise.rest),
               sets: Number(exercise.sets),
             })),
+          forName,
           name,
           notes,
           weekdays,
         },
       },
     })
-      .then(onClose)
+      .then(() => {
+        onSaved?.();
+        onClose();
+      })
       .catch(() => undefined);
   };
 
@@ -123,6 +197,13 @@ function PlanDialog({ onClose, plan }: { onClose: () => void; plan: null | Plan 
               placeholder={t('fitness.workouts.namePlaceholder')}
               required
               value={name}
+            />
+          </Field>
+          <Field hint={t('fitness.workouts.forHint')} label={t('fitness.workouts.for')}>
+            <Input
+              onChange={e => setForName(e.target.value)}
+              placeholder={t('fitness.workouts.forPlaceholder')}
+              value={forName}
             />
           </Field>
           <Field label={t('fitness.workouts.days')}>
@@ -192,6 +273,13 @@ function PlanDialog({ onClose, plan }: { onClose: () => void; plan: null | Plan 
                 >
                   <XIcon />
                 </Button>
+                <Input
+                  aria-label={t('fitness.workouts.exerciseNotes')}
+                  className="col-span-full bg-card"
+                  onChange={e => change(index, { notes: e.target.value })}
+                  placeholder={t('fitness.workouts.exerciseNotes')}
+                  value={exercise.notes}
+                />
               </div>
             ))}
             <Button
@@ -334,6 +422,50 @@ function LogDialog({
   );
 }
 
+/** Opens or closes a Ficha's public link, copying it when it opens. */
+function ShareButtons({ plan }: { plan: Plan }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const [share, sharing] = useMutation(ShareWorkoutPlanDocument);
+  const copy = (token: string) =>
+    navigator.clipboard
+      .writeText(linkOf(token))
+      .then(() => toast({ message: t('fitness.workouts.linkCopied') }))
+      .catch(() => undefined);
+  const set = (shared: boolean) =>
+    share({ variables: { id: plan.id, shared } })
+      .then(result => {
+        const token = result.data?.shareWorkoutPlan.shareToken;
+        if (token) void copy(token);
+      })
+      .catch(() => toast({ message: t('fitness.workouts.shareFailed'), tone: 'error' }));
+
+  if (!plan.shareToken)
+    return (
+      <Button disabled={sharing.loading} onClick={() => void set(true)} size="sm" variant="outline">
+        <Link2Icon />
+        {t('fitness.workouts.share')}
+      </Button>
+    );
+  return (
+    <>
+      <Button onClick={() => void copy(plan.shareToken!)} size="sm" variant="outline">
+        <CopyIcon />
+        {t('fitness.workouts.copyLink')}
+      </Button>
+      <Button
+        aria-label={t('fitness.workouts.unshare')}
+        disabled={sharing.loading}
+        onClick={() => void set(false)}
+        size="icon-sm"
+        variant="ghost"
+      >
+        <Link2OffIcon />
+      </Button>
+    </>
+  );
+}
+
 function PlanCard({
   onDelete,
   onEdit,
@@ -407,11 +539,263 @@ function PlanCard({
       {plan.notes && (
         <p className="text-sm whitespace-pre-line text-muted-foreground">{plan.notes}</p>
       )}
-      <Button className="mt-auto self-start" onClick={onLog} size="sm">
-        <CheckIcon />
-        {t('fitness.workouts.log')}
-      </Button>
+      <div className="mt-auto flex flex-wrap items-center gap-2">
+        {!plan.forName && (
+          <Button onClick={onLog} size="sm">
+            <CheckIcon />
+            {t('fitness.workouts.log')}
+          </Button>
+        )}
+        <ShareButtons plan={plan} />
+      </div>
     </Card>
+  );
+}
+
+const GOALS: WorkoutGoal[] = ['HYPERTROPHY', 'FAT_LOSS', 'STRENGTH', 'CONDITIONING', 'HEALTH'];
+const LEVELS: WorkoutLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+const EQUIPMENT: WorkoutEquipment[] = ['GYM', 'HOME', 'BODYWEIGHT'];
+
+/** Asks the Agente for Fichas: what for, for whom, how often and with what. */
+function GenerateDialog({
+  onClose,
+  onDrafts,
+}: {
+  onClose: () => void;
+  onDrafts: (drafts: Draft[]) => void;
+}) {
+  const { t } = useI18n();
+  const [forName, setForName] = useState('');
+  const [goal, setGoal] = useState<WorkoutGoal>('HYPERTROPHY');
+  const [level, setLevel] = useState<WorkoutLevel>('BEGINNER');
+  const [equipment, setEquipment] = useState<WorkoutEquipment>('GYM');
+  const [days, setDays] = useState('3');
+  const [minutes, setMinutes] = useState('60');
+  const [notes, setNotes] = useState('');
+  const [generate, generating] = useMutation(GenerateWorkoutPlansDocument);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    generate({
+      variables: {
+        brief: {
+          daysPerWeek: Number(days),
+          equipment,
+          forName,
+          goal,
+          level,
+          minutes: Number(minutes),
+          notes,
+        },
+      },
+    })
+      .then(result => {
+        const drafts = result.data?.generateWorkoutPlans ?? [];
+        onDrafts(
+          drafts.map(draft => ({
+            ...draft,
+            forName: forName.trim() || null,
+            key: crypto.randomUUID(),
+          }))
+        );
+        onClose();
+      })
+      .catch(() => undefined);
+  };
+
+  const choice = <T extends string>(
+    label: string,
+    value: T,
+    set: (value: T) => void,
+    options: T[],
+    prefix: string
+  ) => (
+    <Field label={label}>
+      <Select onValueChange={next => set(next as T)} value={value}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(option => (
+            <SelectItem key={option} value={option}>
+              {t(`${prefix}.${option}` as StringKey)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+
+  return (
+    <Dialog onOpenChange={open => !open && !generating.loading && onClose()} open>
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t('fitness.generate.title')}</DialogTitle>
+          <DialogDescription>{t('fitness.generate.hint')}</DialogDescription>
+        </DialogHeader>
+        <form className="flex flex-col gap-4" id="generate-workouts" onSubmit={submit}>
+          <Field hint={t('fitness.workouts.forHint')} label={t('fitness.workouts.for')}>
+            <Input
+              autoFocus
+              onChange={e => setForName(e.target.value)}
+              placeholder={t('fitness.workouts.forPlaceholder')}
+              value={forName}
+            />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {choice(t('fitness.generate.goal'), goal, setGoal, GOALS, 'fitness.goal')}
+            {choice(t('fitness.generate.level'), level, setLevel, LEVELS, 'fitness.level')}
+            {choice(
+              t('fitness.generate.equipment'),
+              equipment,
+              setEquipment,
+              EQUIPMENT,
+              'fitness.equipment'
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t('fitness.generate.days')}>
+              <Input
+                max={7}
+                min={1}
+                onChange={e => setDays(e.target.value)}
+                required
+                type="number"
+                value={days}
+              />
+            </Field>
+            <Field label={t('fitness.generate.minutes')}>
+              <Input
+                max={240}
+                min={10}
+                onChange={e => setMinutes(e.target.value)}
+                required
+                step={5}
+                type="number"
+                value={minutes}
+              />
+            </Field>
+          </div>
+          <Field label={t('fitness.generate.notes')}>
+            <Textarea
+              onChange={e => setNotes(e.target.value)}
+              placeholder={t('fitness.generate.notesPlaceholder')}
+              rows={3}
+              value={notes}
+            />
+          </Field>
+          <FormError error={generating.error} />
+        </form>
+        <DialogFooter>
+          <Button disabled={generating.loading} onClick={onClose} variant="ghost">
+            {t('fitness.cancel')}
+          </Button>
+          <Button disabled={generating.loading} form="generate-workouts" type="submit">
+            <SparklesIcon />
+            {generating.loading ? t('fitness.generate.working') : t('fitness.generate.go')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The Fichas the Agente wrote, to save as they are, edit first or drop. */
+function Drafts({
+  drafts,
+  onDrop,
+  onEdit,
+  onSaved,
+}: {
+  drafts: Draft[];
+  onDrop: (key: string) => void;
+  onEdit: (draft: Draft) => void;
+  onSaved: (keys: string[]) => void;
+}) {
+  const { language, t } = useI18n();
+  const toast = useToast();
+  const names = weekdayNames(language);
+  const [save] = useMutation(SaveWorkoutPlanDocument, { refetchQueries: [WorkoutsDocument] });
+  const [saving, setSaving] = useState(false);
+
+  const saveAll = async (list: Draft[]) => {
+    setSaving(true);
+    const saved: string[] = [];
+    for (const draft of list) {
+      try {
+        await save({ variables: { input: draftInput(draft) } });
+        saved.push(draft.key);
+      } catch {
+        toast({ message: t('fitness.generate.saveFailed', { name: draft.name }), tone: 'error' });
+      }
+    }
+    setSaving(false);
+    onSaved(saved);
+    if (saved.length) toast({ message: t('fitness.generate.saved', { count: saved.length }) });
+  };
+
+  return (
+    <section className="flex flex-col gap-3 rounded-[20px] border border-dashed border-area-fitness/60 bg-area-fitness/5 p-4 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <SparklesIcon className="size-4 text-area-fitness" />
+            {t('fitness.generate.drafts')}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t('fitness.generate.review')}</p>
+        </div>
+        <Button disabled={saving} onClick={() => void saveAll(drafts)}>
+          <CheckIcon />
+          {t('fitness.generate.saveAll')}
+        </Button>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {drafts.map(draft => (
+          <Card className="gap-3" key={draft.key}>
+            <div>
+              <h3 className="font-semibold">{draft.name}</h3>
+              <p className="text-sm text-muted-foreground capitalize">
+                {draft.forName
+                  ? `${t('fitness.workouts.forShort', { name: draft.forName })} · `
+                  : ''}
+                {draft.weekdays.length
+                  ? draft.weekdays.map(day => names[day]?.replace('.', '')).join(', ')
+                  : t('fitness.workouts.anyDay')}
+              </p>
+            </div>
+            <ol className="flex flex-col divide-y text-sm">
+              {draft.exercises.map((exercise, index) => (
+                <li className="py-1.5" key={index}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate">{exercise.name}</span>
+                    <span className="shrink-0 text-muted-foreground tabular-nums">
+                      {exercise.sets}×{exercise.reps || '—'}
+                      {exercise.restSeconds ? ` · ${exercise.restSeconds}s` : ''}
+                    </span>
+                  </div>
+                  {exercise.notes && (
+                    <p className="text-xs text-muted-foreground">{exercise.notes}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+            {draft.notes && <p className="text-sm text-muted-foreground">{draft.notes}</p>}
+            <div className="mt-auto flex flex-wrap gap-2">
+              <Button disabled={saving} onClick={() => void saveAll([draft])} size="sm">
+                {t('fitness.save')}
+              </Button>
+              <Button onClick={() => onEdit(draft)} size="sm" variant="outline">
+                <PencilIcon />
+                {t('fitness.edit')}
+              </Button>
+              <Button onClick={() => onDrop(draft.key)} size="sm" variant="ghost">
+                {t('fitness.generate.drop')}
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -429,6 +813,11 @@ export function WorkoutsPage() {
   const { hidden, remove } = useUndoableDelete();
   const [editing, setEditing] = useState<null | Plan | undefined>(undefined);
   const [logging, setLogging] = useState<null | string | undefined>(undefined);
+  const [generating, setGenerating] = useState(false);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
+  const dropDrafts = (keys: string[]) =>
+    setDrafts(list => list.filter(draft => !keys.includes(draft.key)));
 
   if (error && !data) return <QueryError error={error} title={t('nav.workouts')} />;
   if (loading && !data) return <PageSkeleton />;
@@ -436,6 +825,13 @@ export function WorkoutsPage() {
 
   const plans = data.workoutPlans.filter(plan => !hidden.has(plan.id));
   const sessions = data.workoutSessions.filter(session => !hidden.has(session.id));
+  // The User's own Fichas first, then each person's together (the server sends them in that order).
+  const groups: { forName: null | string; plans: Plan[] }[] = [];
+  for (const plan of plans) {
+    const group = groups.at(-1);
+    if (group && group.forName === (plan.forName ?? null)) group.plans.push(plan);
+    else groups.push({ forName: plan.forName ?? null, plans: [plan] });
+  }
   const today = localToday();
 
   return (
@@ -447,31 +843,55 @@ export function WorkoutsPage() {
             <CheckIcon />
             {t('fitness.workouts.log')}
           </Button>
-          <Button onClick={() => setEditing(null)}>
+          <Button onClick={() => setEditing(null)} variant="outline">
             <PlusIcon />
             {t('fitness.workouts.new')}
+          </Button>
+          <Button onClick={() => setGenerating(true)}>
+            <SparklesIcon />
+            {t('fitness.generate.open')}
           </Button>
         </div>
       </div>
 
+      {drafts.length > 0 && (
+        <Drafts
+          drafts={drafts}
+          onDrop={key => dropDrafts([key])}
+          onEdit={setEditingDraft}
+          onSaved={dropDrafts}
+        />
+      )}
+
       {plans.length ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {plans.map(plan => (
-            <PlanCard
-              key={plan.id}
-              onDelete={() =>
-                remove({
-                  commit: () => deletePlan({ variables: { id: plan.id } }),
-                  ids: [plan.id],
-                  message: t('fitness.workouts.deleteConfirm'),
-                })
-              }
-              onEdit={() => setEditing(plan)}
-              onLog={() => setLogging(plan.id)}
-              plan={plan}
-            />
-          ))}
-        </div>
+        groups.map(group => (
+          <section className="flex flex-col gap-3" key={group.forName ?? ''}>
+            {(group.forName || groups.length > 1) && (
+              <h2 className="font-semibold">
+                {group.forName
+                  ? t('fitness.workouts.forShort', { name: group.forName })
+                  : t('fitness.workouts.mine')}
+              </h2>
+            )}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {group.plans.map(plan => (
+                <PlanCard
+                  key={plan.id}
+                  onDelete={() =>
+                    remove({
+                      commit: () => deletePlan({ variables: { id: plan.id } }),
+                      ids: [plan.id],
+                      message: t('fitness.workouts.deleteConfirm'),
+                    })
+                  }
+                  onEdit={() => setEditing(plan)}
+                  onLog={() => setLogging(plan.id)}
+                  plan={plan}
+                />
+              ))}
+            </div>
+          </section>
+        ))
       ) : (
         <Card className="items-center text-center text-muted-foreground">
           {t('fitness.workouts.empty')}
@@ -518,6 +938,20 @@ export function WorkoutsPage() {
       </section>
 
       {editing !== undefined && <PlanDialog onClose={() => setEditing(undefined)} plan={editing} />}
+      {editingDraft && (
+        <PlanDialog
+          draft={editingDraft}
+          onClose={() => setEditingDraft(null)}
+          onSaved={() => dropDrafts([editingDraft.key])}
+          plan={null}
+        />
+      )}
+      {generating && (
+        <GenerateDialog
+          onClose={() => setGenerating(false)}
+          onDrafts={next => setDrafts(list => [...next, ...list])}
+        />
+      )}
       {logging !== undefined && (
         <LogDialog onClose={() => setLogging(undefined)} planId={logging} plans={plans} />
       )}
