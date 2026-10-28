@@ -180,3 +180,14 @@ mutation SyncGoogleTasks {
     lastSyncedAt
   }
 }
+
+mutation StartTelegramLink {
+  startTelegramLink {
+    url
+    expiresAt
+  }
+}
+
+mutation UnlinkTelegram {
+  unlinkTelegram
+}

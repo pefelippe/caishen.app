@@ -1,12 +1,12 @@
 import type { Viewer } from '@zapbots/auth';
-import { db, schema, type MessageRow, type ProposalRow } from '@zapbots/database';
-import { and, desc, eq } from 'drizzle-orm';
+import { db, schema, type MessageRow } from '@zapbots/database';
+import { and, eq } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 import { createHash } from 'node:crypto';
 
 import { reportError } from '../../sentry';
 import { AttachmentError } from '../bots/attachments';
-import { ensureBots } from '../bots/catalog';
+import { channelConversation, HEADINGS, latestPending, NO, YES } from '../bots/channels';
 import { ChatError, replyInConversation } from '../bots/chat';
 import { cancelProposal, confirmProposal, describeProposal } from '../bots/proposals';
 import { ModelError } from '../models';
@@ -39,12 +39,6 @@ const UNLINKED =
 const ONLY_TEXT =
   'Por enquanto eu só leio texto por aqui. Escreva o que quer registrar ou perguntar.';
 const FAILED = 'Não consegui responder agora. Tente de novo em instantes.';
-
-// Only a clear yes writes: an "ok" in passing must not confirm a record (docs/adr/0013).
-const YES = new Set(['sim', 's', 'confirmar', 'confirmo']);
-const NO = new Set(['não', 'nao', 'n', 'cancelar', 'cancelo']);
-
-const HEADINGS = { CREATE: 'Adicionar', DELETE: 'Apagar', UPDATE: 'Corrigir' } as const;
 
 /** Every message in a delivery, whatever account or number it came through. */
 export const messagesOf = (payload: WebhookPayload): InboundMessage[] =>
@@ -94,7 +88,7 @@ async function handleInbound(message: InboundMessage): Promise<void> {
     await unlinkWhatsapp(viewer);
     return sendText(phone, UNLINKED);
   }
-  const conversationId = await whatsappConversation(viewer);
+  const conversationId = await channelConversation(viewer, 'WHATSAPP');
   if (YES.has(word) || NO.has(word)) {
     const pending = await latestPending(conversationId);
     if (pending) return decide(viewer, phone, pending.id, YES.has(word) ? 'confirm' : 'cancel');
@@ -117,49 +111,6 @@ async function handleStranger(phone: string, text: string): Promise<void> {
     .onConflictDoNothing()
     .returning();
   if (first) await sendText(phone, codes.length ? BAD_CODE : HOW_TO_LINK);
-}
-
-/** The Organization's WhatsApp Conversation, created on its first message. */
-async function whatsappConversation(viewer: Viewer): Promise<string> {
-  const find = async () => {
-    const [row] = await db
-      .select({ id: schema.conversation.id })
-      .from(schema.conversation)
-      .where(
-        and(
-          eq(schema.conversation.organizationId, viewer.organizationId),
-          eq(schema.conversation.channel, 'WHATSAPP')
-        )
-      );
-    return row?.id;
-  };
-  const found = await find();
-  if (found) return found;
-  const [bot] = await ensureBots(viewer.organizationId);
-  // Two first messages at once: the unique index keeps one, and both use it.
-  await db
-    .insert(schema.conversation)
-    .values({
-      botId: bot!.id,
-      channel: 'WHATSAPP',
-      organizationId: viewer.organizationId,
-      // Not the default title, so the first message does not rename it.
-      title: 'WhatsApp',
-    })
-    .onConflictDoNothing();
-  return (await find())!;
-}
-
-async function latestPending(conversationId: string): Promise<ProposalRow | undefined> {
-  const [row] = await db
-    .select()
-    .from(schema.proposal)
-    .where(
-      and(eq(schema.proposal.conversationId, conversationId), eq(schema.proposal.status, 'PENDING'))
-    )
-    .orderBy(desc(schema.proposal.createdAt))
-    .limit(1);
-  return row;
 }
 
 /** Confirms or cancels a Proposal of the Viewer's own Organization (`owned` in the service). */

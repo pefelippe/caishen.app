@@ -425,7 +425,7 @@ export const bot = pgTable(
 );
 
 /** Where a Conversation happens: the app's chat, or WhatsApp (docs/adr/0019). */
-export const conversationChannel = pgEnum('conversation_channel', ['APP', 'WHATSAPP']);
+export const conversationChannel = pgEnum('conversation_channel', ['APP', 'WHATSAPP', 'TELEGRAM']);
 
 export const conversation = pgTable(
   'conversation',
@@ -904,6 +904,51 @@ export const whatsappUsage = pgTable('whatsapp_usage', {
   /** `YYYY-MM`. */
   month: text('month').primaryKey(),
   sent: integer('sent').notNull().default(0),
+});
+
+/**
+ * Telegram link: the private chat a User talks to the Caishen's bot from, by Telegram's chat id.
+ * Unlinked rows stay, with `unlinkedAt`, like WhatsApp's (docs/adr/0031).
+ */
+export const telegramLink = pgTable(
+  'telegram_link',
+  {
+    chatId: text('chat_id').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
+    organizationId: organizationId(),
+    unlinkedAt: timestamp('unlinked_at', { withTimezone: true }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  table => [
+    uniqueIndex('telegram_link_chat_active')
+      .on(table.chatId)
+      .where(sql`${table.unlinkedAt} is null`),
+    uniqueIndex('telegram_link_user_active')
+      .on(table.userId)
+      .where(sql`${table.unlinkedAt} is null`),
+  ]
+);
+
+/** The one-time code in the `t.me/<bot>?start=<code>` link a User opens to link; 15 minutes. */
+export const telegramLinkCode = pgTable('telegram_link_code', {
+  code: text('code').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: organizationId(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});
+
+/** Each Telegram update received, by its id only, so one delivered twice is handled once. */
+export const telegramUpdate = pgTable('telegram_update', {
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  updateId: text('update_id').primaryKey(),
 });
 
 /** The companies a Model can be called through (`@zapbots/ai`'s ProviderName, upper case). */

@@ -28,6 +28,8 @@ import {
   pluggyWebhookConfigured,
   type PluggyEvent,
 } from './services/openFinance/webhook';
+import { telegramConfigured, verifySecret } from './services/telegram/api';
+import { handleTelegramUpdate, type TelegramUpdate } from './services/telegram/inbound';
 import { handleWebhook, type WebhookPayload } from './services/whatsapp/inbound';
 import { verifyChallenge, verifySignature, whatsappConfigured } from './services/whatsapp/meta';
 
@@ -92,6 +94,22 @@ app.post('/api/whatsapp/webhook', express.raw({ type: '*/*' }), (req, res) => {
   }
   res.sendStatus(200);
   waitUntil(handleWebhook(payload));
+});
+
+// Telegram sends each update with the secret given to setWebhook; the answer goes out at once and
+// the update is handled after it, as Telegram waits only so long (docs/adr/0031).
+app.post('/api/telegram/webhook', express.json(), (req, res) => {
+  if (!telegramConfigured()) {
+    res.status(404).end();
+    return;
+  }
+  if (!verifySecret(req.header('x-telegram-bot-api-secret-token'))) {
+    res.status(403).json({ message: 'Não autorizado' });
+    return;
+  }
+  res.sendStatus(200);
+  const update = (req.body ?? {}) as TelegramUpdate;
+  if (typeof update.update_id === 'number') waitUntil(handleTelegramUpdate(update));
 });
 
 // Pluggy says an item changed; the answer goes out at once (it waits 5 seconds at most) and the

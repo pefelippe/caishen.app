@@ -56,8 +56,8 @@ _Avoid_: notificação, alerta (como termo do código em pt-BR), Insight
 **Conversa** (`Conversation`):
 Uma troca salva de Mensagens entre o Usuário e um Bot. Começa e é reaberta no
 chat: a página Chat ou o painel ao lado de qualquer tela. Cada Organização tem
-também uma Conversa "WhatsApp", que começa na primeira mensagem de um número
-ligado e aparece no Agente como as outras.
+também uma Conversa "WhatsApp" e uma "Telegram", que começam na primeira
+mensagem de um número ou conversa ligada e aparecem no Agente como as outras.
 _Avoid_: chat (é a página e o painel), thread
 
 **Mensagem** (`Message`):
@@ -81,13 +81,18 @@ _Avoid_: IA (como sinônimo de modelo), LLM
 O vínculo, autorizado pelo Usuário, com uma ferramenta de fora em que os Bots
 entram por ele. Cada Integração é de uma categoria: Provedores de IA (de onde vêm
 os Modelos, hoje o OpenRouter), Armazenamento de arquivos (Google Drive),
-Comunicação (WhatsApp), E-mail, Agenda ou Bancos. Os Bots só leem por uma
-Integração; o WhatsApp é um canal da Conversa e só responde, nunca inicia.
+Comunicação (WhatsApp, Telegram), E-mail, Agenda ou Bancos. Os Bots só leem por uma
+Integração; o WhatsApp e o Telegram são canais da Conversa e só respondem, nunca iniciam.
 _Avoid_: conexão, plugin, Fonte (essa é financeira)
 
 **Código de conexão do WhatsApp** (`whatsapp_link_code`):
 Seis letras e números, de uso único e válidos por 15 minutos, que o Usuário
 gera em Integrações e manda do celular para ligar aquele número a ele.
+_Avoid_: token, senha, PIN
+
+**Código de conexão do Telegram** (`telegram_link_code`):
+De uso único e válido por 15 minutos, vai no link `t.me` que o Usuário abre de
+Integrações; o Iniciar do Telegram o manda de volta e liga aquela conversa a ele.
 _Avoid_: token, senha, PIN
 
 **Vínculo bancário** (`BankLink`):

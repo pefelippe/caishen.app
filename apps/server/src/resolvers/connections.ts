@@ -11,6 +11,8 @@ import {
 } from '../services/personal/calendars';
 import { healthInbox, setHealthInbox } from '../services/fitness/health';
 import { googleTasksSync, syncGoogleTasks } from '../services/personal/googleTasks';
+import { telegramConfigured } from '../services/telegram/api';
+import { startTelegramLink, unlinkTelegram } from '../services/telegram/link';
 import { calendarFeed, setCalendarFeed } from '../services/personal/feed';
 import {
   bankAccounts,
@@ -42,6 +44,15 @@ export const connectionResolvers: Resolvers = {
     setCalendarFeed: (_, { on }, context) => setCalendarFeed(requireViewer(context), on),
     setHealthInbox: (_, { on }, context) => setHealthInbox(requireViewer(context), on),
     syncGoogleTasks: (_, __, context) => syncGoogleTasks(requireViewer(context)),
+    startTelegramLink: (_, __, context) => {
+      const viewer = requireViewer(context);
+      if (!telegramConfigured()) badInput('O Telegram ainda não está ligado neste servidor');
+      return startTelegramLink(viewer);
+    },
+    unlinkTelegram: async (_, __, context) => {
+      await unlinkTelegram(requireViewer(context));
+      return true;
+    },
     addExternalCalendar: (_, { name, url }, context) =>
       addExternalCalendar(requireViewer(context), name, url),
     refreshExternalCalendar: (_, { id }, context) =>

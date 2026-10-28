@@ -9,6 +9,8 @@ import { bankLinks, openFinanceUnavailable } from './openFinance';
 import { healthInbox } from './fitness/health';
 import { listExternalCalendars } from './personal/calendars';
 import { googleTasksConnected, googleTasksSync } from './personal/googleTasks';
+import { telegramConfigured } from './telegram/api';
+import { telegramLinkOf } from './telegram/link';
 import { calendarFeed as calendarFeedOf } from './personal/feed';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
 import { whatsappConfigured } from './whatsapp/meta';
@@ -184,6 +186,24 @@ const googleTasks: Provider = {
   },
 };
 
+const telegram: Provider = {
+  category: 'MESSAGING',
+  kind: 'TELEGRAM',
+  // The Caishen's bot answers a linked User's private chat (docs/adr/0031).
+  status: async viewer => {
+    if (!telegramConfigured()) {
+      return {
+        available: false,
+        connected: false,
+        detail: null,
+        unavailableReason: 'O Telegram ainda não está ligado neste servidor.',
+      };
+    }
+    const link = await telegramLinkOf(viewer);
+    return { available: true, connected: Boolean(link), detail: null, unavailableReason: null };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
 const PROVIDERS: Provider[] = [
   openRouter,
@@ -194,6 +214,7 @@ const PROVIDERS: Provider[] = [
   externalCalendars,
   health,
   googleTasks,
+  telegram,
 ];
 
 export function connections(viewer: Viewer) {

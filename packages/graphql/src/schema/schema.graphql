@@ -104,6 +104,7 @@ enum ConnectionKind {
   EXTERNAL_CALENDARS
   HEALTH
   GOOGLE_TASKS
+  TELEGRAM
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -190,6 +191,7 @@ type BankSync {
 enum ConversationChannel {
   APP
   WHATSAPP
+  TELEGRAM
 }
 
 "The number the Viewer talks to the Caishen from on WhatsApp."
@@ -2055,4 +2057,17 @@ extend type Query {
 extend type Mutation {
   "Reads Google Tarefas into Tarefas now; needs the tasks.readonly scope on the Google account."
   syncGoogleTasks: GoogleTasksResult!
+}
+
+# Telegram: the Caishen's bot answers a linked User's private chat (docs/adr/0031).
+
+"A link the Viewer opens in Telegram to connect it: `t.me/<bot>?start=<code>`, valid 15 minutes."
+type TelegramLinkCode {
+  url: String!
+  expiresAt: DateTime!
+}
+
+extend type Mutation {
+  startTelegramLink: TelegramLinkCode!
+  unlinkTelegram: Boolean!
 }

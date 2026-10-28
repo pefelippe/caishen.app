@@ -111,7 +111,7 @@ export async function replyInConversation(options: {
   content: string;
   conversationId: string;
   /** Where the Conversation happens: the app's chat (the default) or WhatsApp (docs/adr/0019). */
-  mode?: 'chat' | 'whatsapp';
+  mode?: 'chat' | 'telegram' | 'whatsapp';
   /**
    * Answers the User's last Message again instead of a new one, in place of the reply after it:
    * `retry` as it is, `edit` with `content` in its place. Only in the app.
@@ -287,7 +287,7 @@ async function answer({
   content: string;
   conversation: typeof schema.conversation.$inferSelect;
   history: MessageRow[];
-  mode: 'chat' | 'whatsapp';
+  mode: 'chat' | 'telegram' | 'whatsapp';
   model: string;
   proposals: (typeof schema.proposal.$inferSelect)[];
   screen?: string;

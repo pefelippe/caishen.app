@@ -45,6 +45,7 @@ import { CalendarFeedLinker } from './CalendarFeedLinker';
 import { ExternalCalendarsLinker } from './ExternalCalendarsLinker';
 import { GoogleTasksLinker } from './GoogleTasksLinker';
 import { HealthLinker } from './HealthLinker';
+import { TelegramLinker } from './TelegramLinker';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
 
@@ -144,6 +145,15 @@ const CARDS: {
     mark: { color: '#2684FC', icon: GoogleTasksLogo },
     name: 'Google Tarefas',
   },
+  {
+    category: 'chat',
+    description:
+      'Converse com o Caishen pelo Telegram: conte um gasto, confirme Propostas pelos botões e pergunte sobre suas finanças. Ele só responde, nunca puxa conversa.',
+    id: 'telegram',
+    kind: 'TELEGRAM',
+    mark: { color: '#26A5E4', icon: TelegramLogo },
+    name: 'Telegram',
+  },
 ];
 
 /**
@@ -192,12 +202,6 @@ const UPCOMING: {
     description: 'A planilha de gastos que você já mantém.',
     mark: { color: '#34A853', icon: GoogleSheetsLogo },
     name: 'Google Planilhas',
-  },
-  {
-    category: 'chat',
-    description: 'Converse com o Caishen pelo Telegram.',
-    mark: { color: '#26A5E4', icon: TelegramLogo },
-    name: 'Telegram',
   },
   {
     category: 'chat',
@@ -392,6 +396,9 @@ function Details({ connection }: { connection: Connection }): ReactNode {
       {connection.kind === 'CALENDAR_FEED' && <CalendarFeedLinker />}
       {connection.kind === 'EXTERNAL_CALENDARS' && <ExternalCalendarsLinker />}
       {connection.kind === 'HEALTH' && <HealthLinker />}
+      {connection.kind === 'TELEGRAM' && connection.available && (
+        <TelegramLinker connected={connection.connected} />
+      )}
       {connection.kind === 'GOOGLE_TASKS' && connection.available && (
         <GoogleTasksLinker connected={connection.connected} />
       )}
