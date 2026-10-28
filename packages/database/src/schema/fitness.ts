@@ -5,8 +5,10 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -21,6 +23,12 @@ import { organizationId, timestamps } from './columns';
  */
 
 const createdById = () => text('created_by_id').references(() => user.id, { onDelete: 'set null' });
+
+/**
+ * What a reading sent by the phone (`health.ts`) is called there, so sending it again changes it
+ * rather than adding another: `health:sleep:2026-10-28`. Null for what the User typed.
+ */
+const externalId = () => text('external_id');
 
 /**
  * Ficha de treino: a named list of exercises, maybe set for some weekdays, for the User or for
@@ -75,10 +83,14 @@ export const workoutSession = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     notes: text('notes').notNull().default(''),
     organizationId: organizationId(),
+    externalId: externalId(),
     planId: uuid('plan_id').references(() => workoutPlan.id, { onDelete: 'set null' }),
     title: text('title').notNull(),
   },
-  table => [index('workout_session_done_idx').on(table.organizationId, table.doneOn)]
+  table => [
+    index('workout_session_done_idx').on(table.organizationId, table.doneOn),
+    uniqueIndex('workout_session_external_idx').on(table.organizationId, table.externalId),
+  ]
 );
 
 export const mealKind = pgEnum('meal_kind', ['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER', 'OTHER']);
@@ -125,6 +137,7 @@ export const sleepLog = pgTable(
     bedTime: text('bed_time').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     createdById: createdById(),
+    externalId: externalId(),
     id: uuid('id').primaryKey().defaultRandom(),
     notes: text('notes').notNull().default(''),
     organizationId: organizationId(),
@@ -133,7 +146,10 @@ export const sleepLog = pgTable(
     wakeTime: text('wake_time').notNull(),
     wokeOn: date('woke_on').notNull(),
   },
-  table => [index('sleep_log_woke_idx').on(table.organizationId, table.wokeOn)]
+  table => [
+    index('sleep_log_woke_idx').on(table.organizationId, table.wokeOn),
+    uniqueIndex('sleep_log_external_idx').on(table.organizationId, table.externalId),
+  ]
 );
 
 export const measureKind = pgEnum('measure_kind', [
@@ -155,11 +171,43 @@ export const measurement = pgTable(
   {
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     createdById: createdById(),
+    externalId: externalId(),
     id: uuid('id').primaryKey().defaultRandom(),
     kind: measureKind('kind').notNull(),
     measuredOn: date('measured_on').notNull(),
     organizationId: organizationId(),
     value: integer('value').notNull(),
   },
-  table => [index('measurement_kind_idx').on(table.organizationId, table.kind, table.measuredOn)]
+  table => [
+    index('measurement_kind_idx').on(table.organizationId, table.kind, table.measuredOn),
+    uniqueIndex('measurement_external_idx').on(table.organizationId, table.externalId),
+  ]
 );
+
+/** Passos: a day's total as the phone counts it (Apple Health, Health Connect). One row a day. */
+export const activityDay = pgTable(
+  'activity_day',
+  {
+    day: date('day').notNull(),
+    organizationId: organizationId(),
+    steps: integer('steps').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.organizationId, table.day] })]
+);
+
+/**
+ * Saúde do celular: the secret of a User's address for their phone to send health data to,
+ * `POST /api/health/<token>` (docs/adr/0029). One per User; a new one replaces it.
+ */
+export const healthInbox = pgTable('health_inbox', {
+  /** How many of each came in the last send, to show on Integrações. */
+  lastCounts: jsonb('last_counts').$type<Record<string, number>>(),
+  lastReceivedAt: timestamp('last_received_at', { withTimezone: true }),
+  organizationId: organizationId(),
+  token: text('token').notNull().unique(),
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});

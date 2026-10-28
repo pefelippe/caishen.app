@@ -102,6 +102,7 @@ enum ConnectionKind {
   OPEN_FINANCE
   CALENDAR_FEED
   EXTERNAL_CALENDARS
+  HEALTH
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -111,6 +112,7 @@ enum ConnectionCategory {
   MESSAGING
   FINANCE
   CALENDAR
+  HEALTH
 }
 
 enum BankLinkStatus {
@@ -1843,6 +1845,8 @@ type FitnessToday {
   "The Fichas set for today's weekday."
   plans: [WorkoutPlan!]!
   done: [WorkoutSession!]!
+  "Today's steps as the phone counted them; null when it sent none."
+  steps: Int
 }
 
 enum WorkoutGoal {
@@ -1994,4 +1998,34 @@ extend type Mutation {
   addExternalCalendar(name: String!, url: String!): ExternalCalendar!
   refreshExternalCalendar(id: ID!): ExternalCalendar!
   removeExternalCalendar(id: ID!): Boolean!
+}
+
+# Saúde do celular: an address the phone sends Apple Health or Health Connect data to
+# (docs/adr/0029). What comes becomes Medidas, Sono, Treinos and the day's steps.
+
+"How many readings of each kind came in a send."
+type HealthCounts {
+  steps: Int!
+  weights: Int!
+  bodyFat: Int!
+  sleeps: Int!
+  workouts: Int!
+}
+
+"The Viewer's private address for their phone's health data."
+type HealthInbox {
+  "Under the app's own address: /api/health/<secret>."
+  path: String!
+  createdAt: DateTime!
+  lastReceivedAt: DateTime
+  lastCounts: HealthCounts
+}
+
+extend type Query {
+  healthInbox: HealthInbox
+}
+
+extend type Mutation {
+  "On makes a new address (the old one stops working); off removes it, keeping what came."
+  setHealthInbox(on: Boolean!): HealthInbox
 }

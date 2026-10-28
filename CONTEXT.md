@@ -188,6 +188,18 @@ Um passo rumo a uma Meta, na unidade dela; negativo desconta.
 Dados de saúde, sensíveis pela LGPD: só o Usuário os vê, e saem com a conta.
 Só números inteiros: gramas, milímetros, décimos de por cento, kcal.
 
+**Saúde do celular** (`HealthInbox`):
+O endereço secreto (`/api/health/<token>`) para onde o celular manda os dados do
+Apple Health ou do Health Connect (Samsung Health, Garmin e outros gravam lá),
+por um app como o Health Auto Export ou o HC Webhook. Viram Passos, Medidas,
+noites de Sono e Treinos; mandar de novo o mesmo dia corrige, não duplica. Só
+recebe, nunca deixa ler.
+_Avoid_: sincronização, importação
+
+**Passos** (`ActivityDay`):
+O total de passos de um dia como o celular contou. Um por dia; um reenvio nunca
+diminui.
+
 **Ficha de treino** (`WorkoutPlan`):
 Uma lista de Exercícios (séries, repetições, carga, descanso), talvez para
 alguns dias da semana. Mudar a Ficha troca os Exercícios dela. É do Usuário ou

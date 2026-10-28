@@ -218,6 +218,7 @@ export const FITNESS_STRINGS = {
   'home.fitness.rest': { en: 'Rest day', pt: 'Dia de descanso' },
   'home.fitness.done': { en: 'done', pt: 'feito' },
   'home.fitness.sleep': { en: 'Last night', pt: 'Última noite' },
+  'home.fitness.steps': { en: 'Steps today', pt: 'Passos hoje' },
   'home.fitness.noSleep': { en: 'not logged', pt: 'não anotada' },
   'home.measures.open': { en: 'See measurements', pt: 'Ver medidas' },
   'home.measures.empty': {

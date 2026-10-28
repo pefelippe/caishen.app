@@ -176,6 +176,7 @@ mutation DeleteMeasurement($id: ID!) {
 query HomeFitness {
   fitnessToday {
     date
+    steps
     eaten {
       ...MacroDayFields
     }

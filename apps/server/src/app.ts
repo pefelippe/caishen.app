@@ -20,6 +20,7 @@ import { ChatError, replyInConversation, type ChatEvent } from './services/bots/
 import { failStaleJobs } from './services/bots/jobs';
 import { runDueRoutines } from './services/bots/routines';
 import { ModelError } from './services/models';
+import { receiveHealth } from './services/fitness/health';
 import { calendarFeedFile } from './services/personal/feed';
 import {
   handlePluggyEvent,
@@ -125,6 +126,17 @@ app.get('/api/calendar/:file', async (req, res) => {
     return;
   }
   res.set('Cache-Control', 'private, max-age=900').type('text/calendar; charset=utf-8').send(file);
+});
+
+// The phone's health data (Health Auto Export, HC Webhook, a Shortcut): the secret in the path is
+// the key. Bodies stay under Vercel's 4.5 MB, so the apps send a day or a week at a time.
+app.post('/api/health/:token', express.json({ limit: '4mb' }), async (req, res) => {
+  const counts = await receiveHealth(req.params.token, req.body);
+  if (!counts) {
+    res.status(404).json({ message: 'Este endereço não existe mais.' });
+    return;
+  }
+  res.json({ received: counts });
 });
 
 app.get('/health', (_, res) => {

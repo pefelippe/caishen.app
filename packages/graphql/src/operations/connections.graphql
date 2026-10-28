@@ -139,3 +139,28 @@ mutation RefreshExternalCalendar($id: ID!) {
 mutation RemoveExternalCalendar($id: ID!) {
   removeExternalCalendar(id: $id)
 }
+
+fragment HealthInboxFields on HealthInbox {
+  path
+  createdAt
+  lastReceivedAt
+  lastCounts {
+    steps
+    weights
+    bodyFat
+    sleeps
+    workouts
+  }
+}
+
+query HealthInbox {
+  healthInbox {
+    ...HealthInboxFields
+  }
+}
+
+mutation SetHealthInbox($on: Boolean!) {
+  setHealthInbox(on: $on) {
+    ...HealthInboxFields
+  }
+}

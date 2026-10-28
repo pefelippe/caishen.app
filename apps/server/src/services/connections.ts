@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { driveConnected, googleConfigured } from './drive';
 import { aiConfigured, defaultModel, listModels } from './models';
 import { bankLinks, openFinanceUnavailable } from './openFinance';
+import { healthInbox } from './fitness/health';
 import { listExternalCalendars } from './personal/calendars';
 import { calendarFeed as calendarFeedOf } from './personal/feed';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
@@ -142,6 +143,21 @@ const externalCalendars: Provider = {
   },
 };
 
+const health: Provider = {
+  category: 'HEALTH',
+  kind: 'HEALTH',
+  // Apple Health and Health Connect have no web API: the phone sends to an address (docs/adr/0029).
+  status: async viewer => {
+    const inbox = await healthInbox(viewer);
+    return {
+      available: true,
+      connected: Boolean(inbox?.lastReceivedAt),
+      detail: null,
+      unavailableReason: null,
+    };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
 const PROVIDERS: Provider[] = [
   openRouter,
@@ -150,6 +166,7 @@ const PROVIDERS: Provider[] = [
   openFinance,
   calendarFeed,
   externalCalendars,
+  health,
 ];
 
 export function connections(viewer: Viewer) {

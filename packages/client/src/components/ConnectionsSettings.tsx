@@ -8,14 +8,10 @@ import {
   type StartWhatsappLinkMutation,
 } from '@zapbots/graphql/client';
 import {
-  ActivityIcon,
   BrainCircuitIcon,
   CalendarClockIcon,
   LandmarkIcon,
-  MoonIcon,
-  ScaleIcon,
   TrendingUpIcon,
-  ZapIcon,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -23,47 +19,18 @@ import { useLocation } from 'react-router-dom';
 
 import {
   AppleLogo,
-  DropboxLogo,
-  FitbitLogo,
-  GarminLogo,
   GmailLogo,
-  GoogleDriveLogo,
   NotionLogo,
-  ObsidianLogo,
-  RescueTimeLogo,
   SpotifyLogo,
   StravaLogo,
   TelegramLogo,
-  TickTickLogo,
   TodoistLogo,
   WhatsAppLogo,
-  AirtableLogo,
-  AsanaLogo,
-  BinanceLogo,
-  CalendlyLogo,
-  ClickUpLogo,
-  CoinbaseLogo,
-  DiscordLogo,
-  DuolingoLogo,
-  EvernoteLogo,
-  GoogleDocsLogo,
   GoogleSheetsLogo,
   GoogleTasksLogo,
-  HeadspaceLogo,
   ICloudLogo,
-  IFoodLogo,
-  KomootLogo,
   MakeLogo,
-  MercadoPagoLogo,
   N8nLogo,
-  NubankLogo,
-  PayPalLogo,
-  PelotonLogo,
-  PicPayLogo,
-  SamsungLogo,
-  TrelloLogo,
-  UberLogo,
-  WiseLogo,
   ZapierLogo,
 } from '@zapbots/ui/blocks/brand-logos';
 import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
@@ -76,6 +43,7 @@ import { ModelsList } from '../pages/ModelsPage';
 import { AiKeysEditor } from './AiKeysEditor';
 import { CalendarFeedLinker } from './CalendarFeedLinker';
 import { ExternalCalendarsLinker } from './ExternalCalendarsLinker';
+import { HealthLinker } from './HealthLinker';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
 
@@ -157,12 +125,21 @@ const CARDS: {
     mark: { color: '#3693F3', icon: ICloudLogo },
     name: 'iCloud, Google e Outlook',
   },
+  {
+    category: 'health',
+    description:
+      'Passos, peso, gordura corporal, sono e treinos do iPhone (Apple Health) ou do Android (Health Connect, onde gravam o Samsung Health, o Garmin e outros) entram em Fitness. O celular manda para um endereço só seu; os dados não vão a nenhum modelo de IA.',
+    id: 'health',
+    kind: 'HEALTH',
+    mark: { color: null, icon: AppleLogo },
+    name: 'Apple Health, Samsung Health e Health Connect',
+  },
 ];
 
 /**
  * Integrations still to come: shown with "Em breve" under the ones that work, with no Connection,
- * server side or link until they do. Apple Health and Health Connect only give their data to an
- * app installed on the phone, so they wait for one.
+ * server side or link until they do. Only what is planned; watches, scales and rings already come
+ * through Apple Health or Health Connect, and the banks through Open Finance.
  */
 const UPCOMING: {
   category: Category;
@@ -184,69 +161,21 @@ const UPCOMING: {
   },
   {
     category: 'health',
-    description: 'Passos, treinos, sono e batimentos do iPhone e do Apple Watch.',
-    mark: { color: null, icon: AppleLogo },
-    name: 'Apple Health',
-  },
-  {
-    category: 'health',
-    description: 'Os dados de saúde de um celular Android.',
-    mark: { icon: ActivityIcon },
-    name: 'Health Connect',
-  },
-  {
-    category: 'health',
-    description: 'Corridas, pedaladas e treinos registrados.',
+    description: 'Corridas e pedaladas com o mapa e o esforço de cada uma.',
     mark: { color: '#FC4C02', icon: StravaLogo },
     name: 'Strava',
   },
   {
-    category: 'health',
-    description: 'Atividades, sono e carga do relógio.',
-    mark: { color: null, icon: GarminLogo },
-    name: 'Garmin',
-  },
-  {
-    category: 'health',
-    description: 'Passos, sono e batimentos da pulseira.',
-    mark: { color: '#00B0B9', icon: FitbitLogo },
-    name: 'Fitbit',
-  },
-  {
-    category: 'health',
-    description: 'Sono, prontidão e temperatura do anel.',
-    mark: { icon: MoonIcon },
-    name: 'Oura',
-  },
-  {
-    category: 'health',
-    description: 'Recuperação, esforço e sono.',
-    mark: { icon: ZapIcon },
-    name: 'Whoop',
-  },
-  {
-    category: 'health',
-    description: 'Peso e composição corporal da balança.',
-    mark: { icon: ScaleIcon },
-    name: 'Withings',
+    category: 'agenda',
+    description: 'As tarefas do Gmail e da Agenda nas suas Tarefas.',
+    mark: { color: '#2684FC', icon: GoogleTasksLogo },
+    name: 'Google Tarefas',
   },
   {
     category: 'agenda',
     description: 'Suas tarefas e projetos.',
     mark: { color: '#E44332', icon: TodoistLogo },
     name: 'Todoist',
-  },
-  {
-    category: 'agenda',
-    description: 'Tarefas e hábitos.',
-    mark: { color: '#4772FA', icon: TickTickLogo },
-    name: 'TickTick',
-  },
-  {
-    category: 'notes',
-    description: 'Planilhas, PDFs e documentos que você escolher.',
-    mark: { color: '#4285F4', icon: GoogleDriveLogo },
-    name: 'Google Drive',
   },
   {
     category: 'notes',
@@ -256,15 +185,9 @@ const UPCOMING: {
   },
   {
     category: 'notes',
-    description: 'As notas do seu vault, pelo Drive ou pelo GitHub.',
-    mark: { color: '#7C3AED', icon: ObsidianLogo }, // taste-skill-ignore: Obsidian's own colour
-    name: 'Obsidian',
-  },
-  {
-    category: 'notes',
-    description: 'Arquivos e extratos guardados lá.',
-    mark: { color: '#0061FF', icon: DropboxLogo },
-    name: 'Dropbox',
+    description: 'A planilha de gastos que você já mantém.',
+    mark: { color: '#34A853', icon: GoogleSheetsLogo },
+    name: 'Google Planilhas',
   },
   {
     category: 'chat',
@@ -277,156 +200,6 @@ const UPCOMING: {
     description: 'O que você ouve ao longo do dia.',
     mark: { color: '#1ED760', icon: SpotifyLogo },
     name: 'Spotify',
-  },
-  {
-    category: 'chat',
-    description: 'Quanto tempo você passa em cada app.',
-    mark: { color: null, icon: RescueTimeLogo },
-    name: 'RescueTime',
-  },
-  {
-    category: 'finance',
-    description: 'Conta, cartão e caixinhas pelo Open Finance.',
-    mark: { color: '#820AD1', icon: NubankLogo }, // taste-skill-ignore: the brand's own colour
-    name: 'Nubank',
-  },
-  {
-    category: 'finance',
-    description: 'Saldo, Pix e cartão da conta do Mercado Pago.',
-    mark: { color: '#00B1EA', icon: MercadoPagoLogo },
-    name: 'Mercado Pago',
-  },
-  {
-    category: 'finance',
-    description: 'Saldo, Pix e cartão do PicPay.',
-    mark: { color: '#21C25E', icon: PicPayLogo },
-    name: 'PicPay',
-  },
-  {
-    category: 'finance',
-    description: 'Compras e recebimentos em outras moedas.',
-    mark: { color: '#002991', icon: PayPalLogo },
-    name: 'PayPal',
-  },
-  {
-    category: 'finance',
-    description: 'Contas em dólar e euro, com o câmbio de cada envio.',
-    mark: { color: null, icon: WiseLogo },
-    name: 'Wise',
-  },
-  {
-    category: 'finance',
-    description: 'Saldo e operações em cripto.',
-    mark: { color: '#F0B90B', icon: BinanceLogo },
-    name: 'Binance',
-  },
-  {
-    category: 'finance',
-    description: 'Carteira de cripto e o que ela vale em reais.',
-    mark: { color: '#0052FF', icon: CoinbaseLogo },
-    name: 'Coinbase',
-  },
-  {
-    category: 'finance',
-    description: 'Corridas e pedidos, com o recibo de cada um.',
-    mark: { color: null, icon: UberLogo },
-    name: 'Uber',
-  },
-  {
-    category: 'finance',
-    description: 'Pedidos e quanto o delivery pesa no mês.',
-    mark: { color: '#EA1D2C', icon: IFoodLogo },
-    name: 'iFood',
-  },
-  {
-    category: 'health',
-    description: 'Passos, sono e treinos do Galaxy Watch.',
-    mark: { color: '#1428A0', icon: SamsungLogo },
-    name: 'Samsung Health',
-  },
-  {
-    category: 'health',
-    description: 'Aulas e treinos da bike e da esteira.',
-    mark: { color: null, icon: PelotonLogo },
-    name: 'Peloton',
-  },
-  {
-    category: 'health',
-    description: 'Trilhas e pedais planejados e feitos.',
-    mark: { color: '#6AA127', icon: KomootLogo },
-    name: 'Komoot',
-  },
-  {
-    category: 'health',
-    description: 'Minutos de meditação e sequência de dias.',
-    mark: { color: '#F47D31', icon: HeadspaceLogo },
-    name: 'Headspace',
-  },
-  {
-    category: 'agenda',
-    description: 'As tarefas do Gmail e da Agenda.',
-    mark: { color: '#2684FC', icon: GoogleTasksLogo },
-    name: 'Google Tarefas',
-  },
-  {
-    category: 'agenda',
-    description: 'Quadros e cartões dos seus projetos.',
-    mark: { color: '#0052CC', icon: TrelloLogo },
-    name: 'Trello',
-  },
-  {
-    category: 'agenda',
-    description: 'Tarefas e prazos do trabalho.',
-    mark: { color: '#F06A6A', icon: AsanaLogo },
-    name: 'Asana',
-  },
-  {
-    category: 'agenda',
-    description: 'Tarefas, metas e documentos.',
-    mark: { color: '#7B68EE', icon: ClickUpLogo }, // taste-skill-ignore: the brand's own colour
-    name: 'ClickUp',
-  },
-  {
-    category: 'agenda',
-    description: 'As reuniões marcadas com você.',
-    mark: { color: '#006BFF', icon: CalendlyLogo },
-    name: 'Calendly',
-  },
-  {
-    category: 'notes',
-    description: 'A planilha de gastos que você já mantém.',
-    mark: { color: '#34A853', icon: GoogleSheetsLogo },
-    name: 'Google Planilhas',
-  },
-  {
-    category: 'notes',
-    description: 'Documentos que você escolher.',
-    mark: { color: '#4285F4', icon: GoogleDocsLogo },
-    name: 'Google Docs',
-  },
-  {
-    category: 'notes',
-    description: 'Notas, recibos e documentos digitalizados.',
-    mark: { color: '#00A82D', icon: EvernoteLogo },
-    name: 'Evernote',
-  },
-  {
-    category: 'notes',
-    description: 'Suas bases e tabelas.',
-    mark: { color: '#18BFFF', icon: AirtableLogo },
-    name: 'Airtable',
-  },
-  {
-    category: 'chat',
-    description: 'Converse com o Caishen num servidor seu.',
-    mark: { color: '#5865F2', icon: DiscordLogo }, // taste-skill-ignore: the brand's own colour
-    name: 'Discord',
-  },
-  {
-    category: 'chat',
-    description: 'Sequência de dias e lições feitas.',
-    mark: { color: '#58CC02', icon: DuolingoLogo },
-    name: 'Duolingo',
   },
   {
     category: 'automation',
@@ -614,6 +387,7 @@ function Details({ connection }: { connection: Connection }): ReactNode {
       {connection.kind === 'OPEN_FINANCE' && connection.available && <OpenFinanceLinker />}
       {connection.kind === 'CALENDAR_FEED' && <CalendarFeedLinker />}
       {connection.kind === 'EXTERNAL_CALENDARS' && <ExternalCalendarsLinker />}
+      {connection.kind === 'HEALTH' && <HealthLinker />}
       {connection.detail && <p className="text-sm">{connection.detail}</p>}
       {connection.unavailableReason && (
         <p className="rounded-xl bg-secondary/60 px-4 py-3.5 text-muted-foreground">

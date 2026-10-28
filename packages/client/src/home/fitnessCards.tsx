@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client/react';
 import { HomeFitnessDocument, HomeMeasuresDocument } from '@zapbots/graphql/client';
 import { formatMeasure, hoursLabel, measureTrend } from '@zapbots/fitness';
-import { BedIcon, DumbbellIcon } from 'lucide-react';
+import { BedIcon, DumbbellIcon, FootprintsIcon } from 'lucide-react';
 
 import { localToday } from '../lib/bots';
 import { useI18n } from '../lib/i18n';
@@ -11,7 +11,7 @@ import { Empty, Lines, Panel } from './panel';
 
 /** Fitness hoje: what was eaten against the targets, today's Ficha and last night. */
 export function FitnessCard() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const { data } = useQuery(HomeFitnessDocument, { fetchPolicy: 'cache-and-network' });
   const today = data?.fitnessToday;
 
@@ -60,6 +60,19 @@ export function FitnessCard() {
                 )}
               </span>
             </div>
+            {today.steps !== null && today.steps !== undefined && (
+              <div className="flex items-center gap-2.5 rounded-xl bg-muted px-3 py-2.5">
+                <FootprintsIcon className="size-4 shrink-0 text-area-fitness" />
+                <span className="min-w-0 truncate">
+                  {t('home.fitness.steps')}:{' '}
+                  <span className="font-semibold tabular-nums">
+                    {new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : 'en-US').format(
+                      today.steps
+                    )}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

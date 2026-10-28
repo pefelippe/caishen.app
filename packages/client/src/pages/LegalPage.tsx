@@ -361,6 +361,14 @@ const PRIVACY: Clause[] = [
           Remover a agenda apaga o link.
         </li>
         <li>
+          <strong>Saúde do celular:</strong> se você criar o endereço de envio e colá-lo num app
+          do celular (Health Auto Export no iPhone, HC Webhook no Android), recebemos dele passos,
+          peso, gordura corporal, sono e treinos do Apple Health ou do Health Connect, e guardamos
+          como os dados de Fitness acima, com o mesmo cuidado de dado sensível. O endereço só
+          recebe; trocar ou desligar o endereço não apaga o que já chegou, e você apaga cada
+          registro quando quiser.
+        </li>
+        <li>
           <strong>Conversas com o agente:</strong> as mensagens e respostas. Anexos (imagens, PDFs,
           planilhas) são enviados ao modelo de IA para aquela resposta e não ficam guardados;
           guardamos só os nomes.

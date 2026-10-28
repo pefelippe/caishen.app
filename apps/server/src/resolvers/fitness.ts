@@ -10,6 +10,7 @@ import {
   listSleepLogs,
   saveSleepLog,
 } from '../services/fitness/body';
+import { stepsOn } from '../services/fitness/health';
 import {
   createMeal,
   deleteMeal,
@@ -62,12 +63,13 @@ export const fitnessResolvers: Resolvers = {
       const viewer = requireViewer(context);
       const date = await viewerToday(viewer);
       const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
-      const [plans, done, [eaten], target, sleep] = await Promise.all([
+      const [plans, done, [eaten], target, sleep, steps] = await Promise.all([
         listWorkoutPlans(viewer),
         sessionsOn(viewer, date),
         macroDays(viewer, date, date),
         macroTarget(viewer),
         lastSleep(viewer),
+        stepsOn(viewer, date),
       ]);
       return {
         date,
@@ -75,6 +77,7 @@ export const fitnessResolvers: Resolvers = {
         eaten: eaten!,
         lastSleep: sleep,
         plans: plansOn(plans, weekday),
+        steps,
         target,
       };
     },

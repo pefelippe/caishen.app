@@ -309,6 +309,13 @@
       "when": 1793208768166,
       "tag": "0043_dizzy_venom",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793209193915,
+      "tag": "0044_magenta_blue_shield",
+      "breakpoints": true
     }
   ]
 }
