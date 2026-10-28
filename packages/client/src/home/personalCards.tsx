@@ -38,7 +38,9 @@ export function TodayCard() {
   });
   const [setDone] = useMutation(SetTaskDoneDocument, { refetchQueries: [HomeTodayDocument] });
   const tasks = (data?.tasks ?? []).filter(task => task.dueOn && task.dueOn <= today);
-  const events = (data?.agenda ?? []).filter(item => item.kind === 'EVENT');
+  const events = (data?.agenda ?? []).filter(
+    item => item.kind === 'EVENT' || item.kind === 'EXTERNAL'
+  );
 
   return (
     <Panel

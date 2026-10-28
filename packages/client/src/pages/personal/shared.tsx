@@ -145,10 +145,14 @@ export function monthTitle(month: string, language: Language): string {
 export const hours = (start: null | string | undefined, end?: null | string) =>
   start ? (end ? `${start}–${end}` : start) : '';
 
-/** Each kind of line in its own colour: Eventos in the primary, Tarefas in success, bills in warning. */
+/**
+ * Each kind of line in its own colour: Eventos in the primary, Tarefas in success, bills in
+ * warning, events from the User's other calendars in a quiet grey.
+ */
 export const KIND_DOT: Record<AgendaKind, string> = {
   DUE: 'bg-warning',
   EVENT: 'bg-primary',
+  EXTERNAL: 'bg-muted-foreground/60',
   TASK: 'bg-success',
 };
 
@@ -181,6 +185,11 @@ export function AgendaLine({
         >
           {item.title}
         </span>
+        {item.source && (
+          <span className="max-w-32 shrink-0 truncate text-xs text-muted-foreground">
+            {item.source}
+          </span>
+        )}
         {item.amountCents !== null && item.amountCents !== undefined && (
           <span className="shrink-0 font-medium tabular-nums">{formatCents(item.amountCents)}</span>
         )}

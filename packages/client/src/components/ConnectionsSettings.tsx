@@ -11,7 +11,6 @@ import {
   ActivityIcon,
   BrainCircuitIcon,
   CalendarClockIcon,
-  CalendarDaysIcon,
   LandmarkIcon,
   MoonIcon,
   ScaleIcon,
@@ -28,7 +27,6 @@ import {
   FitbitLogo,
   GarminLogo,
   GmailLogo,
-  GoogleCalendarLogo,
   GoogleDriveLogo,
   NotionLogo,
   ObsidianLogo,
@@ -77,6 +75,7 @@ import { cn } from '@zapbots/ui/lib/utils';
 import { ModelsList } from '../pages/ModelsPage';
 import { AiKeysEditor } from './AiKeysEditor';
 import { CalendarFeedLinker } from './CalendarFeedLinker';
+import { ExternalCalendarsLinker } from './ExternalCalendarsLinker';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
 
@@ -148,6 +147,15 @@ const CARDS: {
     kind: 'CALENDAR_FEED',
     mark: { icon: CalendarClockIcon },
     name: 'Agenda no celular',
+  },
+  {
+    category: 'agenda',
+    description:
+      'Os compromissos do iCloud, do Google Agenda ou do Outlook aparecem na sua Agenda e ocupam o horário nos Links de agendamento. Só leitura, pelo link secreto de cada agenda: nenhuma senha fica aqui.',
+    id: 'calendars',
+    kind: 'EXTERNAL_CALENDARS',
+    mark: { color: '#3693F3', icon: ICloudLogo },
+    name: 'iCloud, Google e Outlook',
   },
 ];
 
@@ -221,18 +229,6 @@ const UPCOMING: {
     description: 'Peso e composição corporal da balança.',
     mark: { icon: ScaleIcon },
     name: 'Withings',
-  },
-  {
-    category: 'agenda',
-    description: 'Seus compromissos, só para leitura.',
-    mark: { color: '#4285F4', icon: GoogleCalendarLogo },
-    name: 'Google Agenda',
-  },
-  {
-    category: 'agenda',
-    description: 'A agenda do trabalho, só para leitura.',
-    mark: { icon: CalendarDaysIcon },
-    name: 'Outlook',
   },
   {
     category: 'agenda',
@@ -365,12 +361,6 @@ const UPCOMING: {
     description: 'Minutos de meditação e sequência de dias.',
     mark: { color: '#F47D31', icon: HeadspaceLogo },
     name: 'Headspace',
-  },
-  {
-    category: 'agenda',
-    description: 'Os compromissos do iPhone e do Mac.',
-    mark: { color: '#3693F3', icon: ICloudLogo },
-    name: 'Agenda do iCloud',
   },
   {
     category: 'agenda',
@@ -623,6 +613,7 @@ function Details({ connection }: { connection: Connection }): ReactNode {
       )}
       {connection.kind === 'OPEN_FINANCE' && connection.available && <OpenFinanceLinker />}
       {connection.kind === 'CALENDAR_FEED' && <CalendarFeedLinker />}
+      {connection.kind === 'EXTERNAL_CALENDARS' && <ExternalCalendarsLinker />}
       {connection.detail && <p className="text-sm">{connection.detail}</p>}
       {connection.unavailableReason && (
         <p className="rounded-xl bg-secondary/60 px-4 py-3.5 text-muted-foreground">

@@ -101,6 +101,7 @@ enum ConnectionKind {
   WHATSAPP
   OPEN_FINANCE
   CALENDAR_FEED
+  EXTERNAL_CALENDARS
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -1435,6 +1436,8 @@ enum AgendaKind {
   TASK
   "A bill from Finanças: Parcela, Fatura or Gasto recorrente."
   DUE
+  "An event from a calendar kept elsewhere (iCloud, Google, Outlook); read only."
+  EXTERNAL
 }
 
 "One line of the Agenda on one day."
@@ -1451,6 +1454,8 @@ type AgendaItem {
   done: Boolean
   "The path it opens."
   link: String!
+  "For an EXTERNAL event, the name of its calendar."
+  source: String
 }
 
 enum GoalArea {
@@ -1959,4 +1964,34 @@ extend type Query {
 extend type Mutation {
   "On makes a new link (the old one stops working); off removes it."
   setCalendarFeed(on: Boolean!): CalendarFeed
+}
+
+"Where an outside calendar comes from, read by its host."
+enum CalendarSource {
+  ICLOUD
+  GOOGLE
+  OUTLOOK
+  OTHER
+}
+
+"A calendar the Viewer keeps elsewhere, read by its secret .ics address; the address never leaves the server."
+type ExternalCalendar {
+  id: ID!
+  name: String!
+  source: CalendarSource!
+  host: String!
+  lastReadAt: DateTime
+  "Why the last read failed, in pt-BR."
+  error: String
+}
+
+extend type Query {
+  externalCalendars: [ExternalCalendar!]!
+}
+
+extend type Mutation {
+  "Reads the link first: one that is not a calendar is refused. webcal:// is read as https://."
+  addExternalCalendar(name: String!, url: String!): ExternalCalendar!
+  refreshExternalCalendar(id: ID!): ExternalCalendar!
+  removeExternalCalendar(id: ID!): Boolean!
 }

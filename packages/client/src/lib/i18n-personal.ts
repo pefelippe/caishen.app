@@ -82,6 +82,7 @@ export const PERSONAL_STRINGS = {
   'personal.calendar.free': { en: 'Nothing on this day.', pt: 'Nada neste dia.' },
   'personal.calendar.kind.DUE': { en: 'Bills', pt: 'Contas' },
   'personal.calendar.kind.EVENT': { en: 'Events', pt: 'Eventos' },
+  'personal.calendar.kind.EXTERNAL': { en: 'Other calendars', pt: 'Outras agendas' },
   'personal.calendar.kind.TASK': { en: 'Tasks', pt: 'Tarefas' },
   'personal.calendar.list': { en: 'List', pt: 'Lista' },
   'personal.calendar.month': { en: 'Month', pt: 'Mês' },

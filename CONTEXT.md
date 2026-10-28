@@ -168,6 +168,13 @@ em tempos: um mês para trás e um ano à frente. Lá fora só se vê; trocar o 
 desliga o antigo.
 _Avoid_: feed, sincronização (nada volta de lá)
 
+**Agenda de fora** (`ExternalCalendar`):
+Uma agenda que o Usuário mantém em outro lugar (iCloud, Google, Outlook), lida
+pelo link secreto .ics dela. Os eventos aparecem na Agenda, só para ver, e
+ocupam o horário dos Links de agendamento; nada é escrito lá. O link fica
+cifrado e não volta ao navegador.
+_Avoid_: sincronização, calendário importado (nada é copiado)
+
 **Meta** (`Goal`):
 Aonde o Usuário quer chegar: juntar um valor (MONEY, em centavos), chegar a uma
 contagem (COUNT, com unidade) ou fazer algo uma vez (CHECK). Pode agrupar

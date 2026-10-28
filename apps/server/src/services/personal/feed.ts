@@ -92,6 +92,8 @@ export async function calendarFeedFile(token: string): Promise<null | string> {
     const to =
       addDays(from, MAX_AGENDA_DAYS - 1) < last ? addDays(from, MAX_AGENDA_DAYS - 1) : last;
     for (const item of await agenda(viewer, from, to)) {
+      // What comes from the User's other calendars is already there.
+      if (item.kind === 'EXTERNAL') continue;
       const uid = createHash('sha256')
         .update(`${item.kind}:${item.id}:${item.date}`)
         .digest('hex')

@@ -1,11 +1,11 @@
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
 
 /**
- * Secrets an Organization pastes on Integrações (AI keys), sealed with
+ * Secrets pasted on Integrações (AI keys, the addresses of outside calendars), sealed with
  * AES-256-GCM under a key derived from `BETTER_AUTH_SECRET`, one per `purpose`; changing that
  * secret loses them. The purpose is part of the derivation: never rename one in use.
  */
-export type SealPurpose = 'ai-key';
+export type SealPurpose = 'ai-key' | 'calendar-url';
 
 function sealingKey(purpose: SealPurpose): Buffer {
   const secret = process.env.BETTER_AUTH_SECRET;

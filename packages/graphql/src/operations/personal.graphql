@@ -145,6 +145,7 @@ query Agenda($from: Date!, $to: Date!) {
     amountCents
     done
     link
+    source
   }
 }
 
@@ -237,6 +238,7 @@ query HomeToday($today: Date!) {
     title
     done
     link
+    source
   }
 }
 
@@ -250,5 +252,6 @@ query HomeAgenda($from: Date!, $to: Date!) {
     amountCents
     done
     link
+    source
   }
 }

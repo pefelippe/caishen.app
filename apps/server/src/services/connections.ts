@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { driveConnected, googleConfigured } from './drive';
 import { aiConfigured, defaultModel, listModels } from './models';
 import { bankLinks, openFinanceUnavailable } from './openFinance';
+import { listExternalCalendars } from './personal/calendars';
 import { calendarFeed as calendarFeedOf } from './personal/feed';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
 import { whatsappConfigured } from './whatsapp/meta';
@@ -124,8 +125,32 @@ const calendarFeed: Provider = {
   },
 };
 
+const externalCalendars: Provider = {
+  category: 'CALENDAR',
+  kind: 'EXTERNAL_CALENDARS',
+  // iCloud, Google or Outlook by each calendar's secret .ics address: no passwords (docs/adr/0028).
+  status: async viewer => {
+    const calendars = await listExternalCalendars(viewer);
+    return {
+      available: true,
+      connected: calendars.length > 0,
+      detail: calendars.length
+        ? `${calendars.length === 1 ? '1 agenda ligada' : `${calendars.length} agendas ligadas`}: ${calendars.map(calendar => calendar.name).join(', ')}.`
+        : null,
+      unavailableReason: null,
+    };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
-const PROVIDERS: Provider[] = [openRouter, googleDrive, whatsapp, openFinance, calendarFeed];
+const PROVIDERS: Provider[] = [
+  openRouter,
+  googleDrive,
+  whatsapp,
+  openFinance,
+  calendarFeed,
+  externalCalendars,
+];
 
 export function connections(viewer: Viewer) {
   return Promise.all(

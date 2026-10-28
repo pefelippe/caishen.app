@@ -7,9 +7,10 @@ import { and, between, gte, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { badInput, owned } from '../../resolvers/guards';
 import { duesBetween } from '../obligations';
 import { viewerHolder } from '../viewerHolder';
-import { day } from './clock';
+import { externalOccurrences } from './calendars';
+import { day, viewerTimeZone } from './clock';
 
-export type AgendaKind = 'DUE' | 'EVENT' | 'TASK';
+export type AgendaKind = 'DUE' | 'EVENT' | 'EXTERNAL' | 'TASK';
 
 /** One line of the Agenda on one day: an Evento, a Tarefa's deadline or a bill from the Caishen. */
 export interface AgendaItem {
@@ -22,6 +23,8 @@ export interface AgendaItem {
   kind: AgendaKind;
   /** Where it opens: a Tarefa or Evento by id on its page; a bill on Gastos. */
   link: string;
+  /** For an event from an outside calendar, that calendar's name. */
+  source: null | string;
   startTime: null | string;
   title: string;
 }
@@ -35,7 +38,8 @@ const daysBetween = (from: string, to: string) =>
 /**
  * Everything on the Viewer's days from `from` to `to`, both included: Eventos (repeating ones on
  * each date of their series, those over several days on each day), Tarefas due (done ones too)
- * and what falls due in Finanças, which only links to its screen. By day, then all day before
+ * what falls due in Finanças, which only links to its screen, and the events of the calendars kept
+ * elsewhere (`calendars.ts`). By day, then all day before
  * the hours.
  */
 export async function agenda(viewer: Viewer, from: string, to: string): Promise<AgendaItem[]> {
@@ -64,6 +68,7 @@ export async function agenda(viewer: Viewer, from: string, to: string): Promise<
       id: event.id,
       kind: 'EVENT' as const,
       link: `/personal/calendar?e=${event.id}`,
+      source: null,
       startTime: event.startTime,
       title: event.title,
     };
@@ -89,6 +94,7 @@ export async function agenda(viewer: Viewer, from: string, to: string): Promise<
       id: task.id,
       kind: 'TASK',
       link: `/personal/tasks?t=${task.id}`,
+      source: null,
       startTime: task.dueTime,
       title: task.title,
     });
@@ -104,8 +110,25 @@ export async function agenda(viewer: Viewer, from: string, to: string): Promise<
       id: `due:${due.dueDate}:${due.label}`,
       kind: 'DUE',
       link: '/caishen/fixed',
+      source: null,
       startTime: null,
       title: due.label,
+    });
+  }
+
+  const zone = await viewerTimeZone(viewer);
+  for (const occurrence of await externalOccurrences(viewer.organizationId, zone, from, to)) {
+    items.push({
+      amountCents: null,
+      date: occurrence.date,
+      done: null,
+      endTime: occurrence.endTime,
+      id: `external:${occurrence.calendarId}:${occurrence.uid}:${occurrence.date}`,
+      kind: 'EXTERNAL',
+      link: '/integrations#calendars',
+      source: occurrence.calendarName,
+      startTime: occurrence.startTime,
+      title: occurrence.title,
     });
   }
 

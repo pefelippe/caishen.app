@@ -354,6 +354,13 @@ const PRIVACY: Clause[] = [
           o antigo na hora; desligar apaga o link.
         </li>
         <li>
+          <strong>Agendas de fora:</strong> se você ligar uma agenda do iCloud, do Google ou do
+          Outlook pelo link dela, guardamos o link cifrado e lemos dele os seus compromissos para
+          mostrar na sua Agenda e ocupar os horários dos seus links de agendamento. Os compromissos
+          ficam só na memória do servidor por alguns minutos e nada é escrito na agenda de lá.
+          Remover a agenda apaga o link.
+        </li>
+        <li>
           <strong>Conversas com o agente:</strong> as mensagens e respostas. Anexos (imagens, PDFs,
           planilhas) são enviados ao modelo de IA para aquela resposta e não ficam guardados;
           guardamos só os nomes.
@@ -439,6 +446,10 @@ const PRIVACY: Clause[] = [
           <li>Google: login com o Google e, se você ligar, o Google Drive.</li>
           <li>Meta (WhatsApp Cloud API): mensagens, se você vincular um número.</li>
           <li>Pluggy: Open Finance, se você vincular um banco.</li>
+          <li>
+            Apple (iCloud), Google ou Microsoft (Outlook): só lemos o link da agenda que você ligar;
+            nada seu é enviado a eles.
+          </li>
           <li>
             Sentry: registro de erros técnicos, configurado para não receber cookies, mensagens,
             valores nem dados da sua conta.

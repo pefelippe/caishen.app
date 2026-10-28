@@ -18,6 +18,7 @@ import { and, asc, count, desc, eq, gte, isNotNull, isNull, lte, or, sql } from 
 
 import { badInput, notFound, owned } from '../../resolvers/guards';
 import { clientOrigin, sendEmail } from '../mail';
+import { externalOccurrences } from './calendars';
 import { text, title } from './clock';
 
 /** A Tipo de agendamento as the form gives it. */
@@ -171,7 +172,10 @@ export async function publicBookingType(slug: string) {
   };
 }
 
-/** The owner's timed Eventos from `from` to `to` (their dates) as busy spans; all-day ones leave time free. */
+/**
+ * The owner's timed Eventos and outside events from `from` to `to` (their dates) as busy spans;
+ * all-day ones leave time free.
+ */
 async function busyOf(organizationId: string, timeZone: string, from: string, to: string) {
   const events = await db
     .select()
@@ -203,6 +207,16 @@ async function busyOf(organizationId: string, timeZone: string, from: string, to
         : new Date(start.getTime() + DEFAULT_EVENT_MINUTES * 60_000);
       busy.push({ end, start });
     }
+  }
+  // The timed events of the calendars kept elsewhere take their time too.
+  for (const occurrence of await externalOccurrences(
+    organizationId,
+    timeZone,
+    addDays(from, -1),
+    to
+  )) {
+    if (occurrence.start && occurrence.end)
+      busy.push({ end: occurrence.end, start: occurrence.start });
   }
   return busy;
 }

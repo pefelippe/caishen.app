@@ -489,7 +489,7 @@ function Legend() {
   const { t } = useI18n();
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
-      {(['EVENT', 'TASK', 'DUE'] as const).map(kind => (
+      {(['EVENT', 'TASK', 'DUE', 'EXTERNAL'] as const).map(kind => (
         <span className="inline-flex items-center gap-1.5" key={kind}>
           <span className={cn('size-2 rounded-full', KIND_DOT[kind])} />
           {t(`personal.calendar.kind.${kind}`)}

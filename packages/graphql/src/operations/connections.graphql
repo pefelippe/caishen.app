@@ -108,3 +108,34 @@ mutation SetCalendarFeed($on: Boolean!) {
     createdAt
   }
 }
+
+fragment ExternalCalendarFields on ExternalCalendar {
+  id
+  name
+  source
+  host
+  lastReadAt
+  error
+}
+
+query ExternalCalendars {
+  externalCalendars {
+    ...ExternalCalendarFields
+  }
+}
+
+mutation AddExternalCalendar($name: String!, $url: String!) {
+  addExternalCalendar(name: $name, url: $url) {
+    ...ExternalCalendarFields
+  }
+}
+
+mutation RefreshExternalCalendar($id: ID!) {
+  refreshExternalCalendar(id: $id) {
+    ...ExternalCalendarFields
+  }
+}
+
+mutation RemoveExternalCalendar($id: ID!) {
+  removeExternalCalendar(id: $id)
+}

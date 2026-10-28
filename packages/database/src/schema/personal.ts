@@ -225,3 +225,23 @@ export const calendarFeed = pgTable('calendar_feed', {
     .references(() => user.id, { onDelete: 'cascade' }),
   ...timestamps,
 });
+
+/**
+ * Agenda de fora: a calendar the User keeps elsewhere (iCloud, Google, Outlook), read by its
+ * secret .ics address. Its events show in the Agenda and take time from the Links de agendamento;
+ * nothing is written back.
+ */
+export const externalCalendar = pgTable('external_calendar', {
+  createdById: createdById(),
+  /** Why the last read failed, in pt-BR; null when it worked. */
+  error: text('error'),
+  /** Where it comes from, shown beside its name: p52-caldav.icloud.com, calendar.google.com… */
+  host: text('host').notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  lastReadAt: timestamp('last_read_at', { withTimezone: true }),
+  name: text('name').notNull(),
+  organizationId: organizationId(),
+  /** Its address, sealed (`services/sealed.ts`, `calendar-url`): whoever has it reads the calendar. */
+  sealedUrl: text('sealed_url').notNull(),
+  ...timestamps,
+});
