@@ -383,7 +383,9 @@ const PRIVACY: Clause[] = [
           <strong>Integrações que você ligar:</strong> o número de WhatsApp vinculado e as mensagens
           trocadas por ele; a conversa do Telegram vinculada (só o número interno dela) e as
           mensagens trocadas por ela; contas e transações do Open Finance (Pluggy), quando
-          disponível; chaves de provedores de IA que você colar (guardadas cifradas).
+          disponível; chaves de provedores de IA que você colar (guardadas cifradas); o acesso ao
+          Spotify, se você conectar (guardado cifrado, com o nome da conta; o que você ouve não é
+          guardado).
         </li>
         <li>
           <strong>Pagamento:</strong> o identificador de cliente e de assinatura no Stripe e o
@@ -461,6 +463,10 @@ const PRIVACY: Clause[] = [
           <li>Google: login com o Google e, se você ligar, o Google Drive e o Google Tarefas.</li>
           <li>Meta (WhatsApp Cloud API): mensagens, se você vincular um número.</li>
           <li>Telegram: mensagens, se você vincular uma conversa.</li>
+          <li>
+            Spotify: o que você está ouvindo e ouviu há pouco, lido na hora e não guardado, se você
+            conectar a sua conta.
+          </li>
           <li>Pluggy: Open Finance, se você vincular um banco.</li>
           <li>
             Apple (iCloud), Google ou Microsoft (Outlook): só lemos o link da agenda que você ligar;

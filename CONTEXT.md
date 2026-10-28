@@ -95,6 +95,11 @@ De uso único e válido por 15 minutos, vai no link `t.me` que o Usuário abre d
 Integrações; o Iniciar do Telegram o manda de volta e liga aquela conversa a ele.
 _Avoid_: token, senha, PIN
 
+**Música** (card da Página inicial):
+O que o Usuário está ouvindo no Spotify e as últimas músicas, lido na hora e
+nunca guardado (ADR 0032). Só para quem o dono do servidor nomeia.
+_Avoid_: playlist, histórico
+
 **Vínculo bancário** (`BankLink`):
 Um banco que o Titular autorizou pelo Open Finance, lido por um provedor (hoje o
 Meu Pluggy, só para o dono do servidor, ADR 0020). Os débitos das contas dele

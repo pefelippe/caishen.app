@@ -45,6 +45,7 @@ import { CalendarFeedLinker } from './CalendarFeedLinker';
 import { ExternalCalendarsLinker } from './ExternalCalendarsLinker';
 import { GoogleTasksLinker } from './GoogleTasksLinker';
 import { HealthLinker } from './HealthLinker';
+import { SpotifyLinker } from './SpotifyLinker';
 import { TelegramLinker } from './TelegramLinker';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
@@ -154,6 +155,15 @@ const CARDS: {
     mark: { color: '#26A5E4', icon: TelegramLogo },
     name: 'Telegram',
   },
+  {
+    category: 'chat',
+    description:
+      'O que você está ouvindo e as últimas músicas, num card da Página inicial. Só leitura, e nada do que você ouve fica guardado nem chega a um Modelo.',
+    id: 'spotify',
+    kind: 'SPOTIFY',
+    mark: { color: '#1ED760', icon: SpotifyLogo },
+    name: 'Spotify',
+  },
 ];
 
 /**
@@ -202,12 +212,6 @@ const UPCOMING: {
     description: 'A planilha de gastos que você já mantém.',
     mark: { color: '#34A853', icon: GoogleSheetsLogo },
     name: 'Google Planilhas',
-  },
-  {
-    category: 'chat',
-    description: 'O que você ouve ao longo do dia.',
-    mark: { color: '#1ED760', icon: SpotifyLogo },
-    name: 'Spotify',
   },
   {
     category: 'automation',
@@ -398,6 +402,9 @@ function Details({ connection }: { connection: Connection }): ReactNode {
       {connection.kind === 'HEALTH' && <HealthLinker />}
       {connection.kind === 'TELEGRAM' && connection.available && (
         <TelegramLinker connected={connection.connected} />
+      )}
+      {connection.kind === 'SPOTIFY' && connection.available && (
+        <SpotifyLinker connected={connection.connected} />
       )}
       {connection.kind === 'GOOGLE_TASKS' && connection.available && (
         <GoogleTasksLinker connected={connection.connected} />

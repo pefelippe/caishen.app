@@ -9,6 +9,7 @@ import { bankLinks, openFinanceUnavailable } from './openFinance';
 import { healthInbox } from './fitness/health';
 import { listExternalCalendars } from './personal/calendars';
 import { googleTasksConnected, googleTasksSync } from './personal/googleTasks';
+import { spotifyLinkOf, spotifyUnavailable } from './spotify';
 import { telegramConfigured } from './telegram/api';
 import { telegramLinkOf } from './telegram/link';
 import { calendarFeed as calendarFeedOf } from './personal/feed';
@@ -204,6 +205,24 @@ const telegram: Provider = {
   },
 };
 
+const spotify: Provider = {
+  category: 'MEDIA',
+  kind: 'SPOTIFY',
+  // What the User listens to, for the Música card; open only to SPOTIFY_EMAILS (docs/adr/0032).
+  status: async viewer => {
+    const reason = await spotifyUnavailable(viewer);
+    if (reason)
+      return { available: false, connected: false, detail: null, unavailableReason: reason };
+    const link = await spotifyLinkOf(viewer);
+    return {
+      available: true,
+      connected: Boolean(link),
+      detail: link?.error ?? (link?.name ? `Conta: ${link.name}.` : null),
+      unavailableReason: null,
+    };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
 const PROVIDERS: Provider[] = [
   openRouter,
@@ -215,6 +234,7 @@ const PROVIDERS: Provider[] = [
   health,
   googleTasks,
   telegram,
+  spotify,
 ];
 
 export function connections(viewer: Viewer) {

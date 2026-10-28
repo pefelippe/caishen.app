@@ -15,6 +15,7 @@ const CARD_KEYS = {
   MEASURES: true,
   MARKET: true,
   MONTH: true,
+  MUSIC: true,
   NOTES: true,
   OVERVIEW: true,
   TODAY: true,

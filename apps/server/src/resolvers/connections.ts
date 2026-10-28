@@ -11,6 +11,7 @@ import {
 } from '../services/personal/calendars';
 import { healthInbox, setHealthInbox } from '../services/fitness/health';
 import { googleTasksSync, syncGoogleTasks } from '../services/personal/googleTasks';
+import { music, spotifyLinkOf, startSpotifyLink, unlinkSpotify } from '../services/spotify';
 import { telegramConfigured } from '../services/telegram/api';
 import { startTelegramLink, unlinkTelegram } from '../services/telegram/link';
 import { calendarFeed, setCalendarFeed } from '../services/personal/feed';
@@ -53,6 +54,11 @@ export const connectionResolvers: Resolvers = {
       await unlinkTelegram(requireViewer(context));
       return true;
     },
+    startSpotifyLink: (_, __, context) => startSpotifyLink(requireViewer(context)),
+    unlinkSpotify: async (_, __, context) => {
+      await unlinkSpotify(requireViewer(context));
+      return true;
+    },
     addExternalCalendar: (_, { name, url }, context) =>
       addExternalCalendar(requireViewer(context), name, url),
     refreshExternalCalendar: (_, { id }, context) =>
@@ -90,6 +96,8 @@ export const connectionResolvers: Resolvers = {
     bankLinks: (_, __, context) => bankLinks(requireViewer(context)),
     calendarFeed: (_, __, context) => calendarFeed(requireViewer(context)),
     healthInbox: (_, __, context) => healthInbox(requireViewer(context)),
+    music: (_, __, context) => music(requireViewer(context)),
+    spotifyLink: (_, __, context) => spotifyLinkOf(requireViewer(context)),
     googleTasksSync: (_, __, context) => googleTasksSync(requireViewer(context)),
     externalCalendars: (_, __, context) => listExternalCalendars(requireViewer(context)),
     connections: (_, __, context) => connections(requireViewer(context)),

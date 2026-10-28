@@ -28,6 +28,7 @@ import {
   pluggyWebhookConfigured,
   type PluggyEvent,
 } from './services/openFinance/webhook';
+import { finishSpotifyLink } from './services/spotify';
 import { telegramConfigured, verifySecret } from './services/telegram/api';
 import { handleTelegramUpdate, type TelegramUpdate } from './services/telegram/inbound';
 import { handleWebhook, type WebhookPayload } from './services/whatsapp/inbound';
@@ -155,6 +156,27 @@ app.post('/api/health/:token', express.json({ limit: '4mb' }), async (req, res) 
     return;
   }
   res.json({ received: counts });
+});
+
+// Spotify sends the User back here with a code (docs/adr/0032); the session must be the one that
+// started it, so the state is checked against it. Back to Integrações, with the reason if not.
+app.get('/api/spotify/callback', async (req, res) => {
+  const back = (reason?: string) =>
+    res.redirect(`/integrations${reason ? `?spotify=${encodeURIComponent(reason)}` : ''}#spotify`);
+  const { code, error, state } = req.query;
+  if (error || typeof code !== 'string' || typeof state !== 'string') {
+    return back('Você não autorizou o Spotify.');
+  }
+  const viewer = await resolveViewer(req.headers);
+  if (!viewer) return back('Entre na sua conta e tente de novo.');
+  try {
+    await finishSpotifyLink(viewer, code, state);
+    back();
+  } catch (failure) {
+    if (failure instanceof GraphQLError) return back(failure.message);
+    reportError(failure);
+    back('O Spotify não respondeu. Tente de novo.');
+  }
 });
 
 app.get('/health', (_, res) => {

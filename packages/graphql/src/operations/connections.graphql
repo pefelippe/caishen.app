@@ -191,3 +191,18 @@ mutation StartTelegramLink {
 mutation UnlinkTelegram {
   unlinkTelegram
 }
+
+query SpotifyLink {
+  spotifyLink {
+    name
+    error
+  }
+}
+
+mutation StartSpotifyLink {
+  startSpotifyLink
+}
+
+mutation UnlinkSpotify {
+  unlinkSpotify
+}

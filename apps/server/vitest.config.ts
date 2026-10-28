@@ -15,6 +15,8 @@ export default defineConfig({
       PLUGGY_CLIENT_ID: 'test-pluggy-id',
       PLUGGY_CLIENT_SECRET: 'test-pluggy-secret',
       PLUGGY_WEBHOOK_SECRET: 'test-webhook-secret',
+      SPOTIFY_CLIENT_ID: 'test-spotify-id',
+      SPOTIFY_CLIENT_SECRET: 'test-spotify-secret',
       TELEGRAM_BOT_TOKEN: 'test-telegram-token',
       TELEGRAM_BOT_USERNAME: 'CaishenBot',
       TELEGRAM_WEBHOOK_SECRET: 'test-telegram-secret',

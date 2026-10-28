@@ -105,6 +105,7 @@ enum ConnectionKind {
   HEALTH
   GOOGLE_TASKS
   TELEGRAM
+  SPOTIFY
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -115,6 +116,7 @@ enum ConnectionCategory {
   FINANCE
   CALENDAR
   HEALTH
+  MEDIA
 }
 
 enum BankLinkStatus {
@@ -375,6 +377,7 @@ enum HomeCardKey {
   NOTES
   FITNESS
   MEASURES
+  MUSIC
 }
 
 type HomeCardSetting {
@@ -2070,4 +2073,40 @@ type TelegramLinkCode {
 extend type Mutation {
   startTelegramLink: TelegramLinkCode!
   unlinkTelegram: Boolean!
+}
+
+# Spotify: what the Viewer listens to, for the Música card (docs/adr/0032).
+
+type SpotifyLink {
+  "The name Spotify shows for the account."
+  name: String
+  "Why the last read failed, in pt-BR; null when it worked."
+  error: String
+}
+
+type MusicTrack {
+  title: String!
+  "The artists, or the podcast's name for an episode."
+  artists: String!
+  url: String
+  imageUrl: String
+  "When it was heard; null for what is playing now."
+  playedAt: DateTime
+}
+
+type Music {
+  playing: MusicTrack
+  recent: [MusicTrack!]!
+}
+
+extend type Query {
+  spotifyLink: SpotifyLink
+  "Null when the Viewer has not linked Spotify."
+  music: Music
+}
+
+extend type Mutation {
+  "The address of Spotify's consent screen; it comes back to /api/spotify/callback."
+  startSpotifyLink: String!
+  unlinkSpotify: Boolean!
 }

@@ -92,3 +92,21 @@ query HomeDues {
     }
   }
 }
+
+query HomeMusic {
+  music {
+    playing {
+      title
+      artists
+      url
+      imageUrl
+    }
+    recent {
+      title
+      artists
+      url
+      imageUrl
+      playedAt
+    }
+  }
+}

@@ -24,6 +24,7 @@ import { formatCents, formatDate, formatPercent } from '../lib/format';
 import { useI18n, type Language, type StringKey } from '../lib/i18n';
 import type { CardSetting } from './layout';
 import { FitnessCard, MeasuresCard } from './fitnessCards';
+import { MusicCard } from './musicCard';
 import { Empty, Lines, Panel } from './panel';
 import { AgendaCard, GoalsCard, NotesCard, TodayCard } from './personalCards';
 
@@ -349,6 +350,7 @@ export const HOME_CARDS: Record<HomeCardKey, HomeCard> = {
     title: 'home.card.measures',
   },
   CHATS: { Component: ChatsCard, area: 'general', size: 'third', title: 'home.chats' },
+  MUSIC: { Component: MusicCard, area: 'general', size: 'third', title: 'home.card.music' },
   FINANCE: { Component: FinanceCard, area: 'finance', size: 'third', title: 'home.card.finance' },
   DUES: { Component: DuesCard, area: 'finance', size: 'twoThirds', title: 'home.dues' },
   MARKET: { Component: MarketCard, area: 'finance', size: 'full', title: 'home.card.market' },
@@ -378,4 +380,5 @@ export const DEFAULT_LAYOUT: CardSetting<HomeCardKey>[] = [
   { hidden: true, key: 'DUES' },
   { hidden: true, key: 'OVERVIEW' },
   { hidden: true, key: 'MARKET' },
+  { hidden: true, key: 'MUSIC' },
 ];

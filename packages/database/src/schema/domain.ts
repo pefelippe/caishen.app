@@ -951,6 +951,22 @@ export const telegramUpdate = pgTable('telegram_update', {
   updateId: text('update_id').primaryKey(),
 });
 
+/**
+ * A User's Spotify, for the Música card (docs/adr/0032): only the refresh token, sealed
+ * (`spotify-token`), and the name Spotify shows; nothing they heard is stored.
+ */
+export const spotifyLink = pgTable('spotify_link', {
+  /** Why the last read failed, in pt-BR; null when it worked. */
+  error: text('error'),
+  name: text('name'),
+  organizationId: organizationId(),
+  sealedRefreshToken: text('sealed_refresh_token').notNull(),
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});
+
 /** The companies a Model can be called through (`@zapbots/ai`'s ProviderName, upper case). */
 export const aiProvider = pgEnum('ai_provider', ['ANTHROPIC', 'GOOGLE', 'OPENAI', 'OPENROUTER']);
 

@@ -274,6 +274,14 @@ const STRINGS = {
   'home.customize.reset': { en: 'Restore default', pt: 'Restaurar padrão' },
   'home.customize.up': { en: 'Move {card} up', pt: 'Subir {card}' },
   'home.chats': { en: 'Recent conversations', pt: 'Conversas recentes' },
+  'home.card.music': { en: 'Music', pt: 'Música' },
+  'home.music.empty': { en: 'Nothing heard lately.', pt: 'Nada ouvido nos últimos dias.' },
+  'home.music.now': { en: 'Playing now', pt: 'Tocando agora' },
+  'home.music.open': { en: 'Spotify', pt: 'Spotify' },
+  'home.music.unlinked': {
+    en: 'Connect Spotify on Integrations to see what you are listening to.',
+    pt: 'Conecte o Spotify em Integrações para ver o que você está ouvindo.',
+  },
   'home.chats.empty': {
     en: 'No conversations yet. Ask something above.',
     pt: 'Nenhuma conversa ainda. Pergunte algo acima.',
