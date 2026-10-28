@@ -9,6 +9,7 @@ import { bankLinks, openFinanceUnavailable } from './openFinance';
 import { healthInbox } from './fitness/health';
 import { listExternalCalendars } from './personal/calendars';
 import { googleTasksConnected, googleTasksSync } from './personal/googleTasks';
+import { automationInbox } from './automation';
 import { spotifyLinkOf, spotifyUnavailable } from './spotify';
 import { telegramConfigured } from './telegram/api';
 import { telegramLinkOf } from './telegram/link';
@@ -223,6 +224,21 @@ const spotify: Provider = {
   },
 };
 
+const automation: Provider = {
+  category: 'AUTOMATION',
+  kind: 'AUTOMATION',
+  // Zapier, Make and n8n send Gastos to a secret address (docs/adr/0033).
+  status: async viewer => {
+    const inbox = await automationInbox(viewer);
+    return {
+      available: true,
+      connected: Boolean(inbox?.lastReceivedAt),
+      detail: null,
+      unavailableReason: null,
+    };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
 const PROVIDERS: Provider[] = [
   openRouter,
@@ -235,6 +251,7 @@ const PROVIDERS: Provider[] = [
   googleTasks,
   telegram,
   spotify,
+  automation,
 ];
 
 export function connections(viewer: Viewer) {

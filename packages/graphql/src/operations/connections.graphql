@@ -206,3 +206,22 @@ mutation StartSpotifyLink {
 mutation UnlinkSpotify {
   unlinkSpotify
 }
+
+fragment AutomationInboxFields on AutomationInbox {
+  path
+  createdAt
+  lastReceivedAt
+  lastAdded
+}
+
+query AutomationInbox {
+  automationInbox {
+    ...AutomationInboxFields
+  }
+}
+
+mutation SetAutomationInbox($on: Boolean!) {
+  setAutomationInbox(on: $on) {
+    ...AutomationInboxFields
+  }
+}

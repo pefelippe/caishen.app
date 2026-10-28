@@ -106,6 +106,7 @@ enum ConnectionKind {
   GOOGLE_TASKS
   TELEGRAM
   SPOTIFY
+  AUTOMATION
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -117,6 +118,7 @@ enum ConnectionCategory {
   CALENDAR
   HEALTH
   MEDIA
+  AUTOMATION
 }
 
 enum BankLinkStatus {
@@ -2073,6 +2075,26 @@ type TelegramLinkCode {
 extend type Mutation {
   startTelegramLink: TelegramLinkCode!
   unlinkTelegram: Boolean!
+}
+
+# Automação: Zapier, Make or n8n send Gastos to a secret address (docs/adr/0033).
+
+type AutomationInbox {
+  "Under the app's own address: /api/inbox/<secret>."
+  path: String!
+  createdAt: DateTime!
+  lastReceivedAt: DateTime
+  "How many new Gastos the last send added."
+  lastAdded: Int
+}
+
+extend type Query {
+  automationInbox: AutomationInbox
+}
+
+extend type Mutation {
+  "On makes a new address (the old one stops working); off removes it, keeping what came."
+  setAutomationInbox(on: Boolean!): AutomationInbox
 }
 
 # Spotify: what the Viewer listens to, for the Música card (docs/adr/0032).

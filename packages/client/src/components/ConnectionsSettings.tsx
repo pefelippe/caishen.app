@@ -29,8 +29,6 @@ import {
   GoogleSheetsLogo,
   GoogleTasksLogo,
   ICloudLogo,
-  MakeLogo,
-  N8nLogo,
   ZapierLogo,
 } from '@zapbots/ui/blocks/brand-logos';
 import { PageSkeleton } from '@zapbots/ui/blocks/page-skeleton';
@@ -45,6 +43,7 @@ import { CalendarFeedLinker } from './CalendarFeedLinker';
 import { ExternalCalendarsLinker } from './ExternalCalendarsLinker';
 import { GoogleTasksLinker } from './GoogleTasksLinker';
 import { HealthLinker } from './HealthLinker';
+import { AutomationLinker } from './AutomationLinker';
 import { SpotifyLinker } from './SpotifyLinker';
 import { TelegramLinker } from './TelegramLinker';
 import { FormError } from './FormError';
@@ -164,6 +163,15 @@ const CARDS: {
     mark: { color: '#1ED760', icon: SpotifyLogo },
     name: 'Spotify',
   },
+  {
+    category: 'automation',
+    description:
+      'Zapier, Make, n8n ou qualquer script lançam Gastos no Caishen: um pedido, uma compra, uma conta paga em outro app. Eles mandam para um endereço só seu, e cada gasto entra uma vez.',
+    id: 'automation',
+    kind: 'AUTOMATION',
+    mark: { color: '#FF4F00', icon: ZapierLogo },
+    name: 'Zapier, Make e n8n',
+  },
 ];
 
 /**
@@ -212,24 +220,6 @@ const UPCOMING: {
     description: 'A planilha de gastos que você já mantém.',
     mark: { color: '#34A853', icon: GoogleSheetsLogo },
     name: 'Google Planilhas',
-  },
-  {
-    category: 'automation',
-    description: 'Mande ao Caishen o que acontece em outros apps.',
-    mark: { color: '#FF4F00', icon: ZapierLogo },
-    name: 'Zapier',
-  },
-  {
-    category: 'automation',
-    description: 'Cenários que enviam dados ao Caishen.',
-    mark: { color: '#6D00CC', icon: MakeLogo }, // taste-skill-ignore: the brand's own colour
-    name: 'Make',
-  },
-  {
-    category: 'automation',
-    description: 'Fluxos seus que enviam dados ao Caishen.',
-    mark: { color: '#EA4B71', icon: N8nLogo },
-    name: 'n8n',
   },
 ];
 
@@ -400,6 +390,7 @@ function Details({ connection }: { connection: Connection }): ReactNode {
       {connection.kind === 'CALENDAR_FEED' && <CalendarFeedLinker />}
       {connection.kind === 'EXTERNAL_CALENDARS' && <ExternalCalendarsLinker />}
       {connection.kind === 'HEALTH' && <HealthLinker />}
+      {connection.kind === 'AUTOMATION' && <AutomationLinker />}
       {connection.kind === 'TELEGRAM' && connection.available && (
         <TelegramLinker connected={connection.connected} />
       )}

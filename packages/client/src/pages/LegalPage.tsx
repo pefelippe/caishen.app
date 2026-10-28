@@ -385,7 +385,8 @@ const PRIVACY: Clause[] = [
           mensagens trocadas por ela; contas e transações do Open Finance (Pluggy), quando
           disponível; chaves de provedores de IA que você colar (guardadas cifradas); o acesso ao
           Spotify, se você conectar (guardado cifrado, com o nome da conta; o que você ouve não é
-          guardado).
+          guardado); os gastos que suas automações (Zapier, Make, n8n ou outra) mandarem para o seu
+          endereço de envio, que entram como os de uma planilha.
         </li>
         <li>
           <strong>Pagamento:</strong> o identificador de cliente e de assinatura no Stripe e o

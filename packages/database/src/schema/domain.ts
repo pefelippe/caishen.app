@@ -952,6 +952,21 @@ export const telegramUpdate = pgTable('telegram_update', {
 });
 
 /**
+ * The secret address Zapier, Make or n8n send a User's Gastos to (docs/adr/0033); only the
+ * last send's count is kept here, the Gastos themselves go in as imported ones.
+ */
+export const automationInbox = pgTable('automation_inbox', {
+  lastAdded: integer('last_added'),
+  lastReceivedAt: timestamp('last_received_at', { withTimezone: true }),
+  organizationId: organizationId(),
+  token: text('token').notNull().unique(),
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});
+
+/**
  * A User's Spotify, for the Música card (docs/adr/0032): only the refresh token, sealed
  * (`spotify-token`), and the name Spotify shows; nothing they heard is stored.
  */

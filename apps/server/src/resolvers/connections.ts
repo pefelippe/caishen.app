@@ -11,6 +11,7 @@ import {
 } from '../services/personal/calendars';
 import { healthInbox, setHealthInbox } from '../services/fitness/health';
 import { googleTasksSync, syncGoogleTasks } from '../services/personal/googleTasks';
+import { automationInbox, setAutomationInbox } from '../services/automation';
 import { music, spotifyLinkOf, startSpotifyLink, unlinkSpotify } from '../services/spotify';
 import { telegramConfigured } from '../services/telegram/api';
 import { startTelegramLink, unlinkTelegram } from '../services/telegram/link';
@@ -44,6 +45,7 @@ export const connectionResolvers: Resolvers = {
     unlinkBank: (_, { id }, context) => unlinkBank(requireViewer(context), id),
     setCalendarFeed: (_, { on }, context) => setCalendarFeed(requireViewer(context), on),
     setHealthInbox: (_, { on }, context) => setHealthInbox(requireViewer(context), on),
+    setAutomationInbox: (_, { on }, context) => setAutomationInbox(requireViewer(context), on),
     syncGoogleTasks: (_, __, context) => syncGoogleTasks(requireViewer(context)),
     startTelegramLink: (_, __, context) => {
       const viewer = requireViewer(context);
@@ -96,6 +98,7 @@ export const connectionResolvers: Resolvers = {
     bankLinks: (_, __, context) => bankLinks(requireViewer(context)),
     calendarFeed: (_, __, context) => calendarFeed(requireViewer(context)),
     healthInbox: (_, __, context) => healthInbox(requireViewer(context)),
+    automationInbox: (_, __, context) => automationInbox(requireViewer(context)),
     music: (_, __, context) => music(requireViewer(context)),
     spotifyLink: (_, __, context) => spotifyLinkOf(requireViewer(context)),
     googleTasksSync: (_, __, context) => googleTasksSync(requireViewer(context)),

@@ -20,6 +20,7 @@ import { ChatError, replyInConversation, type ChatEvent } from './services/bots/
 import { failStaleJobs } from './services/bots/jobs';
 import { runDueRoutines } from './services/bots/routines';
 import { ModelError } from './services/models';
+import { receiveAutomation } from './services/automation';
 import { receiveHealth } from './services/fitness/health';
 import { calendarFeedFile } from './services/personal/feed';
 import {
@@ -156,6 +157,13 @@ app.post('/api/health/:token', express.json({ limit: '4mb' }), async (req, res) 
     return;
   }
   res.json({ received: counts });
+});
+
+// Zapier, Make or n8n send Gastos to a User's secret address (docs/adr/0033).
+app.post('/api/inbox/:token', express.json({ limit: '1mb' }), async (req, res) => {
+  const result = await receiveAutomation(req.params.token, req.body);
+  if (!result) return res.status(404).json({ error: 'Endereço desconhecido.' });
+  res.status(result.added || result.repeated || !result.errors.length ? 200 : 400).json(result);
 });
 
 // Spotify sends the User back here with a code (docs/adr/0032); the session must be the one that
