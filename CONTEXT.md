@@ -188,6 +188,12 @@ Um passo rumo a uma Meta, na unidade dela; negativo desconta.
 Dados de saúde, sensíveis pela LGPD: só o Usuário os vê, e saem com a conta.
 Só números inteiros: gramas, milímetros, décimos de por cento, kcal.
 
+**Google Tarefas** (`GOOGLE_TASKS`):
+As tarefas do Google do Usuário, copiadas num sentido só para as Tarefas: uma
+Lista por lista de lá. O que muda lá chega aqui; o que o Usuário faz aqui fica
+aqui. Nada é escrito no Google.
+_Avoid_: sincronização (não volta nada)
+
 **Saúde do celular** (`HealthInbox`):
 O endereço secreto (`/api/health/<token>`) para onde o celular manda os dados do
 Apple Health ou do Health Connect (Samsung Health, Garmin e outros gravam lá),

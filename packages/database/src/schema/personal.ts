@@ -9,8 +9,10 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -45,15 +47,21 @@ export const homeLayout = pgTable('home_layout', {
 });
 
 /** Lista: a named group of Tarefas (Casa, Trabalho, Mercado…). */
-export const taskList = pgTable('task_list', {
-  color: text('color'),
-  createdById: createdById(),
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  organizationId: organizationId(),
-  position: integer('position').notNull().default(0),
-  ...timestamps,
-});
+export const taskList = pgTable(
+  'task_list',
+  {
+    color: text('color'),
+    createdById: createdById(),
+    /** For a Lista copied from elsewhere, its id there: `google:<id>`. */
+    externalId: text('external_id'),
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    organizationId: organizationId(),
+    position: integer('position').notNull().default(0),
+    ...timestamps,
+  },
+  table => [uniqueIndex('task_list_external_idx').on(table.organizationId, table.externalId)]
+);
 
 export const taskPriority = pgEnum('task_priority', ['LOW', 'NORMAL', 'HIGH']);
 
@@ -69,6 +77,8 @@ export const task = pgTable(
     dueOn: date('due_on'),
     /** "HH:MM", only with `dueOn`. */
     dueTime: text('due_time'),
+    /** For a Tarefa copied from elsewhere, its id there: `google:<id>`. */
+    externalId: text('external_id'),
     goalId: uuid('goal_id').references((): AnyPgColumn => goal.id, { onDelete: 'set null' }),
     id: uuid('id').primaryKey().defaultRandom(),
     listId: uuid('list_id').references(() => taskList.id, { onDelete: 'set null' }),
@@ -79,7 +89,10 @@ export const task = pgTable(
     title: text('title').notNull(),
     ...timestamps,
   },
-  table => [index('task_open_idx').on(table.organizationId, table.doneAt, table.dueOn)]
+  table => [
+    index('task_open_idx').on(table.organizationId, table.doneAt, table.dueOn),
+    uniqueIndex('task_external_idx').on(table.organizationId, table.externalId),
+  ]
 );
 
 /** Nota: free text in Markdown, pinned ones first. */
@@ -245,3 +258,21 @@ export const externalCalendar = pgTable('external_calendar', {
   sealedUrl: text('sealed_url').notNull(),
   ...timestamps,
 });
+
+/**
+ * When a User's Connection that copies from elsewhere (Google Tarefas…) last read it, and why it
+ * failed if it did. One row per User and kind.
+ */
+export const integrationSync = pgTable(
+  'integration_sync',
+  {
+    error: text('error'),
+    kind: text('kind').notNull(),
+    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+    organizationId: organizationId(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  table => [primaryKey({ columns: [table.userId, table.kind] })]
+);

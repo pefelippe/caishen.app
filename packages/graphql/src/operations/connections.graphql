@@ -164,3 +164,19 @@ mutation SetHealthInbox($on: Boolean!) {
     ...HealthInboxFields
   }
 }
+
+query GoogleTasksSync {
+  googleTasksSync {
+    lastSyncedAt
+    error
+  }
+}
+
+mutation SyncGoogleTasks {
+  syncGoogleTasks {
+    added
+    done
+    removed
+    lastSyncedAt
+  }
+}

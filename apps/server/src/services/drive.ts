@@ -1,7 +1,7 @@
-import { auth } from '@zapbots/auth';
-import { db, schema, type AttachmentRow } from '@zapbots/database';
-import { and, eq } from 'drizzle-orm';
+import type { AttachmentRow } from '@zapbots/database';
 import { extractText } from 'unpdf';
+
+import { googleAccessToken, googleConfigured, googleGranted } from './google';
 
 /** Only files the User picks are visible to zapbots; nothing else in their Drive is. */
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
@@ -12,33 +12,10 @@ const MAX_CHARS = 4000;
 /** Files above this are not downloaded: statements and contracts are far smaller. */
 const MAX_BYTES = 10 * 1024 * 1024;
 
-export const googleConfigured = () =>
-  Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-
-async function googleAccount(userId: string) {
-  const [account] = await db
-    .select({ id: schema.account.id, scope: schema.account.scope })
-    .from(schema.account)
-    .where(and(eq(schema.account.userId, userId), eq(schema.account.providerId, 'google')));
-  return account ?? null;
-}
-
 /** True when the User's Google account granted the Drive scope. */
-export async function driveConnected(userId: string): Promise<boolean> {
-  return (await googleAccount(userId))?.scope?.includes(DRIVE_SCOPE) ?? false;
-}
+export const driveConnected = (userId: string) => googleGranted(userId, DRIVE_SCOPE);
 
-/** A fresh Google access token; Better Auth refreshes it when it has expired. */
-async function accessToken(userId: string): Promise<string | null> {
-  const account = await googleAccount(userId);
-  if (!account) return null;
-  try {
-    const result = await auth.api.getAccessToken({ body: { accountId: account.id, userId } });
-    return result?.accessToken ?? null;
-  } catch {
-    return null;
-  }
-}
+export { googleConfigured };
 
 /**
  * The text of an Attachment, for a Bot to read: Google Docs are exported, plain-text files
@@ -58,7 +35,7 @@ export async function attachmentText(
           ? 'text'
           : null;
   if (!kind) return null;
-  const token = await accessToken(userId);
+  const token = await googleAccessToken(userId);
   if (!token) return null;
 
   const file = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(attachment.fileId)}`;

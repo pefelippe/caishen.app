@@ -8,6 +8,7 @@ import { aiConfigured, defaultModel, listModels } from './models';
 import { bankLinks, openFinanceUnavailable } from './openFinance';
 import { healthInbox } from './fitness/health';
 import { listExternalCalendars } from './personal/calendars';
+import { googleTasksConnected, googleTasksSync } from './personal/googleTasks';
 import { calendarFeed as calendarFeedOf } from './personal/feed';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
 import { whatsappConfigured } from './whatsapp/meta';
@@ -158,6 +159,31 @@ const health: Provider = {
   },
 };
 
+const googleTasks: Provider = {
+  category: 'CALENDAR',
+  kind: 'GOOGLE_TASKS',
+  // The Google account with the tasks.readonly scope, asked for on Integrações (docs/adr/0030).
+  status: async viewer => {
+    if (!googleConfigured()) {
+      return {
+        available: false,
+        connected: false,
+        detail: null,
+        unavailableReason:
+          'O servidor está sem as credenciais do Google (GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET).',
+      };
+    }
+    const connected = await googleTasksConnected(viewer);
+    const sync = connected ? await googleTasksSync(viewer) : null;
+    return {
+      available: true,
+      connected,
+      detail: sync?.error ?? null,
+      unavailableReason: null,
+    };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
 const PROVIDERS: Provider[] = [
   openRouter,
@@ -167,6 +193,7 @@ const PROVIDERS: Provider[] = [
   calendarFeed,
   externalCalendars,
   health,
+  googleTasks,
 ];
 
 export function connections(viewer: Viewer) {

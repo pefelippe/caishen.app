@@ -361,12 +361,18 @@ const PRIVACY: Clause[] = [
           Remover a agenda apaga o link.
         </li>
         <li>
-          <strong>Saúde do celular:</strong> se você criar o endereço de envio e colá-lo num app
-          do celular (Health Auto Export no iPhone, HC Webhook no Android), recebemos dele passos,
+          <strong>Saúde do celular:</strong> se você criar o endereço de envio e colá-lo num app do
+          celular (Health Auto Export no iPhone, HC Webhook no Android), recebemos dele passos,
           peso, gordura corporal, sono e treinos do Apple Health ou do Health Connect, e guardamos
           como os dados de Fitness acima, com o mesmo cuidado de dado sensível. O endereço só
           recebe; trocar ou desligar o endereço não apaga o que já chegou, e você apaga cada
           registro quando quiser.
+        </li>
+        <li>
+          <strong>Google Tarefas:</strong> se você conectar, o Google nos deixa só ler as suas
+          tarefas. Copiamos as abertas para as suas Tarefas (título, notas e data) e lemos de novo
+          quando você abre as Tarefas. Nada é escrito no Google; você retira o acesso na sua conta
+          Google quando quiser.
         </li>
         <li>
           <strong>Conversas com o agente:</strong> as mensagens e respostas. Anexos (imagens, PDFs,
@@ -451,7 +457,7 @@ const PRIVACY: Clause[] = [
             Resend: envio de e-mails, como o link para trocar a senha e as confirmações de
             agendamento.
           </li>
-          <li>Google: login com o Google e, se você ligar, o Google Drive.</li>
+          <li>Google: login com o Google e, se você ligar, o Google Drive e o Google Tarefas.</li>
           <li>Meta (WhatsApp Cloud API): mensagens, se você vincular um número.</li>
           <li>Pluggy: Open Finance, se você vincular um banco.</li>
           <li>

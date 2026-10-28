@@ -49,6 +49,7 @@ import {
   useRepeatLabel,
   type RepeatValue,
 } from './shared';
+import { useGoogleTasksAutoSync } from '../../components/GoogleTasksLinker';
 
 type Task = TaskFieldsFragment;
 
@@ -317,6 +318,7 @@ export function TasksPage() {
   const [params, setParams] = useSearchParams();
   const listId = params.get('list');
   const showDone = params.get('done') === '1';
+  useGoogleTasksAutoSync();
   const { data, error, loading } = useQuery(TasksDocument, {
     fetchPolicy: 'cache-and-network',
     variables: { done: showDone, listId },

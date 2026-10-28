@@ -43,6 +43,7 @@ import { ModelsList } from '../pages/ModelsPage';
 import { AiKeysEditor } from './AiKeysEditor';
 import { CalendarFeedLinker } from './CalendarFeedLinker';
 import { ExternalCalendarsLinker } from './ExternalCalendarsLinker';
+import { GoogleTasksLinker } from './GoogleTasksLinker';
 import { HealthLinker } from './HealthLinker';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
@@ -134,6 +135,15 @@ const CARDS: {
     mark: { color: null, icon: AppleLogo },
     name: 'Apple Health, Samsung Health e Health Connect',
   },
+  {
+    category: 'agenda',
+    description:
+      'As tarefas do Google (as do Gmail e da Agenda) entram nas suas Tarefas, numa Lista para cada lista de lá. Só leitura: o que muda lá aparece aqui, e o que você faz aqui fica aqui.',
+    id: 'google-tasks',
+    kind: 'GOOGLE_TASKS',
+    mark: { color: '#2684FC', icon: GoogleTasksLogo },
+    name: 'Google Tarefas',
+  },
 ];
 
 /**
@@ -164,12 +174,6 @@ const UPCOMING: {
     description: 'Corridas e pedaladas com o mapa e o esforço de cada uma.',
     mark: { color: '#FC4C02', icon: StravaLogo },
     name: 'Strava',
-  },
-  {
-    category: 'agenda',
-    description: 'As tarefas do Gmail e da Agenda nas suas Tarefas.',
-    mark: { color: '#2684FC', icon: GoogleTasksLogo },
-    name: 'Google Tarefas',
   },
   {
     category: 'agenda',
@@ -388,6 +392,9 @@ function Details({ connection }: { connection: Connection }): ReactNode {
       {connection.kind === 'CALENDAR_FEED' && <CalendarFeedLinker />}
       {connection.kind === 'EXTERNAL_CALENDARS' && <ExternalCalendarsLinker />}
       {connection.kind === 'HEALTH' && <HealthLinker />}
+      {connection.kind === 'GOOGLE_TASKS' && connection.available && (
+        <GoogleTasksLinker connected={connection.connected} />
+      )}
       {connection.detail && <p className="text-sm">{connection.detail}</p>}
       {connection.unavailableReason && (
         <p className="rounded-xl bg-secondary/60 px-4 py-3.5 text-muted-foreground">

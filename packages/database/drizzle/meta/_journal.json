@@ -316,6 +316,13 @@
       "when": 1793209193915,
       "tag": "0044_magenta_blue_shield",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793209634452,
+      "tag": "0045_bizarre_enchantress",
+      "breakpoints": true
     }
   ]
 }

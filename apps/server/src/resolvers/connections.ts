@@ -10,6 +10,7 @@ import {
   removeExternalCalendar,
 } from '../services/personal/calendars';
 import { healthInbox, setHealthInbox } from '../services/fitness/health';
+import { googleTasksSync, syncGoogleTasks } from '../services/personal/googleTasks';
 import { calendarFeed, setCalendarFeed } from '../services/personal/feed';
 import {
   bankAccounts,
@@ -40,6 +41,7 @@ export const connectionResolvers: Resolvers = {
     unlinkBank: (_, { id }, context) => unlinkBank(requireViewer(context), id),
     setCalendarFeed: (_, { on }, context) => setCalendarFeed(requireViewer(context), on),
     setHealthInbox: (_, { on }, context) => setHealthInbox(requireViewer(context), on),
+    syncGoogleTasks: (_, __, context) => syncGoogleTasks(requireViewer(context)),
     addExternalCalendar: (_, { name, url }, context) =>
       addExternalCalendar(requireViewer(context), name, url),
     refreshExternalCalendar: (_, { id }, context) =>
@@ -77,6 +79,7 @@ export const connectionResolvers: Resolvers = {
     bankLinks: (_, __, context) => bankLinks(requireViewer(context)),
     calendarFeed: (_, __, context) => calendarFeed(requireViewer(context)),
     healthInbox: (_, __, context) => healthInbox(requireViewer(context)),
+    googleTasksSync: (_, __, context) => googleTasksSync(requireViewer(context)),
     externalCalendars: (_, __, context) => listExternalCalendars(requireViewer(context)),
     connections: (_, __, context) => connections(requireViewer(context)),
     whatsappLink: async (_, __, context) => {

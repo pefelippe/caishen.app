@@ -103,6 +103,7 @@ enum ConnectionKind {
   CALENDAR_FEED
   EXTERNAL_CALENDARS
   HEALTH
+  GOOGLE_TASKS
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -2028,4 +2029,30 @@ extend type Query {
 extend type Mutation {
   "On makes a new address (the old one stops working); off removes it, keeping what came."
   setHealthInbox(on: Boolean!): HealthInbox
+}
+
+# Google Tarefas, copied one way into Tarefas (docs/adr/0030).
+
+"When a Connection that copies from elsewhere last read it."
+type IntegrationSync {
+  lastSyncedAt: DateTime
+  "Why the last read failed, in pt-BR."
+  error: String
+}
+
+"What a read of Google Tarefas changed here."
+type GoogleTasksResult {
+  added: Int!
+  done: Int!
+  removed: Int!
+  lastSyncedAt: DateTime!
+}
+
+extend type Query {
+  googleTasksSync: IntegrationSync
+}
+
+extend type Mutation {
+  "Reads Google Tarefas into Tarefas now; needs the tasks.readonly scope on the Google account."
+  syncGoogleTasks: GoogleTasksResult!
 }
