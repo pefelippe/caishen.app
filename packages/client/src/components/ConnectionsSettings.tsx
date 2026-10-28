@@ -76,6 +76,7 @@ import { cn } from '@zapbots/ui/lib/utils';
 
 import { ModelsList } from '../pages/ModelsPage';
 import { AiKeysEditor } from './AiKeysEditor';
+import { CalendarFeedLinker } from './CalendarFeedLinker';
 import { FormError } from './FormError';
 import { OpenFinanceLinker } from './OpenFinanceLinker';
 
@@ -139,6 +140,15 @@ const CARDS: {
     mark: { icon: LandmarkIcon },
     name: 'Open Finance',
   },
+  {
+    category: 'agenda',
+    description:
+      'Seus Eventos, as Tarefas com prazo e os vencimentos das contas no calendário do iPhone, no Google Agenda ou no Outlook, por um link só seu. Lá eles só aparecem; para mudar algo, mude aqui.',
+    id: 'calendar-feed',
+    kind: 'CALENDAR_FEED',
+    mark: { icon: CalendarClockIcon },
+    name: 'Agenda no celular',
+  },
 ];
 
 /**
@@ -163,12 +173,6 @@ const UPCOMING: {
     description: 'Ações, FIIs e Tesouro Direto pela Área do Investidor.',
     mark: { icon: TrendingUpIcon },
     name: 'B3',
-  },
-  {
-    category: 'finance',
-    description: 'Os vencimentos no seu Google Agenda, Outlook ou iPhone.',
-    mark: { icon: CalendarClockIcon },
-    name: 'Agenda de vencimentos',
   },
   {
     category: 'health',
@@ -618,6 +622,7 @@ function Details({ connection }: { connection: Connection }): ReactNode {
         <WhatsappLinker connected={connection.connected} />
       )}
       {connection.kind === 'OPEN_FINANCE' && connection.available && <OpenFinanceLinker />}
+      {connection.kind === 'CALENDAR_FEED' && <CalendarFeedLinker />}
       {connection.detail && <p className="text-sm">{connection.detail}</p>}
       {connection.unavailableReason && (
         <p className="rounded-xl bg-secondary/60 px-4 py-3.5 text-muted-foreground">

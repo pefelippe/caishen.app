@@ -100,6 +100,7 @@ enum ConnectionKind {
   GOOGLE_DRIVE
   WHATSAPP
   OPEN_FINANCE
+  CALENDAR_FEED
 }
 
 "What a Connection is for; the Conexões page has one section per category."
@@ -108,6 +109,7 @@ enum ConnectionCategory {
   FILE_STORAGE
   MESSAGING
   FINANCE
+  CALENDAR
 }
 
 enum BankLinkStatus {
@@ -1938,4 +1940,23 @@ extend type Mutation {
   deleteSleepLog(id: ID!): Boolean!
   addMeasurement(input: MeasurementInput!): Measurement!
   deleteMeasurement(id: ID!): Boolean!
+}
+
+# Integrações with the Agenda: a private link to it as a calendar file (.ics) the iPhone, Google
+# Agenda or Outlook subscribe to.
+
+"The Viewer's private calendar link: anyone with it reads their Agenda, so it can be replaced."
+type CalendarFeed {
+  "The path of the .ics file under the app's own address: /api/calendar/<secret>.ics."
+  path: String!
+  createdAt: DateTime!
+}
+
+extend type Query {
+  calendarFeed: CalendarFeed
+}
+
+extend type Mutation {
+  "On makes a new link (the old one stops working); off removes it."
+  setCalendarFeed(on: Boolean!): CalendarFeed
 }

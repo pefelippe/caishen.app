@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { driveConnected, googleConfigured } from './drive';
 import { aiConfigured, defaultModel, listModels } from './models';
 import { bankLinks, openFinanceUnavailable } from './openFinance';
+import { calendarFeed as calendarFeedOf } from './personal/feed';
 import { maskPhone, whatsappLinkOf } from './whatsapp/link';
 import { whatsappConfigured } from './whatsapp/meta';
 
@@ -113,8 +114,18 @@ const openFinance: Provider = {
   },
 };
 
+const calendarFeed: Provider = {
+  category: 'CALENDAR',
+  kind: 'CALENDAR_FEED',
+  // A private .ics link, read by the User's own calendar app: nothing to set up on the server.
+  status: async viewer => {
+    const feed = await calendarFeedOf(viewer);
+    return { available: true, connected: Boolean(feed), detail: null, unavailableReason: null };
+  },
+};
+
 /** Every Connection zapbots knows. A new one is a new entry here and its copy on the Conexões page. */
-const PROVIDERS: Provider[] = [openRouter, googleDrive, whatsapp, openFinance];
+const PROVIDERS: Provider[] = [openRouter, googleDrive, whatsapp, openFinance, calendarFeed];
 
 export function connections(viewer: Viewer) {
   return Promise.all(

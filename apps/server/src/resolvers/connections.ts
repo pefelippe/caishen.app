@@ -3,6 +3,7 @@ import type { Resolvers } from '@zapbots/graphql/server';
 
 import { AiKeyError, aiKeys, removeAiKey, saveAiKey } from '../services/aiKeys';
 import { connections } from '../services/connections';
+import { calendarFeed, setCalendarFeed } from '../services/personal/feed';
 import {
   bankAccounts,
   bankLinks,
@@ -30,6 +31,7 @@ export const connectionResolvers: Resolvers = {
     linkBank: (_, { itemId }, context) => linkBank(requireViewer(context), itemId),
     syncBankLink: (_, { id }, context) => syncBankLink(requireViewer(context), id),
     unlinkBank: (_, { id }, context) => unlinkBank(requireViewer(context), id),
+    setCalendarFeed: (_, { on }, context) => setCalendarFeed(requireViewer(context), on),
     startWhatsappLink: (_, __, context) => {
       const viewer = requireViewer(context);
       if (!whatsappConfigured()) badInput('O WhatsApp ainda não está ligado neste servidor');
@@ -59,6 +61,7 @@ export const connectionResolvers: Resolvers = {
   Query: {
     aiKeys: (_, __, context) => aiKeys(requireViewer(context)),
     bankLinks: (_, __, context) => bankLinks(requireViewer(context)),
+    calendarFeed: (_, __, context) => calendarFeed(requireViewer(context)),
     connections: (_, __, context) => connections(requireViewer(context)),
     whatsappLink: async (_, __, context) => {
       const link = await whatsappLinkOf(requireViewer(context));

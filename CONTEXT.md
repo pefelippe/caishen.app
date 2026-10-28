@@ -161,6 +161,13 @@ marcou. Vira um Evento na Agenda do Usuário; cancelado por qualquer lado (o
 convidado pelo link do e-mail, o Usuário na tela dos links, ou apagando o
 Evento), o Evento sai e o Agendamento fica como cancelado.
 
+**Assinatura da Agenda** (`CalendarFeed`):
+Um link secreto (`/api/calendar/<token>.ics`) com a Agenda do Usuário como
+arquivo de calendário, que o iPhone, o Google Agenda ou o Outlook leem de tempos
+em tempos: um mês para trás e um ano à frente. Lá fora só se vê; trocar o link
+desliga o antigo.
+_Avoid_: feed, sincronização (nada volta de lá)
+
 **Meta** (`Goal`):
 Aonde o Usuário quer chegar: juntar um valor (MONEY, em centavos), chegar a uma
 contagem (COUNT, com unidade) ou fazer algo uma vez (CHECK). Pode agrupar

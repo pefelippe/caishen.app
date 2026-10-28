@@ -212,3 +212,16 @@ export const booking = pgTable(
   },
   table => [index('booking_type_starts_idx').on(table.bookingTypeId, table.startsAt)]
 );
+
+/**
+ * Assinatura da Agenda: the secret of a User's private calendar link, `/api/calendar/<token>.ics`,
+ * that the iPhone, Google Agenda or Outlook read now and then. One per User; a new one replaces it.
+ */
+export const calendarFeed = pgTable('calendar_feed', {
+  organizationId: organizationId(),
+  token: text('token').notNull().unique(),
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});

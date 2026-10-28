@@ -348,6 +348,12 @@ const PRIVACY: Clause[] = [
           o link vê seu nome e seus horários livres, nunca o que está na sua agenda.
         </li>
         <li>
+          <strong>Agenda no celular:</strong> se você criar o link da sua agenda, quem o tiver lê os
+          seus eventos, as tarefas com prazo e os vencimentos das contas (com o valor), de um mês
+          atrás a um ano à frente, como faz o calendário em que você o colou. Trocar o link desliga
+          o antigo na hora; desligar apaga o link.
+        </li>
+        <li>
           <strong>Conversas com o agente:</strong> as mensagens e respostas. Anexos (imagens, PDFs,
           planilhas) são enviados ao modelo de IA para aquela resposta e não ficam guardados;
           guardamos só os nomes.

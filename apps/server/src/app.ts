@@ -20,6 +20,7 @@ import { ChatError, replyInConversation, type ChatEvent } from './services/bots/
 import { failStaleJobs } from './services/bots/jobs';
 import { runDueRoutines } from './services/bots/routines';
 import { ModelError } from './services/models';
+import { calendarFeedFile } from './services/personal/feed';
 import {
   handlePluggyEvent,
   pluggyWebhookAuthorized,
@@ -112,6 +113,18 @@ app.post('/api/openfinance/webhook', express.json(), (req, res) => {
       reportError(error);
     })
   );
+});
+
+// The Agenda as a calendar file, for the iPhone, Google Agenda or Outlook: the secret in the path
+// is the only key, so an unknown one reads as missing.
+app.get('/api/calendar/:file', async (req, res) => {
+  const token = /^(.+)\.ics$/.exec(req.params.file)?.[1];
+  const file = token ? await calendarFeedFile(token) : null;
+  if (!file) {
+    res.status(404).type('text/plain').send('Este link de agenda não existe mais.');
+    return;
+  }
+  res.set('Cache-Control', 'private, max-age=900').type('text/calendar; charset=utf-8').send(file);
 });
 
 app.get('/health', (_, res) => {

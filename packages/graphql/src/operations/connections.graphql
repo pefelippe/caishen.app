@@ -94,3 +94,17 @@ mutation SetAiKey($provider: AiProvider!, $key: String!) {
 mutation RemoveAiKey($provider: AiProvider!) {
   removeAiKey(provider: $provider)
 }
+
+query CalendarFeed {
+  calendarFeed {
+    path
+    createdAt
+  }
+}
+
+mutation SetCalendarFeed($on: Boolean!) {
+  setCalendarFeed(on: $on) {
+    path
+    createdAt
+  }
+}
